@@ -1,0 +1,7 @@
+
+webmanager2020-03-03 16:30:38 :- u3a_upload_document
+webmanager2020-03-03 16:30:38 :- {"members_id":"233","groups_id":"25","document_type":"1","file":"\/var\/www\/html\/shrewsburyu3a\/wp-content\/uploads\/2020\/03\/monet-reading.jpg","title":"Monet Reading","author":"Pierre-Auguste Renoir","attachment_id":822,"id":65}
+webmanager2020-03-03 16:30:38 :- {"document_categories_id":"34","documents_id":65,"id":60}
+webmanager2020-03-03 16:31:03 :- u3a_upload_document
+webmanager2020-03-03 16:31:03 :- {"members_id":"233","groups_id":"25","document_type":"1","file":"\/var\/www\/html\/shrewsburyu3a\/wp-content\/uploads\/2020\/03\/corot1.jpeg","title":"corot1","author":"","attachment_id":823,"id":66}
+webmanager2020-03-03 16:31:03 :- {"document_categories_id":"34","documents_id":66,"id":61}

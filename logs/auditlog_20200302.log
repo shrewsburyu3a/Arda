@@ -1,0 +1,19 @@
+
+webmanager2020-03-02 10:01:44 :- u3a_upload_document
+webmanager2020-03-02 10:01:44 :- {"members_id":"233","groups_id":"25","document_type":"1","file":"\/var\/www\/html\/shrewsburyu3a\/wp-content\/uploads\/2020\/03\/Spring_in_Meole_as_Monet.png","title":"meole spring","author":"mike curtis","attachment_id":816,"id":59}
+webmanager2020-03-02 10:01:44 :- {"document_categories_id":"4","documents_id":59,"id":54}
+webmanager2020-03-02 10:35:57 :- u3a_upload_document
+webmanager2020-03-02 10:35:57 :- {"members_id":"233","groups_id":"25","document_type":"1","file":"\/var\/www\/html\/shrewsburyu3a\/wp-content\/uploads\/2020\/03\/corot1.jpeg","title":"corot1","author":"","attachment_id":817,"id":60}
+webmanager2020-03-02 10:35:57 :- {"document_categories_id":"4","documents_id":60,"id":55}
+webmanager2020-03-02 10:36:53 :- u3a_upload_document
+webmanager2020-03-02 10:36:53 :- {"members_id":"233","groups_id":"25","document_type":"1","file":"\/var\/www\/html\/shrewsburyu3a\/wp-content\/uploads\/2020\/03\/hh1.jpg","title":"hh1","author":"","attachment_id":818,"id":61}
+webmanager2020-03-02 10:36:53 :- {"document_categories_id":"4","documents_id":61,"id":56}
+webmanager2020-03-02 10:47:40 :- u3a_upload_document
+webmanager2020-03-02 10:47:40 :- {"members_id":"233","groups_id":"25","document_type":"1","file":"\/var\/www\/html\/shrewsburyu3a\/wp-content\/uploads\/2020\/03\/Spring_in_Meole_as_Monet.png","title":"Spring in Meole as Monet","author":"","attachment_id":819,"id":62}
+webmanager2020-03-02 10:47:40 :- {"document_categories_id":"4","documents_id":62,"id":57}
+webmanager2020-03-02 10:57:40 :- u3a_upload_document
+webmanager2020-03-02 10:57:40 :- {"members_id":"233","groups_id":"25","document_type":"1","file":"\/var\/www\/html\/shrewsburyu3a\/wp-content\/uploads\/2020\/03\/the-monet-family.jpg","title":"the monet family","author":"","attachment_id":820,"id":63}
+webmanager2020-03-02 10:57:40 :- {"document_categories_id":"4","documents_id":63,"id":58}
+webmanager2020-03-02 17:28:32 :- u3a_upload_document
+webmanager2020-03-02 17:28:32 :- {"members_id":"233","groups_id":"25","document_type":"1","file":"\/var\/www\/html\/shrewsburyu3a\/wp-content\/uploads\/2020\/03\/the-monet-family.jpg","title":"monet","author":"Mike Curtis","attachment_id":821,"id":64}
+webmanager2020-03-02 17:28:32 :- {"document_categories_id":"4","documents_id":64,"id":59}

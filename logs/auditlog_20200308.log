@@ -1,0 +1,10 @@
+
+webmanager2020-03-08 15:25:50 :- u3a_upload_document
+webmanager2020-03-08 15:25:50 :- {"members_id":"233","groups_id":"25","document_type":"1","file":"\/var\/www\/html\/shrewsburyu3a\/wp-content\/uploads\/2020\/03\/grimshaw1.jpg","title":"grimshaw1","author":"","attachment_id":824,"id":67}
+webmanager2020-03-08 15:25:50 :- {"document_categories_id":"4","documents_id":67,"id":65}
+webmanager2020-03-08 15:28:28 :- u3a_upload_document
+webmanager2020-03-08 15:28:28 :- {"members_id":"233","groups_id":"25","document_type":"1","file":"\/var\/www\/html\/shrewsburyu3a\/wp-content\/uploads\/2020\/03\/hh1.jpg","title":"hh1","author":"","attachment_id":825,"id":68}
+webmanager2020-03-08 15:28:28 :- {"document_categories_id":"4","documents_id":68,"id":66}
+webmanager2020-03-08 15:30:21 :- u3a_upload_document
+webmanager2020-03-08 15:30:21 :- {"members_id":"233","groups_id":"25","document_type":"1","file":"\/var\/www\/html\/shrewsburyu3a\/wp-content\/uploads\/2020\/03\/New-Brough-Superior.jpg","title":"New Brough Superior","author":"","attachment_id":826,"id":69}
+webmanager2020-03-08 15:30:21 :- {"document_categories_id":"34","documents_id":69,"id":67}

@@ -1,0 +1,31 @@
+/*
+ Theme Name:   U3A
+ Theme URI:    http://mullsoft.co.uk/themes/u3a/index.html
+ Description:  Theme for U3A sites
+ Author:       Mike Curtis
+ Author URI:   http://janusweb.org
+ Template:     spacious
+ Version:      1.0.0
+ License:      GNU General Public License v2 or later
+ License URI:  http://www.gnu.org/licenses/gpl-2.0.html
+ Tags:         right-sidebar, responsive-layout, accessibility-ready
+ Text Domain:  u3a
+*/
+@import url('https://fonts.googleapis.com/css?family=Noto+Sans');
+
+body
+{
+	font-family: 'Noto Sans', sans-serif;
+	color: #444444;
+}
+
+.copyright
+{
+	max-width:75% !important;
+}
+
+#header-text-nav-wrap
+{
+	padding-top: 0px;
+	padding-bottom: 0px;
+}

@@ -1,0 +1,31 @@
+
+webmanager2020-04-22 14:29:38 :- u3a_upload_document
+webmanager2020-04-22 14:29:38 :- {"members_id":"233","groups_id":"0","document_type":"6","file":"\/var\/www\/html\/shrewsburyu3a\/wp-content\/uploads\/2020\/04\/shrewsbury-u3a-banner.jpg","title":"shrewsbury u3a banner","author":null,"attachment_id":891,"visibility":0,"id":82}
+webmanager2020-04-22 14:29:38 :- {"document_categories_id":"37","documents_id":82,"id":80}
+webmanager2020-04-22 14:29:51 :- u3a_upload_document
+webmanager2020-04-22 14:29:51 :- {"members_id":"233","groups_id":"0","document_type":"6","file":"\/var\/www\/html\/shrewsburyu3a\/wp-content\/uploads\/2020\/04\/abbey.jpg","title":"abbey","author":null,"attachment_id":892,"visibility":0,"id":83}
+webmanager2020-04-22 14:29:51 :- {"document_categories_id":"37","documents_id":83,"id":81}
+webmanager2020-04-22 14:30:06 :- u3a_upload_document
+webmanager2020-04-22 14:30:06 :- {"members_id":"233","groups_id":"0","document_type":"6","file":"\/var\/www\/html\/shrewsburyu3a\/wp-content\/uploads\/2020\/04\/christmas.jpg","title":"christmas","author":null,"attachment_id":893,"visibility":0,"id":84}
+webmanager2020-04-22 14:30:06 :- {"document_categories_id":"37","documents_id":84,"id":82}
+webmanager2020-04-22 14:30:25 :- u3a_upload_document
+webmanager2020-04-22 14:30:25 :- {"members_id":"233","groups_id":"0","document_type":"6","file":"\/var\/www\/html\/shrewsburyu3a\/wp-content\/uploads\/2020\/04\/whatshername.jpg","title":"whatshername","author":null,"attachment_id":894,"visibility":0,"id":85}
+webmanager2020-04-22 14:30:25 :- {"document_categories_id":"37","documents_id":85,"id":83}
+webmanager2020-04-22 14:30:38 :- u3a_upload_document
+webmanager2020-04-22 14:30:38 :- {"members_id":"233","groups_id":"0","document_type":"6","file":"\/var\/www\/html\/shrewsburyu3a\/wp-content\/uploads\/2020\/04\/knights.jpg","title":"knights","author":null,"attachment_id":895,"visibility":0,"id":86}
+webmanager2020-04-22 14:30:38 :- {"document_categories_id":"37","documents_id":86,"id":84}
+webmanager2020-04-22 14:30:53 :- u3a_upload_document
+webmanager2020-04-22 14:30:53 :- {"members_id":"233","groups_id":"0","document_type":"6","file":"\/var\/www\/html\/shrewsburyu3a\/wp-content\/uploads\/2020\/04\/square.jpg","title":"square","author":null,"attachment_id":896,"visibility":0,"id":87}
+webmanager2020-04-22 14:30:53 :- {"document_categories_id":"37","documents_id":87,"id":85}
+webmanager2020-04-22 14:31:06 :- u3a_upload_document
+webmanager2020-04-22 14:31:06 :- {"members_id":"233","groups_id":"0","document_type":"6","file":"\/var\/www\/html\/shrewsburyu3a\/wp-content\/uploads\/2020\/04\/rainbow-over-english-bridge.jpg","title":"rainbow over english bridge","author":null,"attachment_id":897,"visibility":0,"id":88}
+webmanager2020-04-22 14:31:06 :- {"document_categories_id":"37","documents_id":88,"id":86}
+webmanager2020-04-22 14:31:37 :- u3a_upload_document
+webmanager2020-04-22 14:31:37 :- {"members_id":"233","groups_id":"0","document_type":"6","file":"\/var\/www\/html\/shrewsburyu3a\/wp-content\/uploads\/2020\/04\/Meole-Brace-Hall.jpg","title":"Meole Brace Hall","author":null,"attachment_id":898,"visibility":0,"id":89}
+webmanager2020-04-22 14:31:37 :- {"document_categories_id":"37","documents_id":89,"id":87}
+webmanager2020-04-22 14:31:49 :- u3a_upload_document
+webmanager2020-04-22 14:31:49 :- {"members_id":"233","groups_id":"0","document_type":"6","file":"\/var\/www\/html\/shrewsburyu3a\/wp-content\/uploads\/2020\/04\/from-castlefields.jpg","title":"from castlefields","author":null,"attachment_id":899,"visibility":0,"id":90}
+webmanager2020-04-22 14:31:49 :- {"document_categories_id":"37","documents_id":90,"id":88}
+webmanager2020-04-22 14:32:00 :- u3a_upload_document
+webmanager2020-04-22 14:32:00 :- {"members_id":"233","groups_id":"0","document_type":"6","file":"\/var\/www\/html\/shrewsburyu3a\/wp-content\/uploads\/2020\/04\/long-mynd.jpg","title":"long mynd","author":null,"attachment_id":900,"visibility":0,"id":91}
+webmanager2020-04-22 14:32:00 :- {"document_categories_id":"37","documents_id":91,"id":89}
