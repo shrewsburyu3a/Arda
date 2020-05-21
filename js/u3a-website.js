@@ -2385,6 +2385,7 @@ function u3a_edit_document_changed(groups_id, type)
 			{
 				jQuery('#u3a-edit-title-' + groups_id + "-" + type).val(returned["title"]);
 				jQuery('#u3a-edit-by-' + groups_id + "-" + type).val(returned["author"]);
+				jQuery('#"u3a-visibility-edit-' + groups_id + "-" + type).val(returned["visibility"]);
 			}
 		}
 	});
@@ -2398,11 +2399,13 @@ function u3a_edit_document(groups_id, type, is_group)
 	var docid = jQuery('#' + editid).val();
 	var title = jQuery('#u3a-edit-title-' + groups_id + "-" + type).val();
 	var author = jQuery('#u3a-edit-by-' + groups_id + "-" + type).val();
+	var visibility = jQuery('#"u3a-visibility-edit-' + groups_id + "-" + type).val();
 	var form_data = {
 		action: "u3a_edit_document_details",
 		document: docid,
 		title: title,
-		author: author
+		author: author,
+		visibility: visibility
 	}
 	if (is_group)
 	{

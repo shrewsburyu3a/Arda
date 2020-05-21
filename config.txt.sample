@@ -1,5 +1,5 @@
 #the name of the U3A
-U3ANAME=Shrewsbury
+U3ANAME=
 #the date on which subscriptions become due in the form mm-dd
 SUBSCRIPTIONS_DUE=01-01
 #the date from which subscriptions can be renewed in the form mm-dd
@@ -8,7 +8,7 @@ RENEWALS_FROM=11-01
 REDUCED_FROM=03-01
 #the date on which membership lapses if subscription is unpaid in the form mm-dd
 MEMBERSHIP_LAPSES=03-01
-#the amount of the subscription
+#the amount of the subscription in £.p
 MEMBERSHIP_RATE=15.00
 #the reduced membership rate
 REDUCED_RATE=7.50
@@ -17,6 +17,11 @@ ASSOCIATE_MEMBERSHIP_RATE=11.50
 #the reduced membership rate for associate members
 ASSOCIATE_REDUCED_RATE=5.75
 # the domain name for this U3A
-DOMAIN_NAME=shrewsburyu3a.org.uk
+DOMAIN_NAME=
+# these refer to the mailgun account for sending emails and maintaining mailing lists
 #the mailgun domain for handling email list
-MAILING_LIST_DOMAIN=mg.shrewsburyu3a.org.uk
+MAILING_LIST_DOMAIN=
+PUBLIC_API_KEY=
+PRIVATE_API_KEY=
+WEBHOOK_KEY=
+API_URL=

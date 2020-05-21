@@ -646,6 +646,51 @@ class U3A_Members extends U3A_Database_Row
 		return U3A_Sent_Mail::send($fromm->id, $tom, $subject, $contents, null, null, $nr, $from, $attachments);
 	}
 
+	public static function can_renew($when1 = null)
+	{
+		if (!$when1)
+		{
+			$when = time();
+		}
+		elseif (is_string($when1) && !is_numeric($when1))
+		{
+			$when = strtotime($when1);
+		}
+		else
+		{
+			$when = $when1;
+		}
+		$when_year = U3A_Timestamp_Utilities::year($when);
+		$subs_due = U3A_CONFIG::u3a_get_as_timestamp("SUBSCRIPTIONS_DUE", $when_year);
+		$renew_from = U3A_CONFIG::u3a_get_as_timestamp("RENEWALS_FROM", $when_year);
+		$renew_to = U3A_CONFIG::u3a_get_as_timestamp("MEMBERSHIP_LAPSES", $when_year);
+		if ($renew_to < $renew_from)
+		{
+			$renew_to1 = U3A_CONFIG::u3a_get_as_timestamp("MEMBERSHIP_LAPSES", $when_year + 1);
+			$renew_from1 = U3A_CONFIG::u3a_get_as_timestamp("RENEWALS_FROM", $when_year - 1);
+			// different years
+			$ret = (($when >= $renew_from1) && ($when <= $renew_to)) || (($when >= $renew_from) && ($when <= $renew_to1));
+		}
+		else
+		{
+			// both in same year
+			$ret = ($when >= $renew_from) && ($when <= $renew_to);
+		}
+		$ret = ($when >= $renew_from) || ($when <= $renew_to);
+		return $ret;
+	}
+
+	public static function get_next_renewal_date()
+	{
+		$now = time();
+		$rnw = U3A_CONFIG::u3a_get_as_timestamp("SUBSCRIPTIONS_DUE", 0);
+		if ($now > $rnw)
+		{
+			$rnw = U3A_CONFIG::u3a_get_as_timestamp("SUBSCRIPTIONS_DUE", 1);
+		}
+		return date('Y-m-d', $rnw);
+	}
+
 	private $_real_member = null;
 
 	public function __construct($param = null)
@@ -902,61 +947,13 @@ class U3A_Members extends U3A_Database_Row
 		return $ret;
 	}
 
-	public function can_renew($when1 = null)
+	public function renew_membership()
 	{
-		if (!$when1)
-		{
-			$when = time();
-		}
-		elseif (is_string($when1) && !is_numeric($when1))
-		{
-			$when = strtotime($when1);
-		}
-		else
-		{
-			$when = $when1;
-		}
-		$when_year = U3A_Timestamp_Utilities::year($when);
-		$subs_due = U3A_CONFIG::u3a_get_as_timestamp("SUBSCRIPTIONS_DUE", $when_year);
-		$renew_from = U3A_CONFIG::u3a_get_as_timestamp("RENEWALS_FROM", $when_year);
-//		$renew_from_year = U3A_Timestamp_Utilities::year($renew_from);
-		$renew_to = U3A_CONFIG::u3a_get_as_timestamp("MEMBERSHIP_LAPSES", $when_year);
-//		$renew_to_year = U3A_Timestamp_Utilities::year($renew_to);
-		if ($renew_to < $renew_from)
-		{
-			$renew_to1 = U3A_CONFIG::u3a_get_as_timestamp("MEMBERSHIP_LAPSES", $when_year + 1);
-			$renew_from1 = U3A_CONFIG::u3a_get_as_timestamp("RENEWALS_FROM", $when_year - 1);
-			// different years
-//			$year_end = U3A_Timestamp_Utilities::end_of_year($tm);
-			$ret = (($when >= $renew_from1) && ($when <= $renew_to)) || (($when >= $renew_from) && ($when <= $renew_to1));
-		}
-		else
-		{
-			// both in same year
-			$ret = ($when >= $renew_from) && ($when <= $renew_to);
-		}
-//		$subs_due_year = U3A_Timestamp_Utilities::year($subs_due);
-		$ret = ($when >= $renew_from) || ($when <= $renew_to);
-//		$renew = strtotime($this->_data["renew"]);
-//		$renew_year = U3A_Timestamp_Utilities::year($renew);
-//		if ($when_year === $renew_year)
-//		{
-//			$from_yr = $renew_year - 1;
-//			$to_yr = $renew_year;
-//		}
-//		else
-//		{
-//			$from_yr =;
-//			$to_yr = 1;
-//		}
-//		write_log($when_year, date('Y-m-d', $renew_from), date('Y-m-d', $renew_to));
-		return $ret;
-	}
-
-	public function renew()
-	{
-		$due0 = U3A_CONFIG::u3a_get_as_timestamp("SUBSCRIPTIONS_DUE");
-		$due1 = U3A_CONFIG::u3a_get_as_timestamp("SUBSCRIPTIONS_DUE", 1);
+		$rnw = $this->_data["renew"];
+		$rnwa = explode('-', $rnw);
+		$rnwa[0] = intval($rnwa[0]) + 1;
+		$this->_data["renew"] = implode('-', $rnwa);
+		$this->save();
 	}
 
 	public function shares_group_with($mbr)
@@ -2692,6 +2689,11 @@ class U3A_Documents extends U3A_Database_Row
 	const VISIBILITY_U3A = 1;
 	const VISIBILITY_PUBLIC = 2;
 
+	private static $visibilities = [
+		self::VISIBILITY_GROUP,
+		self::VISIBILITY_U3A,
+		self::VISIBILITY_PUBLIC
+	];
 	private static $document_upload_button_parameters = [
 		"by"		 => "author",
 		"accept"	 => ".pdf,.doc,.docx,.epub,.mobi,.azw3,.xls,.xlsx,.odf,.ppt,.pptx,.pps,.ppsx,application/vnd.ms-powerpoint,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/epub+zip,application/pdf,"
@@ -3106,13 +3108,16 @@ class U3A_Documents extends U3A_Database_Row
 		return '[su_table responsive="yes" alternate="yes"]' . U3A_HTML::to_html($tbl) . "[/su_table]";
 	}
 
-	private static function get_visibility_select($groups_id, $type)
+	private static function get_visibility_select($groups_id, $type, $op, $selected = self::VISIBILITY_GROUP)
 	{
 		$options = [];
-		$options[0] = new U3A_OPTION("group", self::VISIBILITY_GROUP, true);
-		$options[1] = new U3A_OPTION("u3a", self::VISIBILITY_U3A, false);
-		$options[2] = new U3A_OPTION("public", self::VISIBILITY_PUBLIC, false);
-		$ret = new U3A_SELECT($options, "visibility", "u3a-visibility-" . $groups_id . "-" . $type, "u3a-visibility-select-class");
+		for ($n = 0; $n < count(self::$visibilities); $n++)
+		{
+			$options[$n] = new U3A_OPTION("group", self::$visibilities[$n], self::$visibilities[$n] === $selected);
+		}
+//		$options[1] = new U3A_OPTION("u3a", self::VISIBILITY_U3A, false);
+//		$options[2] = new U3A_OPTION("public", self::VISIBILITY_PUBLIC, false);
+		$ret = new U3A_SELECT($options, "visibility", "u3a-visibility-$op-$groups_id-$type", "u3a-visibility-select-class");
 		return $ret;
 	}
 
@@ -3194,9 +3199,9 @@ class U3A_Documents extends U3A_Database_Row
 				U3A_HTML::labelled_html_object("title: ", new U3A_INPUT("string", "title", null, "u3a-input-title-class"), null, "u3a-input-label-class", false, true, "Give a title, default is file name"),
 				U3A_HTML::labelled_html_object($params["by"] . ": ", new U3A_INPUT("string", "by", null, "u3a-input-by-class"), null, "u3a-input-label-class", false, true)
 			];
-			if (($type === U3A_Documents::GROUP_DOCUMENT_TYPE) || ($type === U3A_Documents::GROUP_IMAGE_TYPE) || ($type === U3A_Documents::PERSONAL_IMAGE_TYPE))
+			if (($type === U3A_Documents::GROUP_DOCUMENT_TYPE) || ($type === U3A_Documents::GROUP_IMAGE_TYPE) || ($type === U3A_Documents::PERSONAL_DOCUMENT_TYPE) || ($type === U3A_Documents::PERSONAL_IMAGE_TYPE))
 			{
-				$visibility = U3A_HTML::labelled_html_object("visibility: ", self::get_visibility_select($memgrp, $type), null, "u3a-input-label-class", false, true, null);
+				$visibility = U3A_HTML::labelled_html_object("visibility: ", self::get_visibility_select($memgrp, $type, "add"), null, "u3a-input-label-class", false, true, null);
 			}
 		}
 		$contents = [
@@ -3238,6 +3243,10 @@ class U3A_Documents extends U3A_Database_Row
 						U3A_HTML::labelled_html_object("title: ", new U3A_INPUT("string", "title", "u3a-edit-title-$memgrp-$type", "u3a-input-title-class", $docs[0]->title), null, "u3a-input-label-class", false, true, "Give a new title"),
 						U3A_HTML::labelled_html_object($params["by"] . ": ", new U3A_INPUT("string", "by", "u3a-edit-by-$memgrp-$type", "u3a-input-by-class", $docs[0]->author), null, "u3a-input-label-class", false, true)
 					];
+					if (($type === U3A_Documents::GROUP_DOCUMENT_TYPE) || ($type === U3A_Documents::GROUP_IMAGE_TYPE) || ($type === U3A_Documents::PERSONAL_DOCUMENT_TYPE) || ($type === U3A_Documents::PERSONAL_IMAGE_TYPE))
+					{
+						$titlebit1[] = U3A_HTML::labelled_html_object("visibility: ", self::get_visibility_select($memgrp, $type, "edit"), null, "u3a-input-label-class", false, true, null);
+					}
 					$edith = new U3A_H(4, "Edit " . $type_name1);
 					$editdiv = new U3A_DIV([$edith, $editseldiv, $titlebit1, $editbtn], null, "u3a-edit-document-div-class");
 //					$del[] = $editdiv;

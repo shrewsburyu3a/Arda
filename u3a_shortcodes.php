@@ -2837,7 +2837,7 @@ function u3a_home_contents()
 			$addnewsdiv = new U3A_DIV([$addbtn, $adddiv], "add-news-div", "u3a-add-news-div");
 			$pgcontents[] = $addnewsdiv;
 		}
-//		if ($mbr->can_renew())
+//		if (U3A_Members::can_renew())
 		if (U3A_Committee::is_webmanager($mbr))
 		{
 			$now = time();
@@ -2845,7 +2845,7 @@ function u3a_home_contents()
 //			for ($n = 0; $n < 12; $n++)
 //			{
 //				$t = $now + $n * 4 * U3A_Timestamp_Utilities::WEEK1;
-//				write_log(date("Y-m-d", $t), $mbr->can_renew($t) ? "yes" : "no");
+//				write_log(date("Y-m-d", $t), U3A_Members::can_renew($t) ? "yes" : "no");
 //			}
 			$pgcontents[] = new U3A_INPUT("hidden", null, "u3a-paypal-action", null, "renew");
 			$pgcontents[] = new U3A_INPUT("hidden", "member-affiliation", "u3a-member-affiliation", "u3a-name-input-class", $mbr->affiliation);

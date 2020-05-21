@@ -1398,7 +1398,8 @@ class U3A_PDF extends FPDF
 		$pdf->SetFont('Times', '', 12);
 		$pdf->Cell(0, 4, 'Membership Valid until:', 0, 1);
 		$renew = $mbr->renew;
-		$validuntil = U3A_Timestamp_Utilities::end_of_year(strtotime($renew));
+//		$validuntil = U3A_Timestamp_Utilities::end_of_year(strtotime($renew));
+		$validuntil = strtotime($renew);
 		$vu = date("jS F Y", $validuntil);
 //		$yr = U3A_Timestamp_Utilities::year();
 		$pdf->Cell(0, 4, $vu, 0, 1);

@@ -924,9 +924,9 @@ function u3a_member_action()
 				}
 			}
 			$params["class"] = "Individual";
-			$params["renew"] = U3A_CONFIG::u3a_get_formatted_date("SUBSCRIPTIONS_DUE", null, 1);
+			$params["renew"] = U3A_Members::get_next_renewal_date();
 			$member = new U3A_Members($params);
-			$members_id = $member->save();
+			$member->save();
 			$result = ["success" => 1, "message" => $params["forename"] . " " . $params["surname"] . " has been successfully added with membership number " . $params["membership_number"] . "."];
 			if (($params["payment_type"] === "PayPal") || ($params["payment_type"] === "CreditCard"))
 			{
@@ -2221,7 +2221,7 @@ function u3a_get_document_details()
 	$doc = U3A_Row::load_single_object("U3A_Documents", ["id" => $id]);
 	if ($doc)
 	{
-		$result = ["success" => 1, "title" => $doc->title, "author" => $doc->author];
+		$result = ["success" => 1, "title" => $doc->title, "author" => $doc->author, "visibility" => $doc->visibility];
 	}
 	else
 	{
@@ -2238,11 +2238,13 @@ function u3a_edit_document_details()
 	$id = isset($_POST["document"]) ? $_POST["document"] : 0;
 	$title = isset($_POST["title"]) ? $_POST["title"] : "";
 	$author = isset($_POST["author"]) ? $_POST["author"] : "";
+	$visibility = U3A_Utilities::get_post("visibility", 0);
 	$doc = U3A_Row::load_single_object("U3A_Documents", ["id" => $id]);
 	if ($doc && $title)
 	{
 		$doc->title = $title;
 		$doc->author = $author;
+		$doc->visibility = $visibility;
 		$attachment_title = $title . ($author ? " by $author" : "");
 		$doc->save();
 		$doc_meta = array(
@@ -2575,12 +2577,7 @@ function u3a_renew_membership()
 		$mbr = U3A_Members::get_member($members_id);
 		if ($mbr)
 		{
-			$renew = $mbr->renew;
-			$renewa = explode("-", $renew);
-			$renewa[0] += 1;
-			$newrenew = implode("-", $renewa);
-			$mbr->renew = $newrenew;
-			$mbr->save();
+			$renew = $mbr->renew_membership();
 			send_renewal_email($mbr);
 			$result = ["success" => 1, "message" => "your membership has been renewed"];
 		}
