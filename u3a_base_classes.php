@@ -104,6 +104,7 @@ class U3A_HTML_Utilities
 			"Northumberland",
 			"Nottinghamshire",
 			"Oxfordshire",
+			"Powys",
 			"Rutland",
 			"Shropshire",
 			"Somerset",
@@ -881,6 +882,7 @@ class U3A_HTML_Utilities
 			$coordsname1 = new U3A_INPUT("text", "group-coordinator-surname", "u3a-group-coordinator-surname" . $idsuffix . "-" . $n, "u3a-input-class u3a-name-input-class", $mbr->surname);
 			$coordsname1->add_attribute("readonly", "readonly");
 			$coordmnum = new U3A_INPUT("hidden", "group-coordinator-mnum", "u3a-group-coordinator-mnum" . $idsuffix . "-" . $n, "u3a-group-coordinator-mnum-class", $mbr->membership_number);
+			$coordid = new U3A_INPUT("hidden", "group-coordinator-id", "u3a-group-coordinator-id" . $idsuffix . "-" . $n, "u3a-group-coordinator-id-class", $mbr->id);
 //			$coorddel = new U3A_A('#u3a-group-coordinator-a-' . $n, '<span class="dashicons dashicons-no"></span>', "u3a-group-del-coord" . $idsuffix . "-" . $n, "u3a-group-del-coord-class", "u3a_remove_div('u3a-group-coordinator-outer-div-class', " . $n . ", 1)");
 			$coorddel = new U3A_BUTTON("button", '<span class="dashicons dashicons-no"></span>', "u3a-group-del-coord" . $idsuffix . "-" . $n, "u3a-group-del-coord-button-class u3a-button u3a-inline-block", "u3a_remove_coordinator($n)");
 			if (count($coords) === 1)
@@ -888,7 +890,7 @@ class U3A_HTML_Utilities
 				$coorddel->add_attribute("disabled", "disabled");
 			}
 			$coorddel->add_attribute("title", "remove as coordinator");
-			$coord = new U3A_DIV([ $coordfname1, $coordsname1, $coordmnum, $coorddel], "u3a-group-coordinator-div" . $idsuffix . "-" . $n, "u3a-group-coordinator-div-class u3a-inline-block");
+			$coord = new U3A_DIV([ $coordfname1, $coordsname1, $coordmnum, $coordid, $coorddel], "u3a-group-coordinator-div" . $idsuffix . "-" . $n, "u3a-group-coordinator-div-class u3a-inline-block");
 			$coordlab = U3A_HTML :: labelled_html_object("coordinator:", $coord, "u3a-group-coord-label" . $idsuffix . "-" . $n, "u3a-group-coord-label-class", false, false);
 			$vis = U3A_Group_Members::is_coordinator($mbr, $group_id) ? "u3a-visible" : "u3a-invisible";
 			$coordnames[] = new U3A_DIV($coordlab, "u3a-group-coordinator-outer-div" . $idsuffix . "-" . $n, "u3a-group-coordinator-outer-div-class $vis");

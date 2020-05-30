@@ -435,6 +435,20 @@ class U3A_Utilities
 		return $ret;
 	}
 
+	public static function get_get($key, $default = null)
+	{
+		$ret = $default;
+		if (isset($_GET[$key]))
+		{
+			$ret = $_GET[$key];
+		}
+		elseif (isset($_POST[$key]))
+		{
+			$ret = htmlspecialchars($_POST[$key]);
+		}
+		return $ret;
+	}
+
 	public static function load_json_file($file)
 	{
 		$json = file_get_contents($file);

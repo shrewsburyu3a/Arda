@@ -678,62 +678,31 @@ function u3a_edit_group_action()
 {
 //	write_log($_POST);
 	$params = [];
-	$params["name"] = isset($_POST["name"]) ? $_POST["name"] : "";
+	$params["name"] = U3A_Utilities::get_post("name", "");
 	$ngname = $params["name"];
-	$ngcoord = isset($_POST["coord"]) ? $_POST["coord"] : "";
-	$params["venue"] = isset($_POST["venue"]) ? $_POST["venue"] : "";
-	$params["meets_when"] = isset($_POST["meets_when"]) ? $_POST["meets_when"] : "";
-	$params["max_members"] = isset($_POST["max_members"]) ? $_POST["max_members"] : "";
+	$ngcoord = U3A_Utilities::get_post("coord");
+	$params["venue"] = U3A_Utilities::get_post("venue", "");
+	$params["meets_when"] = U3A_Utilities::get_post("meets_when", "");
+	$params["max_members"] = U3A_Utilities::get_post("max_members", "");
 //	$ngfrom = isset($_POST["from"]) ? $_POST["from"] : "";
 //	$ngto = isset($_POST["to"]) ? $_POST["to"] : "";
-	$params["information"] = isset($_POST["notes"]) ? $_POST["notes"] : "";
-	$params["id"] = isset($_POST["group"]) ? $_POST["group"] : 0;
+	$params["information"] = U3A_Utilities::get_post("notes", "");
+	$params["id"] = U3A_Utilities::get_post("group", 0);
 	$groups_id = $params["id"];
 	$grp = U3A_Row::load_single_object("U3A_Groups", ["id" => $groups_id]);
 	if ($grp)
 	{
-		$coord = [];
+		$coordchanged = false;
 		if ($ngcoord)
 		{
-			$coordid = array_unique(explode(",", $ngcoord));
-			foreach ($coordid as $cid)
+			$newcoordid = array_unique(explode(",", $ngcoord));
+			$oldcoordid = U3A_Groups::get_coordinator_ids($grp);
+			$addcoord = array_diff($newcoordid, $oldcoordid);
+			$rmcoord = array_diff($oldcoordid, $newcoordid);
+			write_log("add", $addcoord, "rm", $rmcoord);
+			foreach ($addcoord as $cid)
 			{
-				$coord1 = U3A_Row::load_single_object("U3A_Members", ["membership_number" => $cid, "status" => "Current"]);
-				if ($coord1)
-				{
-					$coord[] = $coord1;
-				}
-			}
-		}
-		if (!$coord)
-		{
-			$result = ["success" => 0, "message" => "no member with number $ngcoord found to be coordinator"];
-		}
-		else
-		{
-			$groups_columns = U3A_Row::get_the_column_names("u3a_groups");
-			$changed = false;
-			$changed1 = false;
-			foreach ($groups_columns as $column)
-			{
-				if (isset($params[$column]) && $params[$column] !== $grp->$column)
-				{
-					$grp->$column = $params[$column];
-					$changed = true;
-				}
-			}
-			if ($changed)
-			{
-				$grp->save();
-				$result = ["success" => 1, "message" => "group $ngname has been changed!"];
-			}
-			else
-			{
-				$result = ["success" => 1, "message" => "nothing has been changed in group $ngname!"];
-			}
-			foreach ($coord as $c)
-			{
-				$gmem = U3A_Row::load_single_object("U3A_Group_Members", ["groups_id" => $groups_id, "members_id" => $c->id]);
+				$gmem = U3A_Row::load_single_object("U3A_Group_Members", ["groups_id" => $groups_id, "members_id" => $cid]);
 				if ($gmem)
 				{
 					$status = intval($gmem->status);
@@ -743,12 +712,16 @@ function u3a_edit_group_action()
 							{
 								$gmem->status = 1;
 								$gmem->save();
+//								write_log("1.saved", $gmem->members_id);
+								$coordchanged = true;
 								break;
 							}
 						case 2:
 							{
 								$gmem->status = 3;
 								$gmem->save();
+								$coordchanged = true;
+//								write_log("2.saved", $gmem->members_id);
 								break;
 							}
 						case 1:
@@ -760,6 +733,67 @@ function u3a_edit_group_action()
 					}
 				}
 			}
+			foreach ($rmcoord as $cid)
+			{
+				$gmem = U3A_Row::load_single_object("U3A_Group_Members", ["groups_id" => $groups_id, "members_id" => $cid]);
+				if ($gmem)
+				{
+					$status = intval($gmem->status);
+					switch ($status) {
+						case 1:
+							{
+								$gmem->status = 0;
+								$gmem->save();
+								$coordchanged = true;
+//								write_log("3.saved", $gmem->members_id);
+								break;
+							}
+						case 3:
+							{
+								$gmem->status = 2;
+								$gmem->save();
+								$coordchanged = true;
+//								write_log("4.saved", $gmem->members_id);
+								break;
+							}
+						case 0:
+						case 4:
+						default:
+							{
+								break;
+							}
+					}
+				}
+			}
+//			foreach ($coordid as $cid)
+//			{
+//				$coord1 = U3A_Row::load_single_object("U3A_Members", ["membership_number" => $cid, "status" => "Current"]);
+//				if ($coord1)
+//				{
+//					$coord[] = $coord1;
+//				}
+//			}
+		}
+		$groups_columns = U3A_Row::get_the_column_names("u3a_groups");
+		$changed = false;
+		$changed1 = false;
+		foreach ($groups_columns as $column)
+		{
+			if (isset($params[$column]) && $params[$column] !== $grp->$column)
+			{
+				$grp->$column = $params[$column];
+				$changed = true;
+			}
+		}
+		if ($changed || $coordchanged)
+		{
+			$grp->save();
+			$result = ["success" => 1, "message" => "group $ngname has been changed!"];
+		}
+		else
+		{
+			$result = ["success" => 1, "message" => "nothing has been changed in group $ngname!"];
+		}
 //			$gmem = new U3A_Group_Members([
 //				"members_id" => $coord->id,
 //				"groups_id"	 => $params["id"],
@@ -767,7 +801,6 @@ function u3a_edit_group_action()
 //			]);
 //			$gmem->save();
 //			$result = ["success" => 1, "message" => "group $ngname modified"];
-		}
 	}
 	else
 	{
@@ -846,7 +879,7 @@ add_action("wp_ajax_nopriv_u3a_member", "u3a_member_action");
 
 function u3a_member_action()
 {
-	write_log($_POST);
+//	write_log($_POST);
 	$members_columns = U3A_Row::get_the_column_names("u3a_members");
 	$op = isset($_POST["op"]) ? $_POST["op"] : "";
 	$params = [];
@@ -903,7 +936,7 @@ function u3a_member_action()
 			}
 		}
 	}
-	write_log($op, $params);
+//	write_log($op, $params);
 	if (($op == "add") || ($op == "join"))
 	{
 		$params["membership_number"] = U3A_Members::get_maximum_membership_number() + 1;
@@ -2590,6 +2623,8 @@ function u3a_renew_membership()
 	{
 		$result = ["success" => 0, "message" => "your membership has not been renewed, please contact support"];
 	}
+	echo json_encode($result);
+	wp_die();
 }
 
 add_action("wp_ajax_u3a_update_information", "u3a_update_information");
@@ -2616,4 +2651,25 @@ function u3a_update_information()
 	{
 		$result = ["success" => 0, "message" => "your information has not been saved, no member specified"];
 	}
+	echo json_encode($result);
+	wp_die();
+}
+
+add_action("wp_ajax_u3a_get_personal_page", "u3a_get_personal_page");
+
+function u3a_get_personal_page()
+{
+	$members_id = U3A_Utilities::get_post("member", 0);
+	$manage = U3A_Utilities::get_post("manage", "no");
+	if ($members_id)
+	{
+		$html = do_shortcode('[u3a_members_personal manage="' . $manage . '" profile="no" member="' . $members_id . '"]');
+		$result = ["success" => 1, "arg" => $html];
+	}
+	else
+	{
+		$result = ["success" => 0, "message" => "failed to return personal page, no member specified"];
+	}
+	echo json_encode($result);
+	wp_die();
 }

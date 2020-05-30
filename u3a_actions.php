@@ -127,7 +127,7 @@ function um_account_content_hook_memberpage($output)
 
 	<div class="um-field">
 		<?php
-		echo (do_shortcode('[u3a_members_personal manage="yes"]'))
+		echo (do_shortcode('[u3a_members_personal manage="yes" profile="yes"]'))
 		?>
 		<!-- Here goes your custom content -->
 

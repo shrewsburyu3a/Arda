@@ -1217,7 +1217,15 @@ function u3a_member_details_form_contents($atts1)
 	$mbrhdr = new U3A_H(6, "Member Details");
 	if (($atts["op"] === "add") || ($atts["op"] === "join") || ($atts["op"] === "selfedit"))
 	{
-		$memnum = null;
+		if ($atts["op"] === "selfedit")
+		{
+			$memnum = u3a_get_member_details_form_text_field($op, "member-membership_number", "number", $idsuffix, $mnum_value);
+			$memnum->add_class("u3a-invisible");
+		}
+		else
+		{
+			$memnum = null;
+		}
 		$reqtxt = "Required fields are marked <b>thus</b><sup>*</sup>.";
 	}
 	else
@@ -3409,15 +3417,21 @@ add_shortcode("u3a_members_personal", "u3a_members_personal_contents");
 
 function u3a_members_personal_contents($atts1)
 {
+	wp_enqueue_editor();
 	$mbr = U3A_Information::u3a_logged_in_user();
 	if ($mbr)
 	{
+		$default_members_id = U3A_Utilities::get_post("member", $mbr->id);
+		$default_manage = U3A_Utilities::get_post("manage", 'no');
 		$atts = shortcode_atts(array(
-			'member'		 => $mbr->id,
-			'manage'		 => 'no',
+			'member'		 => $default_members_id,
+			'manage'		 => $default_manage,
+			"profile"	 => 'no',
 			'spoiler'	 => null,
 			'category'	 => 0
 		  ), $atts1, 'u3a_members_personal');
+		$profile = $atts["profile"];
+		$manage = $atts["manage"];
 		$active1 = 1;
 		$isme = intval($atts["member"]) === intval($mbr->id);
 		$member = $isme ? $mbr : U3A_Members::get_member($atts["member"]);
@@ -3429,16 +3443,16 @@ function u3a_members_personal_contents($atts1)
 		$pgcontent .= '[su_tabs style="wood" active="' . $active1 . '"]\n';
 		$pgcontent .= '[su_tab title="About" disabled="no" anchor="" url="" target="blank" class=""]';
 		$info = $member->information;
-		if (($atts["manage"] === 'yes') && $isme)
+		if (($manage === 'yes') && $isme)
 		{
 			if (!$info)
 			{
 				$info = "Please enter some information about yourself here.";
 			}
 			ob_start();
-			wp_editor($info, "u3a-member-personal-page-text");
+			wp_editor($info, "u3a-member-personal-page-text", ["default_editor" => "tinymce"]);
 			$pgcontent .= ob_get_clean();
-			$updatebtn = new U3A_BUTTON("button", "update", "u3a-member-personal-page-update", "u3a-button", "u3a_update_information('" . $member->id . '")');
+			$updatebtn = new U3A_BUTTON("button", "update", "u3a-member-personal-page-update", "u3a-button", "u3a_update_information('" . $member->id . "')");
 			$pgcontent .= $updatebtn->to_html();
 		}
 		else
@@ -3456,7 +3470,7 @@ function u3a_members_personal_contents($atts1)
 		$gall = '[u3a_image_list member="' . $member->id . '" type="' . U3A_Documents::PERSONAL_IMAGE_TYPE . '"]';
 		$pgcontent .= '[su_tab title="Documents" disabled="no" anchor="" url="" target="blank" class=""]' . $docs . "\n[/su_tab]\n";
 		$pgcontent .= '[su_tab title="Gallery" disabled="no" anchor="" url="" target="blank" class=""]' . "\n" . $gall . "\n[/su_tab]\n";
-		if (($atts["manage"] === 'yes') && $isme)
+		if (($manage === 'yes') && $isme)
 		{
 			$mng = "[su_accordion]\n";
 			$mng .= U3A_Information::get_manage_open_spoiler("Manage Categories", $atts["spoiler"]);
@@ -3472,6 +3486,21 @@ function u3a_members_personal_contents($atts1)
 			$pgcontent .= '[su_tab title="Manage" disabled="no" anchor="" url="" target="blank" class=""]' . "\n" . $mng . "\n[/su_tab]\n";
 		}
 		$pgcontent .= "[/su_tabs]\n";
+		if ($isme && ($profile !== 'yes'))
+		{
+			if (($atts["manage"] === 'yes'))
+			{
+				$lbl = "done";
+				$manage = 'no';
+			}
+			else
+			{
+				$lbl = "edit";
+				$manage = 'yes';
+			}
+			$editbtn = new U3A_BUTTON("button", $lbl, "u3a-member-personal-page-edit", "u3a-button", "u3a_refresh_personal_page('" . $member->id . "', '$manage')");
+			$pgcontent .= $editbtn->to_html();
+		}
 	}
 	return do_shortcode($pgcontent);
 }

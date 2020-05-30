@@ -846,6 +846,22 @@ class U3A_Members extends U3A_Database_Row
 		return $ret;
 	}
 
+	public function has_personal_page($visibility = U3A_Documents::VISIBILITY_GROUP)
+	{
+		$info = U3A_Row::load_single_object("U3A_Members_Information", ["members_id" => $this->_data["id"]]);
+		$ret = false;
+		if ($info)
+		{
+			$docs = U3A_Row::count_rows("U3A_Documents", ["members_id"	 => $this->_data["id"], "document_type" => [U3A_Documents::PERSONAL_DOCUMENT_TYPE, U3A_Documents::PERSONAL_IMAGE_TYPE],
+				  "visibility>="	 => $visibility]);
+			if ($docs)
+			{
+				$ret = true;
+			}
+		}
+		return $ret;
+	}
+
 	public function get_information()
 	{
 		$info = U3A_Row::load_single_object("U3A_Members_Information", ["members_id" => $this->_data["id"]]);

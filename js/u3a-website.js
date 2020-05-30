@@ -2140,26 +2140,32 @@ function on_group_button_click(thisid)
 	console.debug("u3a-group-btn", thisid, idsuffix);
 	var ngname = jQuery("#u3a-group-name" + idsuffix).val();
 	var source = jQuery("#u3a-edit-group-source" + idsuffix).val();
-	var coordid = "#u3a-group-coordinator-mnum" + idsuffix;
-	var ngcoord = "0";
-	if (jQuery(coordid).length > 0)
+	var coorda = [];
+	jQuery('.u3a-group-coordinator-outer-div-class.u3a-visible .u3a-group-coordinator-id-class').each(function ()
 	{
-		ngcoord = jQuery(coordid).val();
-	}
-	else
-	{
-		var coorda = [];
-		var coordid1 = coordid + "-0";
-		var max = 20;
-		var n = 0;
-		while (jQuery(coordid1).length > 0)
-		{
-			coorda[n] = jQuery(coordid1).val();
-			n++;
-			coordid1 = coordid + "-" + n;
-		}
-		ngcoord = coorda.join(",");
-	}
+		coorda.push(jQuery(this).val());
+	});
+	ngcoord = coorda.join(",");
+//	var coordid = "#u3a-group-coordinator-mnum" + idsuffix;
+//	var ngcoord = "0";
+//	if (jQuery(coordid).length > 0)
+//	{
+//		ngcoord = jQuery(coordid).val();
+//	}
+//	else
+//	{
+//		var coorda = [];
+//		var coordid1 = coordid + "-0";
+//		var max = 20;
+//		var n = 0;
+//		while (jQuery(coordid1).length > 0)
+//		{
+//			coorda[n] = jQuery(coordid1).val();
+//			n++;
+//			coordid1 = coordid + "-" + n;
+//		}
+//		ngcoord = coorda.join(",");
+//	}
 	var ngvenue = jQuery("#u3a-group-venue" + idsuffix).val();
 	var ngwhn = jQuery("#u3a-group-when-json" + idsuffix).val();
 	var ngmax = jQuery("#u3a-group-max" + idsuffix).val();
@@ -2943,4 +2949,33 @@ function u3a_update_information(members_id)
 		info: info
 	};
 	u3a_ajax(form_data, "Update Member Information");
+}
+
+function u3a_refresh_personal_page(members_id, manage)
+{
+//	var members_id = jQuery('#u3a-member-personal-page-id').val();
+	if (members_id)
+	{
+		var tab = jQuery("span.su-tabs-current").text();
+		var spoiler = jQuery("div.su-spoiler:not(.su-spoiler-closed) div.su-spoiler-title").text();
+		console.debug("members_id", members_id, "tab", tab, "spoiler", spoiler);
+		jQuery('<form action="' + window.location.href + '" method="POST"><input type="hidden" name="member" value="' + members_id +
+				  '"><input type="hidden" name="tab" value="' + tab + '"><input type="hidden" name="spoiler" value="' + spoiler +
+				  '"><input type="hidden" name="manage" value="' + manage + '"></form>').appendTo('body').submit();
+	}
+	else
+	{
+		console.debug("no member id");
+	}
+
+//	var form_data = {
+//		action: "u3a_get_personal_page",
+//		member: members_id,
+//		manage: manage
+//	};
+//	u3a_ajax(form_data, "Refresh Personal Page", function (html)
+//	{
+//		jQuery('div.entry-content').html(html);
+//	});
+
 }
