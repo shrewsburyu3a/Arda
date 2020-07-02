@@ -95,6 +95,12 @@ function u3a_find_members_search_action()
 //				$member_details_action = new U3A_INPUT("hidden", "action", "u3a-found-members-action" . $idsuffix, null, "be_coordinator_of_new_group");
 			$form = new U3A_FORM([$sel], "/wp-admin/admin-ajax.php", "POST", "u3a-member-details-form" . $idsuffix, "u3a-member-details-form-class");
 		}
+		elseif ($next_action === "goto_member")
+		{
+//				$add_btn = new U3A_BUTTON("button", "select", "u3a-found-members-button", "u3a-found-members-button-class");
+//				$member_details_action = new U3A_INPUT("hidden", "action", "u3a-found-members-action" . $idsuffix, null, "be_coordinator_of_new_group");
+			$form = new U3A_FORM([$sel], "/wp-admin/admin-ajax.php", "POST", "u3a-member-details-form" . $idsuffix, "u3a-member-details-form-class");
+		}
 		elseif ($next_action === "change_status")
 		{
 //				$add_btn = new U3A_BUTTON("button", "select", "u3a-found-members-button", "u3a-found-members-button-class");
@@ -478,10 +484,10 @@ add_action('wp_ajax_u3a_upload_document', 'u3a_upload_document');
 function u3a_upload_document()
 {
 	write_log("u3a upload document");
-//	write_log($_POST);
+	write_log($_POST);
 //	write_log($_FILES);
-	$groups_id = $_POST["group"];
-	$type = $_POST["type"];
+	$groups_id = U3A_Utilities::get_post("group", 0);
+	$type = U3A_Utilities::get_post("type", 0);
 	$uploadedfile = $_FILES['u3a-upload-document-file'];
 	$visibility = U3A_Utilities::get_post("visibility", 0);
 	$mbr = U3A_Information::u3a_logged_in_user();
@@ -557,7 +563,7 @@ function u3a_upload_document()
 				'post_excerpt'	 => $attachment_title, // Set image Caption (Excerpt) to sanitized title
 				'post_content'	 => $attachment_title, // Set image Description (Content) to sanitized title
 			);
-			if ($type == U3A_Documents::GROUP_IMAGE_TYPE || $type == U3A_Documents::COMMITTEE_IMAGE_TYPE)
+			if ($type == U3A_Documents::GROUP_IMAGE_TYPE || $type == U3A_Documents::COMMITTEE_IMAGE_TYPE || $type == U3A_Documents::PERSONAL_IMAGE_TYPE)
 			{
 				// Set the image Alt-Text
 				update_post_meta($attachment_id, '_wp_attachment_image_alt', $attachment_title);
@@ -1323,17 +1329,31 @@ add_action("wp_ajax_u3a_create_document_category", "u3a_create_document_category
 function u3a_create_document_category()
 {
 	$cat = $_POST["name"];
-	$grp = $_POST["group"];
-	$typ = $_POST["type"];
-	$groups_id = U3A_Groups::get_group_id($grp);
-	$category = U3A_Row::load_single_object("U3A_Document_Categories", ["name" => $cat, "groups_id" => $groups_id, "document_type" => $typ]);
+	$memgrp = $_POST["memgrp"];
+	$typ = intval($_POST["type"]);
+//	$groups_id = U3A_Groups::get_group_id($grp);
+	if (($typ === U3A_Documents::PERSONAL_DOCUMENT_TYPE) || ($typ === U3A_Documents::PERSONAL_IMAGE_TYPE))
+	{
+		$category = U3A_Row::load_single_object("U3A_Document_Categories", ["name" => $cat, "groups_id" => -1, "members_id" => $memgrp, "document_type" => $typ]);
+	}
+	else
+	{
+		$category = U3A_Row::load_single_object("U3A_Document_Categories", ["name" => $cat, "groups_id" => $memgrp, "document_type" => $typ]);
+	}
 	if ($category)
 	{
 		$result = ["success" => 0, "message" => "category with name $cat already exists!"];
 	}
 	else
 	{
-		$category = new U3A_Document_Categories(["name" => $cat, "groups_id" => $groups_id, "document_type" => $typ]);
+		if (($typ === U3A_Documents::PERSONAL_DOCUMENT_TYPE) || ($typ === U3A_Documents::PERSONAL_IMAGE_TYPE))
+		{
+			$category = new U3A_Document_Categories(["name" => $cat, "groups_id" => -1, "members_id" => $memgrp, "document_type" => $typ]);
+		}
+		else
+		{
+			$category = new U3A_Document_Categories(["name" => $cat, "groups_id" => $memgrp, "document_type" => $typ]);
+		}
 		$category->save();
 		$result = ["success" => 1, "message" => "category $cat created!"];
 	}
@@ -2633,16 +2653,17 @@ function u3a_update_information()
 {
 	$members_id = U3A_Utilities::get_post("member", 0);
 	$info = U3A_Utilities::get_post("info", null);
+	write_log("info", $info);
 	if ($members_id)
 	{
 		$mi = U3A_Row::load_single_object("U3A_Members_Information", ["members_id" => $members_id]);
 		if ($mi)
 		{
-			$mi->information = addslashes($info);
+			$mi->information = $info;
 		}
 		else
 		{
-			$mi = new U3A_Members_Information(["members_id" => $members_id, "information" => addslashes($info)]);
+			$mi = new U3A_Members_Information(["members_id" => $members_id, "information" => $info]);
 		}
 		$mi->save();
 		$result = ["success" => 1, "message" => "your information has been saved"];
@@ -2663,7 +2684,7 @@ function u3a_get_personal_page()
 	$manage = U3A_Utilities::get_post("manage", "no");
 	if ($members_id)
 	{
-		$html = do_shortcode('[u3a_members_personal manage="' . $manage . '" profile="no" member="' . $members_id . '"]');
+		$html = do_shortcode('[u3a_members_personal manage="' . $manage . '" member="' . $members_id . '"]');
 		$result = ["success" => 1, "arg" => $html];
 	}
 	else
@@ -2671,5 +2692,382 @@ function u3a_get_personal_page()
 		$result = ["success" => 0, "message" => "failed to return personal page, no member specified"];
 	}
 	echo json_encode($result);
+	wp_die();
+}
+
+add_action("wp_ajax_u3a_get_header_image", "u3a_get_header_image");
+add_action("wp_ajax_nopriv_u3a_get_header_image", "u3a_get_header_image");
+
+function u3a_get_header_image()
+{
+	$type = U3A_Utilities::get_post("type", U3A_Documents::COMMITTEE_IMAGE_TYPE);
+	$categories_id = U3A_Utilities::get_post("cat", 0);
+	$groups_id = U3A_Utilities::get_post("group", 0);
+	$members_id = U3A_Utilities::get_post("member", 0);
+	$ndx = U3A_Utilities::get_post("index", null);
+	$total = U3A_Utilities::get_post("total", null);
+	$imgs1 = U3A_Documents::get_header_images($groups_id, $members_id);
+	$imgs = $imgs1["images"];
+	$categories_id = $imgs1["categories_id"];
+//	if ($members_id)
+//	{
+//		$imgs = U3A_Documents::get_attachment_ids_for_member($members_id, $type, $categories_id);
+//	}
+//	else
+//	{
+//		$imgs = U3A_Documents::get_attachment_ids_for_group($groups_id, $type, $categories_id);
+//	}
+	if ($imgs)
+	{
+		if ($ndx === null)
+		{
+			$ndx = rand(0, count($imgs) - 1);
+		}
+		else
+		{
+			$ndx = ($ndx + 1) % count($imgs);
+		}
+		$src = wp_get_attachment_url($imgs[$ndx]);
+		$title = get_the_title($imgs[$ndx]);
+		$result = ["success" => 1, "arg" => $src . '|' . $title . '|' . $ndx . '|' . count($imgs)];
+	}
+	else
+	{
+		$result = ["success" => 0, "message" => "no header images found"];
+	}
+	echo json_encode($result);
+	wp_die();
+}
+
+add_action("wp_ajax_u3a_add_post", "u3a_add_post");
+
+function u3a_add_post()
+{
+	$groups_id = U3A_Utilities::get_post("group", 0);
+	$text = U3A_Utilities::get_post("text", null);
+	$replyto = U3A_Utilities::get_post("replyto", 0);
+	$title = U3A_Utilities::get_post("title", null);
+	$mbr = U3A_Information::u3a_logged_in_user();
+	if (!$title)
+	{
+		$title = date('\O\n jS F \a\t G:i ') . $mbr->get_name() . " said....";
+	}
+	else
+	{
+		$title = date('jS F G:i ') . $mbr->get_name() . ": <b>" . $title . "</b>";
+	}
+	write_log($mbr, $groups_id, $text);
+	if ($mbr && $groups_id && $text)
+	{
+		$hash = [
+			"groups_id"	 => $groups_id,
+			"members_id" => $mbr->id,
+			"title"		 => $title,
+			"contents"	 => $text
+		];
+		if ($replyto)
+		{
+			$hash["reply_to"] = $replyto;
+		}
+		$post = new U3A_Forum_Posts($hash);
+		$post->save();
+		$result = ["success" => 1, "message" => "your message has been posted"];
+	}
+	else
+	{
+		$result = ["success" => 0, "message" => "message not posted"];
+	}
+	echo json_encode($result);
+	wp_die();
+}
+
+add_action("wp_ajax_u3a_delete_post", "u3a_delete_post");
+
+function u3a_delete_post()
+{
+	$groups_id = U3A_Utilities::get_post("group", 0);
+	$thread_id = U3A_Utilities::get_post("thread", 0);
+	if ($groups_id && $thread_id)
+	{
+		U3A_Forum_Posts::delete_thread($groups_id, $thread_id);
+		$result = ["success" => 1, "message" => "thread has been deleted"];
+	}
+	else
+	{
+		$result = ["success" => 0, "message" => "thread not deleted"];
+	}
+	echo json_encode($result);
+	wp_die();
+}
+
+add_action("wp_ajax_u3a_add_friend", "u3a_add_friend");
+
+function u3a_add_friend()
+{
+	$member = U3A_Utilities::get_post("member", 0);
+	$friend = U3A_Utilities::get_post("friend", 0);
+	if ($member && $friend)
+	{
+		$fname = U3A_Members::get_member_name($friend);
+		$fr = U3A_Row::load_single_object("U3A_Friends", ["members_id" => $member, "friends_id" => $friend]);
+		if ($fr)
+		{
+			$result = ["success" => 0, "message" => "$fname is already your friend"];
+		}
+		else
+		{
+			$fr = new U3A_Friends(["members_id" => $member, "friends_id" => $friend]);
+			$fr->save();
+			$result = ["success" => 1, "message" => "$fname is now your friend"];
+		}
+	}
+	else
+	{
+		$result = ["success" => 0, "message" => "member ($member) or friend ($friend) not specified"];
+	}
+	echo json_encode($result);
+	wp_die();
+}
+
+add_action("wp_ajax_u3a_remove_friend", "u3a_remove_friend");
+
+function u3a_remove_friend()
+{
+	$member = U3A_Utilities::get_post("member", 0);
+	$friend = U3A_Utilities::get_post("friend", 0);
+	if ($member && $friend)
+	{
+		$fname = U3A_Members::get_member_name($friend);
+		$fr = U3A_Row::load_single_object("U3A_Friends", ["members_id" => $member, "friends_id" => $friend]);
+		if ($fr)
+		{
+			$fr->delete();
+			$result = ["success" => 1, "message" => "$fname removed as friend"];
+		}
+		else
+		{
+			$result = ["success" => 0, "message" => "$fname is not your friend"];
+		}
+	}
+	else
+	{
+		$result = ["success" => 0, "message" => "member ($member) or friend ($friend) not specified"];
+	}
+	echo json_encode($result);
+	wp_die();
+}
+
+add_action("wp_ajax_u3a_group_mailing_list", "u3a_group_mailing_list");
+
+function u3a_group_mailing_list()
+{
+	$name = U3A_Utilities::get_post("name", null);
+	$members = U3A_Utilities::get_post("members", null);
+	$operatiom = U3A_Utilities::get_post("op", "save");
+	$groups_id = U3A_Utilities::get_post("group", 0);
+	$list_id = U3A_Utilities::get_post("list", 0);
+	if ($name || $list_id)
+	{
+		switch ($operatiom) {
+			case "save":
+				{
+					if ($members && $name)
+					{
+						$list = U3A_Row::load_single_object("U3A_Email_Lists", ["name" => $name]);
+						if ($list)
+						{
+							$result = ["success" => 0, "message" => "a list $name already exists"];
+						}
+						else
+						{
+							$list = new U3A_Email_Lists(["name" => $name, "groups_id" => $groups_id]);
+							$list_id = $list->save();
+							$members_ids = explode(",", $members);
+							foreach ($members_ids as $members_id)
+							{
+								$m = new U3A_Email_List_Members(["email_lists_id" => $list_id, "members_id" => $members_id]);
+								$m->save();
+							}
+							$result = ["success" => 1, "message" => "list $name has been created!"];
+						}
+					}
+					else
+					{
+						$result = ["success" => 0, "message" => "no name or no members specified"];
+					}
+					break;
+				}
+			case "update":
+				{
+					if ($members && $list_id)
+					{
+						$list = U3A_Row::load_single_object("U3A_Email_Lists", ["id" => $list_id]);
+						if (!$list)
+						{
+							$result = ["success" => 0, "message" => "list $name does not exist"];
+						}
+						else
+						{
+							$members_ids = explode(",", $members);
+							$current = U3A_Email_Lists::get_list_member_ids($list->id);
+							$to_add = array_diff($members_ids, $current);
+							$to_delete = array_diff($current, $members_ids);
+							foreach ($to_add as $members_id)
+							{
+								$m = new U3A_Email_List_Members(["email_lists_id" => $list_id, "members_id" => $members_id]);
+								$m->save();
+							}
+							foreach ($to_delete as $members_id)
+							{
+								$m = U3A_Row::load_single_object("U3A_Email_List_Members", ["email_lists_id" => $list_id, "members_id" => $members_id]);
+								$m->delete();
+							}
+							$result = ["success" => 1, "message" => "list $name has been updated!"];
+						}
+					}
+					else
+					{
+						$result = ["success" => 0, "message" => "no members specified"];
+					}
+					break;
+				}
+			case "delete":
+				{
+					if ($list_id)
+					{
+						$list = U3A_Row::load_single_object("U3A_Email_Lists", ["id" => $list_id]);
+						if ($list)
+						{
+							$name = $list->name;
+						}
+					}
+					elseif ($name)
+					{
+						$list = U3A_Row::load_single_object("U3A_Email_Lists", ["name" => $name]);
+					}
+					if (!$list)
+					{
+						$it = $name ? $name : $list_id;
+						$result = ["success" => 0, "message" => "list $it does not exist"];
+					}
+					else
+					{
+						$list_id = $list->id;
+						$list->delete();
+						$members = U3A_Email_Lists::get_list_members($list_id);
+						foreach ($members as $member)
+						{
+							$member->delete();
+						}
+						$result = ["success" => 1, "message" => "list $name has been deleted!"];
+					}
+					break;
+				}
+			default:
+				{
+					$result = ["success" => 0, "message" => "invalid operation"];
+					break;
+				}
+		}
+	}
+	else
+	{
+		$result = ["success" => 0, "message" => "no list name specified"];
+	}
+	echo json_encode($result);
+	wp_die();
+}
+
+add_action("wp_ajax_u3a_load_group_mailing_list", "u3a_load_group_mailing_list");
+
+function u3a_load_group_mailing_list()
+{
+	$groups_id = U3A_Utilities::get_post("group", 0);
+	$list_id = U3A_Utilities::get_post("list", 0);
+	if ($list_id)
+	{
+		$members = U3A_Email_Lists::get_list_member_ids($list_id);
+		$result = ["success" => 1, "message" => implode(",", $members)];
+	}
+	else
+	{
+		$result = ["success" => 0, "message" => "no list specified"];
+	}
+	echo json_encode($result);
+	wp_die();
+}
+
+add_action("wp_ajax_u3a_new_link_section", "u3a_new_link_section");
+
+function u3a_new_link_section()
+{
+	$name = U3A_Utilities::get_post("name", null);
+	$groups_id = U3A_Utilities::get_post("group", 0);
+	$members_id = U3A_Utilities::get_post("member", 0);
+	if ($name)
+	{
+		$linksec = new U3A_Link_Sections(["name" => $name, "groups_id" => $groups_id, "members_id" => $members_id]);
+		$linksec->save();
+		$result = ["success" => 1, "message" => "section $name created"];
+	}
+	else
+	{
+		$result = ["success" => 0, "message" => "no section name specified"];
+	}
+	echo json_encode($result);
+	wp_die();
+}
+
+add_action("wp_ajax_u3a_new_link", "u3a_new_link");
+
+function u3a_new_link()
+{
+	$section = U3A_Utilities::get_post("section", null);
+	$description = U3A_Utilities::get_post("description", null);
+	$url = U3A_Utilities::get_post("url", null);
+	write_log($section, $description, $url);
+	if ($section && $url)
+	{
+		if (!$description)
+		{
+			$description = $url;
+		}
+		$link = new U3A_Links(["description" => $description, "url" => $url, "sections_id" => U3A_Link_Sections::get_sections_id($section)]);
+		$link->save();
+		$result = ["success" => 1, "message" => "link to $url created"];
+	}
+	elseif ($url)
+	{
+		$result = ["success" => 0, "message" => "no section specified"];
+	}
+	elseif ($section)
+	{
+		$result = ["success" => 0, "message" => "no url specified"];
+	}
+	else
+	{
+		$result = ["success" => 0, "message" => "no section or url specified"];
+	}
+	echo json_encode($result);
+	wp_die();
+}
+
+add_action("wp_ajax_u3a_reload_manage_links", "u3a_reload_manage_links");
+
+function u3a_reload_manage_links()
+{
+	$groups_id = U3A_Utilities::get_post("group", 0);
+	$members_id = U3A_Utilities::get_post("member", 0);
+	echo do_shortcode('[u3a_manage_links member="' . $members_id . '" group="' . $groups_id . '"]');
+	wp_die();
+}
+
+add_action("wp_ajax_u3a_reload_links", "u3a_reload_links");
+
+function u3a_reload_links()
+{
+	$groups_id = U3A_Utilities::get_post("group", 0);
+	$members_id = U3A_Utilities::get_post("member", 0);
+	echo do_shortcode('[u3a_links member="' . $members_id . '" group="' . $groups_id . '"]');
 	wp_die();
 }

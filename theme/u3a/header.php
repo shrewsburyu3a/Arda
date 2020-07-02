@@ -254,13 +254,18 @@
 							<div class="inner-wrap">
 								<div class="post-title-wrapper">
 									<?php
-									if ('' != spacious_header_title())
+									$ttl = spacious_header_title();
+									if ('' != $ttl)
 									{
+										if (function_exists('u3a_header_title'))
+										{
+											$ttl = u3a_header_title($ttl);
+										}
 										?>
 										<?php if (is_home()) : ?>
-											<h2 class="header-post-title-class"><?php echo spacious_header_title(); ?></h2>
+											<h2 class="header-post-title-class"><?php echo $ttl; ?></h2>
 										<?php else : ?>
-											<h1 class="header-post-title-class"><?php echo spacious_header_title(); ?></h1>
+											<h1 class="header-post-title-class"><?php echo $ttl; ?></h1>
 										<?php endif; ?>
 										<?php
 									}

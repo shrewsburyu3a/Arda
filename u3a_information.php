@@ -19,7 +19,8 @@ class U3A_Information
 		"Members"		 => 2,
 		"Documents"		 => 3,
 		"Gallery"		 => 4,
-		"Manage"			 => 5
+		"Manage"			 => 5,
+		"Forum"			 => 6
 	];
 	public static $group_page_manage_titles = [
 		"Manage Categories",
@@ -29,7 +30,7 @@ class U3A_Information
 		"Manage Members",
 		"Edit Group Details"
 	];
-	public static $application_form_required_fields = [ "join" => [
+	public static $application_form_required_fields = [ "join"		 => [
 			'member-surname',
 			'member-forename',
 			'member-email',
@@ -37,20 +38,29 @@ class U3A_Information
 			'member-address1',
 			'member-postcode'
 		],
-		"add"	 => [
+		"add"			 => [
 			'member-surname',
 			'member-forename',
 			'member-house',
 			'member-address1',
 			'member-postcode'
 		],
-		"edit" => [
+		"edit"		 => [
 			'member-surname',
 			'member-forename',
 			'member-house',
 			'member-address1',
 			'member-postcode'
-	]];
+		],
+		"selfedit"	 => [
+			'member-surname',
+			'member-forename',
+			'member-email',
+			'member-house',
+			'member-address1',
+			'member-postcode'
+		]
+	];
 
 	public static function u3a_name_lc()
 	{
@@ -693,6 +703,31 @@ class U3A_Information
 		return $page->ID;
 	}
 
+	public static function u3a_links_page()
+	{
+		$page = get_page_by_title("Links");
+		if (!$page)
+		{
+			$pageguid = site_url() . "links";
+			$div = new U3A_DIV('[u3a_links group="0" member="0"]', null, "u3a-links-page u3a-links-div");
+			$newpg = [
+				"post_type"			 => "page",
+				"post_title"		 => "Links",
+				"post_status"		 => 'publish',
+				"post_content"		 => $div->to_html(),
+				'post_name'			 => "links",
+				'comment_status'	 => 'closed',
+				'ping_status'		 => 'closed',
+				'post_author'		 => 1,
+				'menu_order'		 => 0,
+				'guid'				 => $pageguid
+			];
+			$pgid = wp_insert_post($newpg);
+			$page = get_page_by_title("Links");
+		}
+		return $page->ID;
+	}
+
 	public static function u3a_members_display_page()
 	{
 		$page = get_page_by_title("Members Display");
@@ -741,6 +776,17 @@ class U3A_Information
 			$page = get_page_by_title($title);
 		}
 		return $page->ID;
+	}
+
+	public static function get_page_url_from_title($title)
+	{
+		$ret = null;
+		$pg = get_page_by_title($title);
+		if ($pg)
+		{
+			$ret = $pg->guid;
+		}
+		return $ret;
 	}
 
 	public static function u3a_user_from_id($user_id)

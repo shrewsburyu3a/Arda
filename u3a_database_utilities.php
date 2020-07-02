@@ -425,3 +425,55 @@ class U3A_Email_Utilities
 	}
 
 }
+
+class U3A_Link_Utilities
+{
+
+	public static function get_section_div($sec)
+	{
+		$ret = null;
+		$section = U3A_Link_Sections::get_section($sec);
+		if ($section)
+		{
+			$h = new U3A_H(6, $section->name);
+			$links = $section->get_links();
+			$divs = [];
+			if ($links)
+			{
+				foreach ($links as $link)
+				{
+					$a = new U3A_A($link->url, $link->description, "u3a-link-a-" . $link->id, "u3a-link-link");
+					$a->add_attribute("data-popup", "true");
+					$divs[] = new U3A_DIV($a, "u3a-link-div-" . $link->id, "u3a-link-div u3a-margin-left-10");
+				}
+			}
+			$ret = new U3A_DIV([$h, $divs], "u3a-section-div-" . $section->id, "u3a-section-div");
+		}
+		return $ret;
+	}
+
+	public static function get_section_divs($groups_id, $members_id)
+	{
+		$ret = [];
+		$sections = U3A_Link_Sections::get_sections($groups_id, $members_id);
+		foreach ($sections as $section)
+		{
+			$ret[] = self::get_section_div($section);
+		}
+		return $ret;
+	}
+
+	public static function get_section_select($groups_id, $members_id)
+	{
+		$sections = U3A_Link_Sections::get_sections($groups_id, $members_id);
+		$opts = [new U3A_OPTION("", 0, true)];
+		foreach ($sections as $section)
+		{
+			$opts[] = new U3A_OPTION($section->name, $section->id);
+		}
+		$ret = new U3A_SELECT($opts, "link_section_select", "u3a-link-section-select-$groups_id-$members_id", "u3a-link-section-select u3a-width-30-em");
+		$ret->add_attribute("onchange", "u3a_link_section_select_changed($groups_id, $members_id)");
+		return $ret;
+	}
+
+}

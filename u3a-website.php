@@ -147,6 +147,7 @@ function u3a_on_activation()
 	$pc_page = U3A_Information::u3a_payment_complete_page();
 	$pv_page = U3A_Information::u3a_payment_void_page();
 	$my_page = U3A_Information::u3a_members_personal_page();
+	$links_page = U3A_Information::u3a_links_page();
 	wp_schedule_event(time(), 'daily', 'u3a_daily_check');
 }
 
@@ -314,6 +315,8 @@ function u3a_set_user_meta($user_id, $args)
 
 	if ($mbr)
 	{
+		$mbr->wpid = $user_id;
+		$mbr->save();
 		update_user_meta($user_id, "first_name", $mbr->forename);
 		update_user_meta($user_id, "last_name", $mbr->surname);
 		$wpusr = new WP_User($user_id);
@@ -486,6 +489,7 @@ function u3a_menu_item_visibility($visible, $item)
 		case "help videos":
 		case "newsletters":
 		case "committee":
+		case "links":
 		case "videos":
 			{
 				$ret = $mbr != null;
@@ -606,6 +610,35 @@ function u3a_field_default_value($default, $data, $type)
 	write_log($data);
 	write_log($type);
 	return $default;
+}
+
+function u3a_header_title($ttl)
+{
+	if ($ttl === 'Personal Page')
+	{
+		$member = U3A_Utilities::get_post("member", null);
+		if ($member)
+		{
+			$mbr = U3A_Members::get_member_from_membership_number($member);
+		}
+		else
+		{
+			$mbr = U3A_Information::u3a_logged_in_user();
+		}
+		if ($mbr)
+		{
+			$ret = $mbr->get_name();
+		}
+		else
+		{
+			$ret = $ttl;
+		}
+	}
+	else
+	{
+		$ret = $ttl;
+	}
+	return $ret;
 }
 
 // Register and load the widget

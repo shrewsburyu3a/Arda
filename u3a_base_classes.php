@@ -457,11 +457,11 @@ class U3A_HTML_Utilities
 		return $ret;
 	}
 
-	public static function get_option_from_object($obj, $text_key, $value_key, $selected_value = null, $tooltip_key = null)
+	public static function get_option_from_object($obj, $text_key, $value_key, $selected_value = null, $tooltip_key = null, $usetext = null)
 	{
 		$hash = $obj->get_as_hash();
 		$val = stripslashes($hash[$value_key]);
-		$txt = self::get_key_value($obj, $hash, $text_key);
+		$txt = $usetext ? $usetext : self::get_key_value($obj, $hash, $text_key);
 //			if (array_key_exists($text_key, $hash))
 //			{
 //				$txt =//				write_log($text_key);
@@ -482,12 +482,19 @@ class U3A_HTML_Utilities
 		{
 			foreach ($object_array as $label => $objs)
 			{
-				$opts1 = [];
-				foreach ($objs as $obj)
+				if (is_array($objs))
 				{
-					$opts1[] = self::get_option_from_object($obj, $text_key, $value_key, $selected_value, $tooltip_key);
+					$opts1 = [];
+					foreach ($objs as $obj)
+					{
+						$opts1[] = self::get_option_from_object($obj, $text_key, $value_key, $selected_value, $tooltip_key);
+					}
+					$opts[] = new U3A_OPTGROUP($opts1, $label);
 				}
-				$opts[] = new U3A_OPTGROUP($opts1, $label);
+				else
+				{
+					$opts[] = self::get_option_from_object($objs, $text_key, $value_key, $selected_value, $tooltip_key, $label);
+				}
 			}
 		}
 		else
@@ -566,7 +573,7 @@ class U3A_HTML_Utilities
 		return U3A_Form_Input_Detail::get_form($fid, $act, "POST", $id, $cssclass, $instance);
 	}
 
-	public static function u3a_get_document_section($doctypename, $catname, $groups_id, $doctype)
+	public static function u3a_get_document_section($doctypename, $catname, $groups_id, $doctype, $mbrgrp)
 	{
 		$namelc = strtolower($doctypename);
 		$nameUc1 = ucwords($namelc);
@@ -579,7 +586,7 @@ class U3A_HTML_Utilities
 		$txt0 = new U3A_INPUT("text", "document-category-name", "u3a-category-name-" . $groups_id . "-" . $doctype, "u3a-document-name-class u3a-name-input-class u3a-category-name-class");
 		$btn0 = new U3A_BUTTON("button", "create", "u3a-category-button-" . $groups_id . "-" . $doctype, "u3a-document-button-class u3a-button", "u3a_create_new_category('" . $groups_id . "', '" . $doctype . "')");
 		$div0 = new U3A_DIV([$span0, $txt0, $btn0], "u3a-category-div-" . $groups_id . "-" . $doctype, "u3a-category-div");
-		$sel1 = U3A_Document_Categories::get_select_list($groups_id, $doctype, "rename-$catlc", null, null, false, null);
+		$sel1 = U3A_Document_Categories::get_select_list($groups_id, $mbrgrp, $doctype, "rename-$catlc", null, null, false, null);
 		if ($sel1["select"])
 		{
 			$h1 = new U3A_DIV("select $catlc, enter new $catlc name then press 'rename'", "u3a-category-rename-header-" . $groups_id . "-" . $doctype, "u3a-margin-bottom-2");
@@ -590,7 +597,7 @@ class U3A_HTML_Utilities
 			$lbl1b = new U3A_LABEL("u3a-category-rename-" . $groups_id . "-" . $doctype, $span1b, null, "u3a-inline-block u3a-margin-left-5 u3a-margin-right-5");
 			$btn1 = new U3A_BUTTON("button", "rename", "u3a-category-button-" . $groups_id . "-" . $doctype, "u3a-document-button-class u3a-button", "u3a_rename_category('" . $groups_id . "', '" . $doctype . "', '" . $sel1["id"] . "')");
 			$div1 = new U3A_DIV([$lbl1a, $sel1["select"], $lbl1b, $txt1, $btn1], "u3a-rename-category-div-" . $groups_id . "-" . $doctype, "u3a-category-div");
-			$sel2 = U3A_Document_Categories::get_empty_select_list($groups_id, $doctype, "delete-empty-$catlc", null, null, false, null);
+			$sel2 = U3A_Document_Categories::get_empty_select_list($groups_id, $mbrgrp, $doctype, "delete-empty-$catlc", null, null, false, null);
 			if ($sel2["select"])
 			{
 				$h2 = new U3A_DIV("select empty $catlc to delete then press 'delete'", "u3a-category-delete-header-" . $groups_id . "-" . $doctype, "u3a-margin-bottom-2");
@@ -961,17 +968,14 @@ abstract class U3A_Object implements Iterator
 	{
 //        echo "here get ".$property."<br/>";
 		$ret = null;
-		if (array_key_exists($property, $this->_data))
+		$mname = "get_" . $property;
+		if (method_exists($this, $mname))
+		{
+			$ret = $this->$mname();
+		}
+		elseif (array_key_exists($property, $this->_data))
 		{
 			$ret = $this->_data[$property];
-		}
-		else
-		{
-			$mname = "get_" . $property;
-			if (method_exists($this, $mname))
-			{
-				$ret = $this->$mname();
-			}
 		}
 		return $ret;
 	}
@@ -3133,14 +3137,14 @@ class U3A_TEXTAREA extends U3A_HTML_Object
 				$this->_data['id'] = $name;
 			}
 		}
-		if ($value !== null)
-		{
-			$this->_data['value'] = $value;
-		}
-		else
-		{
-			$this->_data['value'] = '';
-		}
+//		if ($value !== null)
+//		{
+//			$this->_data['value'] = $value;
+//		}
+//		else
+//		{
+//			$this->_data['value'] = '';
+//		}
 	}
 
 }
@@ -4243,6 +4247,251 @@ class U3A_Audio_Folder extends U3A_Folder
 			}
 		}
 		return $ret;
+	}
+
+}
+
+class U3A_Thread
+{
+
+	private $_object;
+	private $_forum_id;
+	private $_contents;
+	private $_key;
+	private $_title;
+	private $_date;
+	private $_subthreads = [];
+
+	public function __construct($obj, $forum_id, $keyfield = "id", $titlefield = "title", $contentsfield = "contents", $datefield = "date_posted")
+	{
+		$this->_object = $obj;
+		$this->_forum_id = $forum_id;
+		if ($obj)
+		{
+			$this->_key = $obj->$keyfield;
+			$this->_date = $obj->$datefield;
+			$this->_title = $obj->$titlefield;
+			$this->_contents = $obj->$contentsfield;
+		}
+	}
+
+	public function get_key()
+	{
+		return $this->_key;
+	}
+
+	public function get_title()
+	{
+		return $this->_title;
+	}
+
+	public function get_contents()
+	{
+		return $this->_contents;
+	}
+
+	public function get_object()
+	{
+		return $this->_object;
+	}
+
+	public function get_subthreads()
+	{
+		return $this->_subthreads;
+	}
+
+	public function append_subthread($sub)
+	{
+		if (is_a($sub, "U3A_Thread"))
+		{
+			array_push($this->_subthreads, $sub);
+		}
+		elseif (is_array($sub))
+		{
+			foreach ($sub as $s)
+			{
+				$this->append_subthread($s);
+			}
+		}
+		else
+		{
+			array_push($this->_subthreads, new U3A_Thread($sub, $this->_forum_id));
+		}
+	}
+
+	public function prepend_subthread($sub)
+	{
+		if (is_a($sub, "U3A_Thread"))
+		{
+			array_unshift($this->_subthreads, $sub);
+		}
+		elseif (is_array($sub))
+		{
+			foreach ($sub as $s)
+			{
+				$this->prepend_subthread($s);
+			}
+		}
+		else
+		{
+			array_unshift($this->_subthreads, new U3A_Thread($sub, $this->_forum_id));
+		}
+	}
+
+	public function count()
+	{
+		$ret = 1;
+		foreach ($this->_subthreads as $sub)
+		{
+			$ret += $sub->count();
+		}
+		return ($ret);
+	}
+
+//	public function get_key_array(&$keyarray)
+//	{
+//		$keyarray[$this->get_key()] = $this;
+//		foreach ($this->_subthreads as $sub)
+//		{
+//			$sub->get_key_array($keyarray);
+//		}
+//	}
+
+	public function to_html($level = 0, $candelete = false)
+	{
+		$k = $this->_key;
+		$id = $this->_forum_id;
+		$divid = "u3a-thread-sub-$k";
+		$c = $this->count() - 1;
+		$ct = $c ? " ($c)" : "";
+//		$t = new U3A_INPUT("text", null, "u3a-thread-title-$k", "u3a-arrow-only u3a-thread-title", $this->_title . $ct);
+//		$t->add_attribute("readonly", "readonly");
+		$t = new U3A_SPAN($this->_title . $ct, "u3a-thread-title-$k", "u3a-arrow-only u3a-thread-title");
+		$btnup = new U3A_A('#', '<span class="dashicons dashicons-arrow-up-alt2"></span>', "u3a-thread-$k-up", "u3a-invisible", "u3a_toggle_up_down('u3a-thread-$k-', 'up', '$divid')");
+		$btnup->add_tooltip("hide post");
+		$btndown = new U3A_A("#", '<span class="dashicons dashicons-arrow-down-alt2"></span>', "u3a-thread-$k-down", "", "u3a_toggle_up_down('u3a-thread-$k-', 'down', '$divid')");
+		$btndown->add_tooltip("show post");
+		$btnx = null;
+		if ($candelete)
+		{
+			$btnx = new U3A_A("#", '<span class="dashicons dashicons-no-alt"></span>', "u3a-thread-$k-del", "", "u3a_delete_thread('$id', '$k')");
+			$btnx->add_tooltip("delete post");
+		}
+		$titlediv = new U3A_DIV([$t, $btnup, $btndown, $btnx], "u3a-thread-title-div-$k", "u3a-thread-title-div");
+		$margin = "";
+		if ($level > 0)
+		{
+			$mg = 10 * $level;
+			$margin = " u3a-margin-left-$mg";
+		}
+		$contentsdiv = new U3A_DIV($this->get_contents(), "u3a-thread-contents-$k", "u3a-thread-contents-div");
+		$rply = new U3A_A("#", 'reply', "u3a-thread-$k-reply", "u3a-forum-link", "u3a_get_forum_post('$id', '$k')");
+		$sub = [];
+		$nl = $level + 1;
+		foreach ($this->_subthreads as $s)
+		{
+			$sub[] = $s->to_html($nl, $candelete);
+		}
+		$subdiv = new U3A_DIV([$contentsdiv, $rply, $sub], $divid, "u3a-thread-sub-div u3a-invisible$margin");
+		return U3A_HTML::to_html([$titlediv, $subdiv]);
+	}
+
+}
+
+class U3A_Forum
+{
+
+	private $_name;
+	private $_id;
+	private $_keep_days;
+	private $_threads = [];
+	private $_keyarray = [];
+	private $_keyfield;
+	private $_titlefield;
+	private $_contentsfield;
+	private $_datefield;
+	private $_replytofield;
+
+	public function __construct($name, $id, $keep_days, $keyfield = "id", $titlefield = "title", $contentsfield = "contents", $datefield = "date_posted", $replytofield = "reply_to")
+	{
+		$this->_keyfield = $keyfield;
+		$this->_titlefield = $titlefield;
+		$this->_contentsfield = $contentsfield;
+		$this->_datefield = $datefield;
+		$this->_name = $name;
+		$this->_id = $id;
+		$this->_keep_days = $keep_days;
+		$this->_replytofield = $replytofield;
+		$since = time() - $keep_days * U3A_Timestamp_Utilities::DAY1;
+		$posts = U3A_Forum_Posts::get_posts_for_group($id, $since);
+		for ($n = 0; $n < count($posts); $n++)
+		{
+			$this->_threads[$n] = new U3A_Thread($posts[$n], $id, $keyfield, $titlefield, $contentsfield, $datefield);
+			$this->_keyarray[$posts[$n]->$keyfield] = $n;
+		}
+		foreach ($this->_threads as $th)
+		{
+			$post = $th->get_object();
+			if ($post)
+			{
+				$rt = $post->$replytofield;
+				if ($rt && array_key_exists($rt, $this->_keyarray))
+				{
+					$parent = $this->_threads[$this->_keyarray[$rt]];
+					$parent->append_subthread($post);
+				}
+			}
+		}
+	}
+
+	public function add($post)
+	{
+		$rtf = $this->_replytofield;
+		$kf = $this->_keyfield;
+		if (is_array($post))
+		{
+			$replies = [];
+			foreach ($post as $p)
+			{
+				if ($p->$rtf)
+				{
+
+				}
+				$this->add($p);
+			}
+		}
+		else
+		{
+			$rt = $post->$rtf;
+			$key = $post->$kf;
+			$th = new U3A_Thread($post, $this->_id, $this->_keyfield, $this->_titlefield, $this->_contentsfield, $this->_datefield);
+			$nthreads = count($this->_threads);
+			$this->_keyarray[$key] = $nthreads;
+			$this->_threads[$nthreads] = $th;
+			if ($rt && array_key_exists($rt, $this->_keyarray))
+			{
+				$parent = $this->_threads[$this->_keyarray[$rt]];
+				$parent->append_subthread($post);
+			}
+		}
+	}
+
+	public function to_html($candelete = false)
+	{
+		$id = $this->_id;
+		$newthread = new U3A_A("#", 'say something', "u3a-forum-new-thread-$id", "u3a-forum-link", "u3a_get_forum_post('$id', 0)");
+		$newthreaddiv = new U3A_DIV($newthread, "u3a-forum-new-thread-div-$id", "u3a-forum-new-thread-div");
+		$contents = $newthreaddiv->to_html();
+		$rtf = $this->_replytofield;
+		foreach ($this->_threads as $thr)
+		{
+			$obj = $thr->get_object();
+			if (!$obj->$rtf)
+			{
+				$contents .= $thr->to_html(0, $candelete);
+			}
+		}
+		return $contents;
 	}
 
 }

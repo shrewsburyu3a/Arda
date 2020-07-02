@@ -14,6 +14,7 @@ use PhpOffice\PhpSpreadsheet\IOFactory;
 require('fpdf.php');
 
 require_once 'U3ADatabase.php';
+require_once 'u3a_database_utilities.php';
 
 if (!function_exists('write_log'))
 {

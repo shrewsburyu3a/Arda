@@ -978,6 +978,59 @@ class U3A_Members extends U3A_Database_Row
 		return U3A_Group_Members::share_a_group($members_id, $this->_data["id"]);
 	}
 
+	public function get_wpid()
+	{
+		$ret = $this->_data["wpid"];
+		if (!$ret)
+		{
+			$result = U3A_Row::load_array_of_objects("WP_Users", ["user_email" => $this->_data["email"]]);
+			if ($result["total_number_of_rows"])
+			{
+				$usrs = $result["result"];
+				if ($result["total_number_of_rows"] === 1)
+				{
+					$ret = intval($usrs[0]->ID);
+				}
+				else
+				{
+					foreach ($usrs as $usr)
+					{
+						$nf = U3A_Row::count_rows("WP_Usermeta", ["user_id" => $usr->ID, "meta_key" => "first_name", "meta_value" => $this->_data["forename"]]);
+						if ($nf)
+						{
+							$nf1 = U3A_Row::count_rows("WP_Usermeta", ["user_id" => $usr->ID, "meta_key" => "last_name", "meta_value" => $this->_data["surname"]]);
+							if ($nf1)
+							{
+								$ret = intval($usr->ID);
+							}
+						}
+					}
+				}
+			}
+			if ($ret)
+			{
+				$this->_data["wpid"] = $ret;
+				$this->save();
+			}
+		}
+		return $ret;
+	}
+
+	public function get_friends()
+	{
+		$sql = "SELECT u3a_members.* FROM u3a_members JOIN u3a_friends ON u3a_members.id = u3a_friends.friends_id WHERE u3a_friends.members_id = " . $this->_data["id"];
+		$list = Project_Details::get_db()->loadList($sql);
+		$num = count($list);
+		$ret = [];
+		for ($n = 0; $n < $num; $n++)
+		{
+			$obj = new U3A_Members();
+			$obj->set_all($list[$n]);
+			$ret[$n] = $obj;
+		}
+		return $ret;
+	}
+
 }
 
 class U3A_Member_Table_Column_Correspondence extends U3A_Database_Row
@@ -1582,6 +1635,14 @@ class U3A_Groups extends U3A_Database_Row
 		return $ret ? intval(array_values(get_object_vars($ret[0]))[0]) : 0;
 	}
 
+	public function get_number_waiting()
+	{
+		$sql = "SELECT COUNT(*) FROM u3a_group_members WHERE groups_id = " . $this->_data["id"] . " AND status = 4";
+		$ret = Project_Details::get_db()->query($sql);
+//		write_log($ret);
+		return $ret ? intval(array_values(get_object_vars($ret[0]))[0]) : 0;
+	}
+
 	public function set_mailing_list($name)
 	{
 		if (!isset($this->_data["mailing_list"]) || !$this->_data["mailing_list"])
@@ -1690,6 +1751,18 @@ class U3A_Groups extends U3A_Database_Row
 	{
 		$ndocs = U3A_Row::count_rows("U3A_Documents", ["groups_id" => $this->_data["id"], "document_type" => U3A_Documents::GROUP_IMAGE_TYPE, "visibility>" => U3A_Documents::VISIBILITY_U3A]);
 		return $ndocs > 0;
+	}
+
+	public function get_forum()
+	{
+		$ret = new Forum($this->_data["name"], $this->_data["id"]);
+		$ret->add(U3A_Forum_Posts::get_posts_for_group($this->_data["id"]));
+		return $ret;
+	}
+
+	public function get_name()
+	{
+		return $this->_data["name"];
 	}
 
 }
@@ -2705,20 +2778,51 @@ class U3A_Documents extends U3A_Database_Row
 	const VISIBILITY_U3A = 1;
 	const VISIBILITY_PUBLIC = 2;
 
-	private static $visibilities = [
-		self::VISIBILITY_GROUP,
-		self::VISIBILITY_U3A,
-		self::VISIBILITY_PUBLIC
-	];
-	private static $document_upload_button_parameters = [
-		"by"		 => "author",
-		"accept"	 => ".pdf,.doc,.docx,.epub,.mobi,.azw3,.xls,.xlsx,.odf,.ppt,.pptx,.pps,.ppsx,application/vnd.ms-powerpoint,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/epub+zip,application/pdf,"
-		. "application/vnd.oasis.opendocument.text,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.presentationml.slideshow,application/vnd.openxmlformats-officedocument.presentationml.presentation"
-	];
-	private static $image_upload_button_parameters = [
-		"by"		 => "photographer",
-		"accept"	 => ".png,.jpg,.jpeg,image/png,image/jpeg"
-	];
+	public static function get_header_images($groups_id, $mbr = null)
+	{
+		$imgs = [];
+		if ($groups_id > 0)
+		{
+			$type = self::GROUP_IMAGE_TYPE;
+			$cat = "group page header";
+			$categories_id = U3A_Document_Categories::get_category_id($cat, $type);
+			if ($categories_id)
+			{
+				$imgs = U3A_Documents::get_attachment_ids_for_group($groups_id, $type, $categories_id);
+			}
+		}
+		elseif ($groups_id < 0)
+		{
+			$type = self::PERSONAL_IMAGE_TYPE;
+			$cat = "my page header";
+			$categories_id = U3A_Document_Categories::get_category_id($cat, $type);
+			if ($categories_id)
+			{
+				$imgs = U3A_Documents::get_attachment_ids_for_member($mbr, $type, $categories_id);
+			}
+		}
+		else
+		{
+			$type = self::COMMITTEE_IMAGE_TYPE;
+			$cat = "website home page";
+			$categories_id = U3A_Document_Categories::get_category_id($cat, $type);
+			$imgs = U3A_Documents::get_attachment_ids_for_group(0, $type, $categories_id);
+			if ($mbr)
+			{
+				$categories_id1 = U3A_Document_Categories::get_category_id("members home page", $type);
+				if ($categories_id1)
+				{
+					$imgs1 = U3A_Documents::get_attachment_ids_for_group(0, $type, $categories_id1);
+					if ($imgs1)
+					{
+						$imgs2 = $imgs;
+						$imgs = array_merge($imgs1, $imgs2);
+					}
+				}
+			}
+		}
+		return ["images" => $imgs, "categories_id" => $categories_id];
+	}
 
 	public static function get_type_description($type1)
 	{
@@ -2806,6 +2910,7 @@ class U3A_Documents extends U3A_Database_Row
 		switch ($type) {
 			case self::COMMITTEE_IMAGE_TYPE:
 			case self::COORDINATORS_IMAGE_TYPE:
+			case self::PERSONAL_IMAGE_TYPE:
 			case self::GROUP_IMAGE_TYPE:
 				{
 					$ret = "image";
@@ -2928,6 +3033,7 @@ class U3A_Documents extends U3A_Database_Row
 		$sql = "SELECT u3a_documents.* FROM u3a_documents JOIN u3a_document_category_relationship ON u3a_documents.id = u3a_document_category_relationship.documents_id WHERE "
 		  . "u3a_documents.groups_id = $groups_id AND u3a_documents.visibility >= $visibility AND u3a_documents.document_type = $type AND u3a_document_category_relationship.document_categories_id = $category ORDER BY " .
 		  "u3a_document_category_relationship.sort_order, u3a_documents.title$desc";
+//		write_log($sql);
 		$list = Project_Details::get_db()->loadList($sql);
 		$ret = U3A_Row::get_objects_from_list("U3A_Documents", $list);
 		return $ret;
@@ -3023,314 +3129,6 @@ class U3A_Documents extends U3A_Database_Row
 			$ncats++;
 		}
 		return ["total" => $total, "number_of_categories" => $ncats, "number_of_non_empty_categories" => $ncats1, "first_non_empty" => $first_non_empty, "documents" => $ret];
-	}
-
-	public static function get_document_lists($grp = null, $type = 0)
-	{
-		$alldocs = U3A_Documents::get_all_documents_for_group($grp, $type);
-		$ret = null;
-		if ($alldocs["total"])
-		{
-			$alldocuments = $alldocs["documents"];
-			$cats = [];
-			$docs = [];
-			$first = true;
-			$m = 0;
-			foreach ($alldocuments as $catname => $documents)
-			{
-				if ($documents["count"] > 0)
-				{
-					if ($first)
-					{
-						$sel = " u3a-category-selected";
-						$vis = " u3a-inline-block";
-						$first = false;
-					}
-					else
-					{
-						$sel = "";
-						$vis = " u3a-invisible";
-					}
-					$div = new U3A_BUTTON("button", $catname, "u3a-category-name-$grp-$type-$m", "u3a-block u3a-category-name-class$sel", "u3a_category_name_clicked($grp, $type, $m)");
-					$cats[] = $div;
-					$catdocs = [];
-					$n = 0;
-					foreach ($documents["documents"] as $doc)
-					{
-						$cb = new U3A_INPUT("checkbox", null, "u3a-document-checkbox-$grp-$type-$m-$n", "u3a-document-checkbox-class", $doc->attachment_id);
-						$lbl = new U3A_LABEL("u3a-document-checkbox-$grp-$type-$m-$n", $doc->get_title(), "u3a-document-checkbox-label-$grp-$type-$m-$n", "u3a-inline-block u3a-margin-left-5");
-						$catdocs[] = new U3A_DIV([$cb, $lbl], null, "u3a-document-name-class");
-						$n++;
-					}
-					$docs[] = new U3A_DIV($catdocs, "u3a-category-documents-$grp-$type-$m", "u3a-va-top u3a-category-documents-class$vis");
-					$m++;
-				}
-			}
-			$catlist = new U3A_DIV($cats, "u3a-category-list-$grp-$type", "u3a-inline-block u3a-va-top");
-			$div1 = new U3A_DIV([$catlist, $docs], "u3a-document-select-lists-div-$grp-$type", "u3a-document-select-lists-div-class");
-			$okbtn = new U3A_BUTTON("button", "OK", "u3a-document-select-button-$grp-$type", "u3a-button", "u3a_document_selected($grp, $type)");
-			$okdiv = new U3A_DIV($okbtn, "u3a-document-select-button-div-$grp-$type", "u3a-document-select-button-class");
-			$ret = new U3A_DIV([$div1, $okdiv], "u3a-document-select-group-$grp-$type", "u3a-document-select-class u3a-invisible");
-		}
-		return $ret;
-	}
-
-	public static function get_document_table($documents, $type)
-	{
-		if ($type === self::NEWSLETTER_TYPE)
-		{
-			$headers = [
-				new U3A_TH("Title"),
-				new U3A_TH("Uploaded"),
-				new U3A_TH("")
-			];
-		}
-		else
-		{
-			$headers = [
-				new U3A_TH("Title"),
-				new U3A_TH("Author"),
-				new U3A_TH("Uploaded"),
-				new U3A_TH("")
-			];
-		}
-		$rows = [];
-		$thead = new U3A_THEAD(new U3A_TR($headers));
-		foreach ($documents as $doc)
-		{
-			$a = new U3A_A(wp_get_attachment_url($doc->attachment_id), "download");
-			$a->add_attribute("data-popup", "true");
-			$type = intval($doc->document_type);
-			if ($type === self::NEWSLETTER_TYPE)
-			{
-				$td = [
-					new U3A_TD($doc->get_title()),
-					new U3A_TD(date("d/m/Y", strtotime($doc->added))),
-					new U3A_TD($a)
-				];
-			}
-			else
-			{
-				$td = [
-					new U3A_TD($doc->get_title()),
-					new U3A_TD($doc->author),
-					new U3A_TD(date("d/m/Y", strtotime($doc->added))),
-					new U3A_TD($a)
-				];
-			}
-			$rows[] = new U3A_TR($td);
-		}
-		$tbl = new U3A_TABLE([$thead, new U3A_TBODY($rows)]);
-		return '[su_table responsive="yes" alternate="yes"]' . U3A_HTML::to_html($tbl) . "[/su_table]";
-	}
-
-	private static function get_visibility_select($groups_id, $type, $op, $selected = self::VISIBILITY_GROUP)
-	{
-		$options = [];
-		for ($n = 0; $n < count(self::$visibilities); $n++)
-		{
-			$options[$n] = new U3A_OPTION("group", self::$visibilities[$n], self::$visibilities[$n] === $selected);
-		}
-//		$options[1] = new U3A_OPTION("u3a", self::VISIBILITY_U3A, false);
-//		$options[2] = new U3A_OPTION("public", self::VISIBILITY_PUBLIC, false);
-		$ret = new U3A_SELECT($options, "visibility", "u3a-visibility-$op-$groups_id-$type", "u3a-visibility-select-class");
-		return $ret;
-	}
-
-	public static function get_document_management($memgrp, $type1, $selected_category_id = 0)
-	{
-		$type = intval($type1);
-		$category_label = "category";
-		if (($type === self::GROUP_IMAGE_TYPE) || ($type === self::COMMITTEE_IMAGE_TYPE) || ($type === self::COORDINATORS_IMAGE_TYPE) || ($type === self::PERSONAL_IMAGE_TYPE))
-		{
-			$params = self::$image_upload_button_parameters;
-			$category_label = "album";
-		}
-		else
-		{
-			$params = self::$document_upload_button_parameters;
-		}
-		if (($type === self::PERSONAL_IMAGE_TYPE) || ($type === self::PERSONAL_DOCUMENT_TYPE))
-		{
-			$is_group = 0;
-		}
-		else
-		{
-			$is_group = 1;
-		}
-		$type_name = U3A_Documents::get_type_name($type);
-		$type_name1 = U3A_Documents::get_type_title_indefinite($type);
-		$file_input_id = "upload-document-file-" . $memgrp . "-" . $type;
-		$file_input = new U3A_INPUT("file", "u3a-upload-document-file", $file_input_id);
-		$file_input->add_attribute("accept", $params["accept"]);
-		$file_input->add_attribute("onchange", "upload_file_changed('" . $file_input_id . "')");
-// get_select_list($grp, $type = 0, $id = "", $onchange = null, $selected1 = null, $include_default = false, $include = null, $omit = null)
-		$select = U3A_Document_Categories::get_select_list($memgrp, $type, "manage-documents", "u3a_document_category_change");
-		if ($selected_category_id)
-		{
-			if ($select)
-			{
-				if ($select["select"])
-				{
-					$select["select"]->select_by_value($selected_category_id);
-				}
-			}
-			$select["selected"] = $selected_category_id;
-		}
-//		write_log($select);
-		$selid = $select["id"];
-		if ($selid)
-		{
-			$sel = U3A_HTML::labelled_html_object("$category_label: ", $select["select"], null, "u3a-input-label-class", false, true, null);
-		}
-		else
-		{
-			$sel = new U3A_INPUT("hidden", "category", "u3a-upload-category-" . $memgrp . "-" . $type, "u3a-upload-category-class", "0");
-		}
-		$div = new U3A_DIV($sel, "u3a-select-list-div-$memgrp-$type", "u3a-select-list-div-class u3a-bottom-margin-5 u3a-top-margin-5");
-		$btn = new U3A_BUTTON("button", "upload", "upload-document-post-button-" . $memgrp . "-" . $type, "u3a-upload-document-post-button-class u3a-button", "u3a_upload_document_from_form($memgrp, '$type', $is_group)");
-		$visibility = null;
-		if ($type === U3A_Documents::NEWSLETTER_TYPE)
-		{
-			$num = U3A_Documents::get_latest_newsletter_number();
-			if (!$num)
-			{
-				$num = 300;
-			}
-			$titlebit = [
-				new U3A_SPAN("number:", null, "u3a-inline-block u3a-margin-left-5 u3a-margin-right-5"),
-				U3A_HTML_Utilities::get_large_number_select("title1", "u3a-newletter-number", "u3a-inline-block", $num + 1, $num - 100, $num + 100),
-				new U3A_SPAN("year:", null, "u3a-inline-block u3a-margin-left-5 u3a-margin-right-5"),
-				U3A_HTML_Utilities::get_year_select("title2", "u3a-newletter-year", "u3a-inline-block", 8),
-				new U3A_SPAN("month:", null, "u3a-inline-block u3a-margin-left-5 u3a-margin-right-5"),
-				U3A_HTML_Utilities::get_month_select("title3", "u3a-newletter-month", "u3a-inline-block")
-			];
-//			$titlebit = [
-//				U3A_HTML::labelled_html_object("number: ", new U3A_DIV($inps, null, "u3a-inline-block"), null, null, false, true)
-//			];
-		}
-		else
-		{
-			$titlebit = [
-				U3A_HTML::labelled_html_object("title: ", new U3A_INPUT("string", "title", null, "u3a-input-title-class"), null, "u3a-input-label-class", false, true, "Give a title, default is file name"),
-				U3A_HTML::labelled_html_object($params["by"] . ": ", new U3A_INPUT("string", "by", null, "u3a-input-by-class"), null, "u3a-input-label-class", false, true)
-			];
-			if (($type === U3A_Documents::GROUP_DOCUMENT_TYPE) || ($type === U3A_Documents::GROUP_IMAGE_TYPE) || ($type === U3A_Documents::PERSONAL_DOCUMENT_TYPE) || ($type === U3A_Documents::PERSONAL_IMAGE_TYPE))
-			{
-				$visibility = U3A_HTML::labelled_html_object("visibility: ", self::get_visibility_select($memgrp, $type, "add"), null, "u3a-input-label-class", false, true, null);
-			}
-		}
-		$contents = [
-			$div,
-			new U3A_H(4, "Upload $type_name1"),
-			$visibility,
-			new U3A_DIV($file_input, null, "upload-document-file-div-class u3a-file-div-class"),
-			$titlebit,
-			new U3A_INPUT("hidden", "action", null, null, "u3a_upload_document"),
-			new U3A_INPUT("hidden", "group", "u3a-manage-documents-group-$memgrp-$type", null, $memgrp),
-			new U3A_INPUT("hidden", "type", "u3a-manage-documents-type-$memgrp-$type", null, $type),
-//			new U3A_INPUT("hidden", "category", "u3a-upload-category-" . $action . "-" . $memgrp . "-" . $type, "u3a-upload-category-class", "0"),
-			new U3A_DIV($btn, null, "u3a-upload-document-button-div-class u3a-button-div-class")
-		];
-		$uplf = new U3A_FORM($contents, "/wp-admin/admin-ajax.php", "POST", "upload-document-form-" . $memgrp . "-" . $type, "u3a-upload-document-form-class");
-		$uplf->add_attribute("enctype", "multipart/form-data");
-		$upldocs = new U3A_DIV($uplf, null, "u3a-upload-div-class");
-		$del = [];
-		$alldocs = U3A_Documents::get_all_documents_for_group($memgrp, $type);
-		if ($alldocs["total"])
-		{
-			$op = $type === U3A_Documents::NEWSLETTER_TYPE ? "Delete" : "Move/Copy/Sort";
-			foreach ($alldocs["documents"] as $catname => $catdocs)
-			{
-				$cat = $catdocs["category"];
-				$catid = $cat ? $cat->id : 0;
-				if ($catdocs["count"])
-				{
-					$docs = $catdocs["documents"];
-					$opts = U3A_HTML_Utilities::get_options_array_from_object_array($docs, "title", "id");
-					// edit a document
-					$opts1 = $opts;
-					$editid = "u3a-copy-document-" . $memgrp . "-" . $type . "-" . $catid;
-					$editsel = new U3A_SELECT($opts1, "u3a-" . $type_name . "-select", $editid, "u3a-" . $type_name . "-select-class");
-					$editsel->add_attribute("onchange", "u3a_edit_document_changed($memgrp, '" . $type . "')");
-					$editseldiv = new U3A_DIV($editsel, "u3a-edit-select-list-div-$memgrp-$type", "u3a-select-list-div-class u3a-bottom-margin-5 u3a-top-margin-5");
-					$editbtn = new U3A_BUTTON("button", "edit", "edit-document-post-button-" . $memgrp . "-" . $type, "u3a-edit-document-post-button-class u3a-button", "u3a_edit_document($memgrp, '$type', $is_group)");
-					$titlebit1 = [
-						U3A_HTML::labelled_html_object("title: ", new U3A_INPUT("string", "title", "u3a-edit-title-$memgrp-$type", "u3a-input-title-class", $docs[0]->title), null, "u3a-input-label-class", false, true, "Give a new title"),
-						U3A_HTML::labelled_html_object($params["by"] . ": ", new U3A_INPUT("string", "by", "u3a-edit-by-$memgrp-$type", "u3a-input-by-class", $docs[0]->author), null, "u3a-input-label-class", false, true)
-					];
-					if (($type === U3A_Documents::GROUP_DOCUMENT_TYPE) || ($type === U3A_Documents::GROUP_IMAGE_TYPE) || ($type === U3A_Documents::PERSONAL_DOCUMENT_TYPE) || ($type === U3A_Documents::PERSONAL_IMAGE_TYPE))
-					{
-						$titlebit1[] = U3A_HTML::labelled_html_object("visibility: ", self::get_visibility_select($memgrp, $type, "edit"), null, "u3a-input-label-class", false, true, null);
-					}
-					$edith = new U3A_H(4, "Edit " . $type_name1);
-					$editdiv = new U3A_DIV([$edith, $editseldiv, $titlebit1, $editbtn], null, "u3a-edit-document-div-class");
-//					$del[] = $editdiv;
-					// move
-					$oph = new U3A_H(4, "$op " . $type_name1);
-					$def = new U3A_OPTION("all", 0);
-					array_unshift($opts, $def);
-					$delid = "u3a-delete-document-" . $memgrp . "-" . $type . "-" . $catid;
-					$cpid = "u3a-copy-document-" . $memgrp . "-" . $type . "-" . $catid;
-					$sel = new U3A_SELECT($opts, "u3a-" . $type_name . "-select", $delid, "u3a-" . $type_name . "-select-class");
-					$cpsel = new U3A_SELECT($opts, "u3a-" . $type_name . "-select", $cpid, "u3a-" . $type_name . "-select-class");
-					$sel1 = U3A_Document_Categories::get_select_list($memgrp, $type, "select-category-move-$catid", null, -1, true, "trash", $catid);
-					$cpsel1 = U3A_Document_Categories::get_select_list($memgrp, $type, "select-category-copy-$catid", null, -1, true, null, $catid);
-					if ($type === U3A_Documents::NEWSLETTER_TYPE)
-					{
-						$lbl = [
-							new U3A_SPAN("select " . $type_name . " to delete: ", null, "u3a-block u3a-margin-right-5"),
-							$sel,
-							new U3A_BUTTON("button", "delete", "u3a-" . $type_name . "-delete-button", "u3a-select-button-class u3a-button u3a-margin-left-5", "u3a_move_document('$delid', '$type_name', '" . $sel1["id"] . "', '$catid', '$memgrp', $is_group)")
-						];
-					}
-					else
-					{
-						$mv = [
-							new U3A_SPAN("select " . $type_name . " to move: ", null, "u3a-block u3a-margin-right-5"),
-							$sel,
-							new U3A_SPAN("to", null, "u3a-inline-block u3a-margin-right-5 u3a-margin-left-5"),
-							$sel1["select"],
-							new U3A_BUTTON("button", "move", "u3a-" . $type_name . "-move-button", "u3a-select-button-class u3a-button u3a-margin-left-5", "u3a_move_document('$delid', '$type_name', '" . $sel1["id"] . "', '$catid', '$memgrp', $is_group)")
-						];
-						$mvdiv = new U3A_DIV($mv, "u3a-move-document-div-" . $memgrp . "-" . $type . "-" . $catid, "u3a-move-document-div-class-$type");
-						$cp = [
-							new U3A_SPAN("select " . $type_name . " to copy: ", null, "u3a-block u3a-margin-right-5"),
-							$cpsel,
-							new U3A_SPAN("to", null, "u3a-inline-block u3a-margin-right-5 u3a-margin-left-5"),
-							$cpsel1["select"],
-							new U3A_BUTTON("button", "copy", "u3a-" . $type_name . "-copy-button", "u3a-select-button-class u3a-button u3a-margin-left-5", "u3a_copy_document('$cpid', '$type_name', '" . $cpsel1["id"] . "', '$catid', '$memgrp', $is_group)")
-						];
-						$cpdiv = new U3A_DIV($cp, "u3a-copy-document-div-" . $memgrp . "-" . $type . "-" . $catid, "u3a-copy-document-div-class-$type");
-						$sortlist = U3A_HTML_Utilities::get_list_from_object_array($docs, "title", "id", false, "u3a-sort-list-$memgrp-$type-$catid", "u3a-sort-list", "u3a-sort-list-item");
-						$instruct = new U3A_DIV("use mouse to move up and down", "u3a-instruction-$memgrp-$type-$catid", "u3a-border-top u3a-margin-top-5");
-						$cls = '<span class="dashicons dashicons-yes-alt"></span>';
-						$close = new U3A_A('#', $cls, "u3a-close-sort-list-$memgrp-$type-$catid", null, "u3a_sort_list_close('$memgrp', '$type', '$catid', $is_group);");
-						$close->add_attribute("rel", "modal:close");
-						$sortdiv = new U3A_DIV([$sortlist, $instruct, $close], "u3a-sort-list-div-$memgrp-$type-$catid", "modal u3a-sort-list-div");
-						$open = new U3A_A("#u3a-sort-list-div-$memgrp-$type-$catid", 'sort', null, "u3a-button u3a-block");
-						$open->add_attribute("role", "button");
-						$open->add_attribute("rel", "modal:open");
-						$lbl = [$editdiv, $oph, $mvdiv, $cpdiv, $open, $sortdiv];
-					}
-				}
-				else
-				{
-					$lbl = new U3A_SPAN("There are no " . $type_name . "s in this $category_label.", null, "u3a-inline-block");
-				}
-				$div = new U3A_DIV($lbl, "u3a-manage-document-div-" . $memgrp . "-" . $type . "-" . $catid, "u3a-manage-document-div-class-$type u3a-border-top");
-				if ($catid && $catid != $select["selected"])
-				{
-					$div->add_class("u3a-invisible");
-				}
-				$del[] = $div;
-			}
-		}
-		else
-		{
-			$del[] = new U3A_DIV("No " . $type_name . "s found", "u3a-manage-documents-div-" . $memgrp . "-" . $type, "u3a-manage-document-div-class-$type u3a-border-top");
-		}
-		return [$upldocs, $del];
 	}
 
 	public static function get_document($doc)
@@ -3606,6 +3404,11 @@ class U3A_News extends U3A_Database_Row
 class U3A_Document_Categories extends U3A_Database_Row
 {
 
+	const GROUP_CATEGORY = 0;
+	const MEMBER_CATEGORY = 1;
+	const COMMITTEE_CATEGORY = 2;
+	const COORDINATOR_CATEGORY = 3;
+
 	public static function create_category_for_member($groups_id, $members_id, $type = 0)
 	{
 		if ($groups_id)
@@ -3614,25 +3417,66 @@ class U3A_Document_Categories extends U3A_Database_Row
 		}
 	}
 
-	public static function number_of_categories_for_group($grp, $type = 0)
+//	public static function number_of_categories_for_group($grp, $type = 0)
+//	{
+//		$groups_id = U3A_Groups::get_group_id($grp);
+//		$cats = U3A_Row::load_array_of_objects("U3A_Document_Categories", ["groups_id" => $groups_id, "document_type" => $type], "name");
+//		return $cats["total_number_of_rows"];
+//	}
+//
+	public static function get_categories_for_group($grp, $type = U3A_Documents::GROUP_DOCUMENT_TYPE, $include_subs = true)
 	{
 		$groups_id = U3A_Groups::get_group_id($grp);
-		$cats = U3A_Row::load_array_of_objects("U3A_Document_Categories", ["groups_id" => $groups_id, "document_type" => $type], "name");
-		return $cats["total_number_of_rows"];
+		if ($include_subs)
+		{
+			$cats = U3A_Row::load_column("u3a_document_categories", "id", ["groups_id" => $groups_id, "document_type" => $type], false, "name");
+		}
+		else
+		{
+			$sql = "SELECT u3a_document_categories.id FROM u3a_document_categories LEFT OUTER JOIN u3a_category_category_relationship ON u3a_document_categories.id = u3a_category_category_relationship.to_categories_id" .
+			  " WHERE u3a_document_categories.groups_id = $groups_id AND u3a_document_categories.document_type = $type AND ( u3a_category_category_relationship.to_categories_id IS NULL OR" .
+			  " u3a_category_category_relationship.relationship_type <> " . U3A_Category_Category_Relationship::CHILD_TYPE . " ) ORDER BY u3a_document_categories.name";
+			$cats = Project_Details::get_db()->loadColumn($sql);
+		}
+		$ret = [];
+		foreach ($cats as $cat)
+		{
+			$ret[] = U3A_Category_Category_Relationship::get_category($cat);
+		}
+		return $ret;
 	}
 
-	public static function get_categories_for_group($grp, $type = 0)
-	{
-		$groups_id = U3A_Groups::get_group_id($grp);
-		$cats = U3A_Row::load_array_of_objects("U3A_Document_Categories", ["groups_id" => $groups_id, "document_type" => $type], "name");
-		return $cats["result"];
-	}
-
-	public static function get_categories_for_member($mbr, $type = U3A_Documents::PERSONAL_DOCUMENT_TYPE)
+	public static function get_categories_for_member($mbr, $type = U3A_Documents::PERSONAL_DOCUMENT_TYPE, $include_subs = true)
 	{
 		$members_id = U3A_Members::get_member_id($mbr);
-		$cats = U3A_Row::load_array_of_objects("U3A_Document_Categories", ["members_id" => $members_id, "groups_id" => -1, "document_type" => $type], "name");
-		return $cats["result"];
+		if ($include_subs)
+		{
+			$cats = U3A_Row::load_column("u3a_document_categories", "id", ["members_id" => $members_id, "groups_id" => -1, "document_type" => $type], false, "name");
+		}
+		else
+		{
+			$sql = "SELECT DISTINCT u3a_document_categories.id FROM u3a_document_categories LEFT OUTER JOIN u3a_category_category_relationship ON u3a_document_categories.id = u3a_category_category_relationship.to_categories_id" .
+			  " WHERE u3a_document_categories.groups_id = -1 AND u3a_document_categories.members_id = $members_id AND u3a_document_categories.document_type = $type AND ( u3a_category_category_relationship.to_categories_id IS NULL OR" .
+			  " u3a_category_category_relationship.relationship_type <> " . U3A_Category_Category_Relationship::CHILD_TYPE . " ) ORDER BY u3a_document_categories.name";
+			$cats = Project_Details::get_db()->loadColumn($sql);
+		}
+		$ret = [];
+		foreach ($cats as $cat)
+		{
+			$ret[] = U3A_Category_Category_Relationship::get_category($cat);
+		}
+		return $ret;
+	}
+
+	public static function get_categories_for_committee($type = U3A_Documents::PUBLIC_DOCUMENT_TYPE)
+	{
+		$cats = U3A_Row::load_column("u3a_document_categories", "id", ["members_id" => 0, "groups_id" => 0, "document_type" => $type], false, "name");
+		$ret = [];
+		foreach ($cats as $cat)
+		{
+			$ret[] = U3A_Category_Category_Relationship::get_category($cat);
+		}
+		return $ret;
 	}
 
 	public static function get_non_empty_categories_for_group_by_name($grp, $type = 0)
@@ -3648,6 +3492,7 @@ class U3A_Document_Categories extends U3A_Database_Row
 			$obj = new U3A_Document_Categories();
 			$obj->set_all($list[$n]);
 			$obj->groups_id = $groups_id;
+			$obj->members_id = 0;
 			$obj->document_type = $type;
 			$ret[$obj->name] = $obj;
 		}
@@ -3666,7 +3511,27 @@ class U3A_Document_Categories extends U3A_Database_Row
 		{
 			$obj = new U3A_Document_Categories();
 			$obj->set_all($list[$n]);
-			$obj->groups_id = $groups_id;
+			$obj->groups_id = -1;
+			$obj->members_id = $members_id;
+			$obj->document_type = $type;
+			$ret[$obj->name] = $obj;
+		}
+		return $ret;
+	}
+
+	public static function get_non_empty_categories_for_committee_by_name($type = U3A_Documents::PUBLIC_DOCUMENT_TYPE)
+	{
+		$sql = "SELECT DISTINCT u3a_document_categories.id AS id, u3a_document_categories.name AS name FROM u3a_document_categories JOIN u3a_document_category_relationship ON "
+		  . "u3a_document_categories.id = u3a_document_category_relationship.document_categories_id"
+		  . " WHERE u3a_document_categories.members_id = 0 AND u3a_document_categories.groups_id = 0 AND u3a_document_categories.document_type = $type";
+		$list = Project_Details::get_db()->loadList($sql);
+		$ret = [];
+		for ($n = 0; $n < count($list); $n++)
+		{
+			$obj = new U3A_Document_Categories();
+			$obj->set_all($list[$n]);
+			$obj->groups_id = 0;
+			$obj->members_id = 0;
 			$obj->document_type = $type;
 			$ret[$obj->name] = $obj;
 		}
@@ -3686,6 +3551,7 @@ class U3A_Document_Categories extends U3A_Database_Row
 			$obj = new U3A_Document_Categories();
 			$obj->set_all($list[$n]);
 			$obj->groups_id = $groups_id;
+			$obj->members_id = 0;
 			$obj->document_type = $type;
 			$ret[$obj->name] = $obj;
 		}
@@ -3704,7 +3570,27 @@ class U3A_Document_Categories extends U3A_Database_Row
 		{
 			$obj = new U3A_Document_Categories();
 			$obj->set_all($list[$n]);
-			$obj->groups_id = $groups_id;
+			$obj->groups_id = -1;
+			$obj->members_id = $members_id;
+			$obj->document_type = $type;
+			$ret[$obj->name] = $obj;
+		}
+		return $ret;
+	}
+
+	public static function get_empty_categories_for_committee_by_name($type = U3A_Documents::PUBLIC_DOCUMENT_TYPE)
+	{
+		$sql = "SELECT DISTINCT u3a_document_categories.id AS id, u3a_document_categories.name AS name FROM u3a_document_categories LEFT JOIN u3a_document_category_relationship ON "
+		  . "u3a_document_categories.id = u3a_document_category_relationship.document_categories_id"
+		  . " WHERE u3a_document_category_relationship.document_categories_id IS NULL AND u3a_document_categories.members_id = 0 AND u3a_document_categories.groups_id = 0 AND u3a_document_categories.document_type = $type";
+		$list = Project_Details::get_db()->loadList($sql);
+		$ret = [];
+		for ($n = 0; $n < count($list); $n++)
+		{
+			$obj = new U3A_Document_Categories();
+			$obj->set_all($list[$n]);
+			$obj->groups_id = 0;
+			$obj->members_id = 0;
 			$obj->document_type = $type;
 			$ret[$obj->name] = $obj;
 		}
@@ -3722,6 +3608,13 @@ class U3A_Document_Categories extends U3A_Database_Row
 	{
 		$members_id = U3A_Members::get_member_id($mbr);
 		$cats = U3A_Row::load_hash_of_all_objects("U3A_Document_Categories", ["members_id" => $members_id, "groups_id" => -1, "document_type" => $type], "name", "name");
+		return $cats;
+	}
+
+	public static function get_categories_for_committee_by_name($type = U3A_Documents::PERSONAL_DOCUMENT_TYPE)
+	{
+		$members_id = U3A_Members::get_member_id($mbr);
+		$cats = U3A_Row::load_hash_of_all_objects("U3A_Document_Categories", ["members_id" => 0, "groups_id" => 0, "document_type" => $type], "name", "name");
 		return $cats;
 	}
 
@@ -3794,38 +3687,38 @@ class U3A_Document_Categories extends U3A_Database_Row
 		return ["options" => $opts, "selected" => $selected];
 	}
 
-	public static function get_options_array($mbrgrp, $type = 0, $selected1 = null, $include_default = null, $include = null, $omit = null)
+	public static function get_options_array($id, $mbrgrp, $type = 0, $selected1 = null, $include_default = null, $include = null, $omit = null)
 	{
-		if (($type == U3A_Documents::PERSONAL_DOCUMENT_TYPE) || ($type == U3A_Documents::PERSONAL_IMAGE_TYPE))
+		if ($mbrgrp === self::MEMBER_CATEGORY)
 		{
-			$object_array = self::get_categories_for_member_by_name($mbrgrp, $type);
+			$object_array = self::get_categories_for_member_by_name($id, $type);
 		}
 		else
 		{
-			$object_array = self::get_categories_for_group_by_name($mbrgrp, $type);
+			$object_array = self::get_categories_for_group_by_name($id, $type);
 		}
 		return self::get_options_array_for_objects($object_array, $selected1, $include_default, $include, $omit);
 	}
 
-	public static function get_empty_select_list($mbrgrp, $type = 0, $id = "", $onchange = null, $selected1 = null, $include_default = true, $include = null)
+	public static function get_empty_select_list($id, $mbrgrp, $type = 0, $htmlid = "", $onchange = null, $selected1 = null, $include_default = true, $include = null)
 	{
-		if (($type == U3A_Documents::PERSONAL_DOCUMENT_TYPE) || ($type == U3A_Documents::PERSONAL_IMAGE_TYPE))
+		if ($mbrgrp === self::MEMBER_CATEGORY)
 		{
-			$object_array = self::get_empty_categories_for_member_by_name($mbrgrp, $type);
+			$object_array = self::get_empty_categories_for_member_by_name($id, $type);
 		}
 		else
 		{
-			$object_array = self::get_empty_categories_for_group_by_name($mbrgrp, $type);
+			$object_array = self::get_empty_categories_for_group_by_name($id, $type);
 		}
 		$opts = self::get_options_array_for_objects($object_array, $selected1, $include_default, $include);
-		return self::get_select_list_from_options_list($opts, $mbrgrp, $type, $id, $onchange, $selected1, $include_default, $include);
+		return self::get_select_list_from_options_list($opts, $id, $type, $htmlid, $onchange, $selected1, $include_default, $include);
 	}
 
-	public static function get_select_list($mbrgrp, $type = 0, $id = "", $onchange = null, $selected1 = null, $include_default = false, $include = null, $omit = null)
+	public static function get_select_list($id, $mbrgrp, $type = 0, $htmlid = "", $onchange = null, $selected1 = null, $include_default = false, $include = null, $omit = null)
 	{
 //		write_log($selected1);
-		$opts = self::get_options_array($mbrgrp, $type, $selected1, $include_default, $include, $omit);
-		return self::get_select_list_from_options_list($opts, $mbrgrp, $type, $id, $onchange, $selected1, $include_default, $include);
+		$opts = self::get_options_array($id, $mbrgrp, $type, $selected1, $include_default, $include, $omit);
+		return self::get_select_list_from_options_list($opts, $id, $type, $htmlid, $onchange, $selected1, $include_default, $include);
 	}
 
 	public static function get_select_list_from_options_list($opts, $mbrgrp, $type = 0, $id = "", $onchange = null, $selected1 = null, $include_default = false, $include = null)
@@ -3894,7 +3787,8 @@ class U3A_Document_Categories extends U3A_Database_Row
 		$ret = $cat;
 		if (is_numeric($cat))
 		{
-			$ret = U3A_Row::load_single_object("U3A_Document_Categories", ["id" => $cat]);
+			$ret = U3A_Category_Category_Relationship::get_category($cat);
+//			$ret = U3A_Row::load_single_object("U3A_Document_Categories", ["id" => $cat]);
 		}
 		elseif (is_string($cat))
 		{
@@ -3921,9 +3815,53 @@ class U3A_Document_Categories extends U3A_Database_Row
 		return $ret;
 	}
 
+	private $_usename;
+
 	public function __construct($param = null)
 	{
 		parent::__construct("u3a_document_categories", "id", $param, null, null, null);
+	}
+
+	public function number_of_documents()
+	{
+		return U3A_Row::count_rows("U3A_Documents", ["category" => $this->_data["id"]]);
+	}
+
+	public function is_group()
+	{
+		return $this->_data["groups_id"] > 0;
+	}
+
+	public function is_member()
+	{
+		return $this->_data["members_id"] > 0;
+	}
+
+	public function is_committee()
+	{
+		return (intval($this->_data["groups_id"]) === 0) && (intval($this->_data["members_id"]) === 0);
+	}
+
+	public function use_name($name)
+	{
+		$this->_usename = $name;
+	}
+
+	public function get_name()
+	{
+		if ($this->_usename)
+		{
+			$ret = $this->_usename;
+		}
+		elseif (array_key_exists("name", $this->_data))
+		{
+			$ret = $this->_data["name"];
+		}
+		else
+		{
+			$ret = null;
+		}
+		return $ret;
 	}
 
 }
@@ -3958,6 +3896,16 @@ class WP_Users extends U3A_Database_Row
 
 }
 
+class WP_Usermeta extends U3A_Database_Row
+{
+
+	public function __construct($param = null)
+	{
+		parent::__construct("wp_usermeta", "umeta_id", $param, null, null, null);
+	}
+
+}
+
 class U3A_Members_Deleted extends U3A_Database_Row
 {
 
@@ -3980,6 +3928,11 @@ class U3A_Groups_Deleted extends U3A_Database_Row
 
 class U3A_Document_Category_Relationship extends U3A_Database_Row
 {
+
+	public static function has_documents($categories_id)
+	{
+		return U3A_Row::has_rows("U3A_Document_Category_Relationship", ["document_categories_id" => $categories_id]);
+	}
 
 	public function __construct($param = null)
 	{
@@ -4182,6 +4135,103 @@ class U3A_Members_Information extends U3A_Database_Row
 
 }
 
+class U3A_Forum_Posts extends U3A_Database_Row
+{
+
+	public static function get_posts_for_group($grp, $since = 0, $upto = 0)
+	{
+		if (is_string($since))
+		{
+			$since = strtotime($since);
+		}
+		if (is_string($upto))
+		{
+			$upto = strtotime($upto);
+		}
+		if ($upto <= $since)
+		{
+			$upto = time();
+		}
+		$groups_id = U3A_Groups::get_group_id($grp);
+		$ret = [];
+		$sql = "SELECT * FROM `u3a_forum_posts` WHERE groups_id = $groups_id AND UNIX_TIMESTAMP(date_posted) > $since AND UNIX_TIMESTAMP(date_posted) < $upto ORDER BY date_posted DESC";
+		$list = Project_Details::get_db()->loadList($sql);
+		$num = count($list);
+		for ($n = 0; $n < $num; $n++)
+		{
+			$obj = new U3A_Forum_Posts();
+			$obj->set_all($list[$n]);
+			$ret[$n] = $obj;
+		}
+		return $ret;
+	}
+
+	public static function get_post_details_for_group($grp, $since = 0, $upto = 0)
+	{
+		if (is_string($since))
+		{
+			$since = strtotime($since);
+		}
+		if (is_string($upto))
+		{
+			$upto = strtotime($upto);
+		}
+		if ($upto <= $since)
+		{
+			$upto = time();
+		}
+		$groups_id = U3A_Groups::get_group_id($grp);
+		$ret = [];
+		$sql = "SELECT id, groups_id, members_id, reply_to, date_posted, title FROM `u3a_forum_posts` WHERE groups_id = $groups_id AND UNIX_TIMESTAMP(date_posted) > $since ORDER BY date_posted DESC";
+		$list = Project_Details::get_db()->loadList($sql);
+		$num = count($list);
+		for ($n = 0; $n < $num; $n++)
+		{
+			$obj = new U3A_Forum_Posts();
+			$obj->set_all($list[$n]);
+			$ret[$n] = $obj;
+		}
+		return $ret;
+	}
+
+	public static function get_post_contents($post_id)
+	{
+		return U3A_Row::get_single_value("U3A_Forum_Posts", "contents", ["id" => $post_id]);
+	}
+
+	public static function delete_thread($groups_id, $post_id)
+	{
+		$rt = U3A_Row::load_array_of_objects("U3A_Forum_Posts", ["groups_id" => $groups_id, "reply_to" => $post_id]);
+		if ($rt["total_number_of_rows"])
+		{
+			foreach ($rt as $r)
+			{
+				self::delete_thread($groups_id, $r->id);
+			}
+		}
+		$this1 = U3A_Row::load_single_object("U3A_Forum_Posts", ["id" => $post_id]);
+		if ($this1)
+		{
+			$this1->delete();
+		}
+	}
+
+	public function __construct($param = null)
+	{
+		parent::__construct("u3a_forum_posts", "id", $param, null, null, null);
+	}
+
+	public function get_contents()
+	{
+		if (!array_key_exists("contents", $this->_data))
+		{
+			$this->_data["contents"] = U3A_Row::get_single_value("U3A_Forum_Posts", "contents", ["id" => $this->_data["id"]]);
+		}
+		return $this->_data["contents"];
+	}
+
+}
+
 class U3A_Tasks extends U3A_Database_Row
 {
 
@@ -4228,6 +4278,386 @@ class U3A_Tasks extends U3A_Database_Row
 	public function __construct($param = null)
 	{
 		parent::__construct("u3a_tasks", "id", $param, null, null, null);
+	}
+
+}
+
+class U3A_Category_Category_Relationship extends U3A_Database_Row
+{
+
+	const CHILD_TYPE = 0;
+	const EQUIVALENCE_TYPE = 1;
+
+	public static function get_ancestors_of($categories_id)
+	{
+		$sql = "with recursive cte (from_categories_id, from_id, to_categories_id, to_id, name, relationship_type) as (" .
+		  " select     from_categories_id," .
+		  "		   from_id," .
+		  "		   to_categories_id," .
+		  "		   to_id," .
+		  "		   name," .
+		  "		   relationship_type" .
+		  " from       u3a_category_category_relationship" .
+		  " where      from_categories_id = $categories_id AND relationship_type = " . self::CHILD_TYPE .
+		  " union distinct" .
+		  " select     l.from_categories_id," .
+		  "		   l.from_id," .
+		  "		   l.to_categories_id," .
+		  "		   l.to_id," .
+		  "		   l.name," .
+		  "		   l.relationship_type" .
+		  " from       u3a_category_category_relationship l" .
+		  " inner join cte" .
+		  "		on l.from_categories_id = cte.to_categories_id where l.relationship_type = " . self::CHILD_TYPE . " )" .
+		  " select * from cte;";
+		$lnks = Project_Details::get_db()->loadList($sql);
+		return $lnks;
+	}
+
+	public static function get_children_of($categories_id)
+	{
+		$sql = "SELECT u3a_document_categories.* from u3a_document_categories JOIN u3a_category_category_relationship ON u3a_category_category_relationship.to_categories_id = u3a_document_categories.id " .
+		  " WHERE u3a_category_category_relationship.from_categories_id = $categories_id AND relationship_type = " . self::CHILD_TYPE;
+		$ret = [];
+		$lnks = Project_Details::get_db()->loadList($sql);
+		if ($lnks)
+		{
+			foreach ($lnks as $lnk)
+			{
+				$cat = new U3A_Document_Categories();
+				$cat->set_all($lnk);
+				$ret[] = $cat;
+			}
+		}
+		return $ret;
+	}
+
+	public static function get_descendants_of($categories_id)
+	{
+		$sql = "with recursive cte (from_categories_id, from_id, to_categories_id, to_id, name, relationship_type) as (" .
+		  " select     from_categories_id," .
+		  "		   from_id," .
+		  "		   to_categories_id," .
+		  "		   to_id," .
+		  "		   name," .
+		  "		   relationship_type" .
+		  " from       u3a_category_category_relationship" .
+		  " where      from_categories_id = $categories_id AND relationship_type = " . self::CHILD_TYPE .
+		  " union distinct" .
+		  " select     l.from_categories_id," .
+		  "		   l.from_id," .
+		  "		   l.to_categories_id," .
+		  "		   l.to_id," .
+		  "		   l.name," .
+		  "		   l.relationship_type" .
+		  " from       u3a_category_category_relationship l" .
+		  " inner join cte" .
+		  "	on l.to_categories_id = cte.from_categories_id where l.relationship_type = " . self::CHILD_TYPE . " )" .
+		  "select * from cte; ";
+		$lnks = Project_Details::get_db()->loadList($sql);
+		return $lnks;
+	}
+
+	public static function count_descendants_of($categories_id)
+	{
+		$sql = "with recursive cte (from_categories_id, from_id, to_categories_id, to_id, name, relationship_type) as (" .
+		  " select     from_categories_id," .
+		  "		   from_id," .
+		  "		   to_categories_id," .
+		  "		   to_id," .
+		  "		   name," .
+		  "		   relationship_type" .
+		  " from       u3a_category_category_relationship" .
+		  " where      from_categories_id = $categories_id AND relationship_type = " . self::CHILD_TYPE .
+		  " union distinct" .
+		  " select     l.from_categories_id," .
+		  "		   l.from_id," .
+		  "		   l.to_categories_id," .
+		  "		   l.to_id," .
+		  "		   l.name," .
+		  "		   l.relationship_type" .
+		  " from       u3a_category_category_relationship l" .
+		  " inner join cte" .
+		  "	on l.to_categories_id = cte.from_categories_id where l.relationship_type = " . self::CHILD_TYPE . " )" .
+		  "select COUNT(*) from cte ";
+		$count = Project_Details::get_db()->loadResult($sql);
+		OJ_Logger::get_logger()->ojdebug("count_descendants_of", $categories_id, $sql, $count);
+		return $count;
+	}
+
+	public static function is_ancestor_of($possible_ancestor, $categories_id)
+	{
+		$ret = false;
+		$ancestors = self::get_ancestors_of($categories_id);
+		foreach ($ancestors as $ancestor)
+		{
+			if ($ancestor["to_categories_id"] == $possible_ancestor)
+			{
+				$ret = true;
+				break;
+			}
+		}
+		return $ret;
+	}
+
+	public static function get_equivalences_of($categories_id)
+	{
+		$sql = "with recursive cte (from_categories_id, from_id, to_categories_id, to_id, name, relationship_type) as (" .
+		  " select     from_categories_id," .
+		  "		   from_id," .
+		  "		   to_categories_id," .
+		  "		   to_id," .
+		  "		   name," .
+		  "		   relationship_type" .
+		  " from       u3a_category_category_relationship" .
+		  " where     ( from_categories_id = $categories_id OR to_categories_id = $categories_id ) AND relationship_type = " . self::EQUIVALENCE_TYPE .
+		  " union distinct" .
+		  " select     l.from_categories_id," .
+		  "		   l.from_id," .
+		  "		   l.to_categories_id," .
+		  "		   l.to_id," .
+		  "		   l.name," .
+		  "		   l.relationship_type" .
+		  " from       u3a_category_category_relationship l" .
+		  " inner join cte" .
+		  "		on ( l.from_categories_id = cte.to_categories_id OR l.to_categories_id = cte.from_categories_id ) where l.relationship_type = " . self::EQUIVALENCE_TYPE . " )" .
+		  " select * from cte;";
+		$lnks = Project_Details::get_db()->loadList($sql);
+		return $lnks;
+	}
+
+	public static function get_equivalences_from($categories_id)
+	{
+		$ret = [];
+		$lnks = self::get_equivalences_of($categories_id);
+		foreach ($lnks as $lnk)
+		{
+			$ret[$lnk["from_categories_id"]] = $lnk;
+		}
+		return $ret;
+	}
+
+	public static function is_equivalent_to($possible_equiv, $categories_id)
+	{
+		$ret = false;
+		$equivs = self::get_equivalences_of($categories_id);
+		foreach ($equivs as $equiv)
+		{
+			if (($equivs["to_categories_id"] == $possible_equiv) || ($equivs["from_categories_id"] == $possible_equiv))
+			{
+				$ret = true;
+				break;
+			}
+		}
+		return $ret;
+	}
+
+	public static function get_category($categories_id)
+	{
+		$usename = null;
+		$lnks = self::get_equivalences_from($categories_id);
+		$cid = $categories_id;
+		while (array_key_exists($cid, $lnks))
+		{
+			$lnk = $lnks[$cid];
+			if (!$usename)
+			{
+				$usename = $lnk["name"];
+			}
+			$cid = $lnk["to_categories_id"];
+		}
+		$ret = U3A_Row::load_single_object("U3A_Document_Categories", ["id" => $cid]);
+		if (!$usename)
+		{
+			$usename = U3A_Document_Categories::get_category_name($categories_id);
+		}
+		$ret->use_name($usename);
+		return $ret;
+	}
+
+	public static function has_equivalent($categories_id)
+	{
+		return U3A_Row::count_rows("U3A_Category_Category_Relationship", ["from_categories_id" => $categories_id, "relationship_type" => self::EQUIVALENCE_TYPE]) > 0;
+	}
+
+	public static function get_equivalence($categories_id1, $categories_id2)
+	{
+		$ret = U3A_Row::load_single_object("U3A_Category_Category_Relationship", ["from_categories_id" => $categories_id1, "to_categories_id" => $categories_id2, "relationship_type" => self::EQUIVALENCE_TYPE]);
+		if (!$ret)
+		{
+			$ret = U3A_Row::load_single_object("U3A_Category_Category_Relationship", ["from_categories_id" => $categories_id2, "to_categories_id" => $categories_id1, "relationship_type" => self::EQUIVALENCE_TYPE]);
+		}
+		return $ret;
+	}
+
+	public static function get_strict_equivalence($from_categories_id, $to_categories_id)
+	{
+		$ret = U3A_Row::load_single_object("U3A_Category_Category_Relationship", ["from_categories_id" => $from_categories_id, "to_categories_id" => $to_categories_id, "relationship_type" => self::EQUIVALENCE_TYPE]);
+		return $ret;
+	}
+
+	public static function construct_relationship($from_categories_id, $to_categories_id, $from_id = 0, $to_id = 0, $from_type = U3A_Document_Categories::GROUP_CATEGORY, $to_type = U3A_Document_Categories::GROUP_CATEGORY, $name = null, $relationship_type = self::CHILD_TYPE)
+	{
+		$ret = null;
+		if (!$name)
+		{
+			$name = U3A_Document_Categories::get_category_name($from_categories_id);
+		}
+		$hash = ["from_categories_id" => $from_categories_id, "to_categories_id" => $to_categories_id, "from_id" => $from_id, "to_id" => $to_id, "from_type" => $from_type, "to_type" => $to_type, "name" => $name, "relationship_type" => $relationship_type];
+		if (intval($relationship_type) === self::CHILD_TYPE)
+		{
+			if ($from_categories_id && !self::is_ancestor_of($from_categories_id, $to_categories_id) && ($to_categories_id || $to_id))
+			{
+				$ret = new U3A_Category_Category_Relationship($hash);
+			}
+		}
+		elseif (intval($relationship_type) === self::EQUIVALENCE_TYPE)
+		{
+			$ret = self::get_strict_equivalence($from_categories_id, $to_categories_id);
+			if (!$ret)
+			{
+				$ret = new U3A_Category_Category_Relationship($hash);
+			}
+		}
+		return $ret;
+	}
+
+	public function __construct($param = null)
+	{
+		parent::__construct("u3a_category_category_relationship", "id", $param, null, null, null);
+	}
+
+}
+
+class U3A_Friends extends U3A_Database_Row
+{
+
+	public function __construct($param = null)
+	{
+		parent::__construct("u3a_friends", "id", $param, null, null, null);
+	}
+
+}
+
+class U3A_Email_Lists extends U3A_Database_Row
+{
+
+	public static function get_lists_for_group($groups_id)
+	{
+		$lists = U3A_Row::load_array_of_objects("U3A_Email_Lists", ["groups_id" => $groups_id]);
+		return $lists["result"];
+	}
+
+	public static function get_list_member_ids($email_lists_id)
+	{
+		return U3A_Row::load_column("u3a_email_list_members", "members_id", ["email_lists_id" => $email_lists_id]);
+	}
+
+	public static function get_list_members($email_lists_id)
+	{
+		$list = U3A_Row::load_array_of_objects("U3A_Email_List_Members", ["email_lists_id" => $email_lists_id]);
+		return $list["result"];
+	}
+
+	public function __construct($param = null)
+	{
+		parent::__construct("u3a_email_lists", "id", $param, null, null, null);
+	}
+
+}
+
+class U3A_Email_List_Members extends U3A_Database_Row
+{
+
+	public function __construct($param = null)
+	{
+		parent::__construct("u3a_email_list_members", "id", $param, null, null, null);
+	}
+
+}
+
+class U3A_Links extends U3A_Database_Row
+{
+
+	public static function get_links_in_section($sections_id)
+	{
+		$links = U3A_Row::load_array_of_objects("U3A_Links", ["sections_id" => $sections_id]);
+		return $links["result"];
+	}
+
+	public function __construct($param = null)
+	{
+		parent::__construct("u3a_links", "id", $param, null, null, null);
+	}
+
+}
+
+class U3A_Link_Sections extends U3A_Database_Row
+{
+
+	public static function get_sections($groups_id, $members_id)
+	{
+		$ret = U3A_Row::load_array_of_objects("U3A_Link_Sections", ["groups_id" => $groups_id, "members_id" => $members_id]);
+		return $ret["result"];
+	}
+
+	public static function get_sections_id($ent)
+	{
+		$ret = $ent;
+		if (!is_numeric($ent))
+		{
+			if (is_string($ent))
+			{
+				if (filter_var($ent, FILTER_VALIDATE_URL, FILTER_FLAG_SCHEME_REQUIRED | FILTER_FLAG_PATH_REQUIRED))
+				{
+					$where = ["url" => $ent];
+				}
+				else
+				{
+					$where = ["name" => $ent];
+				}
+				$entity = U3A_Row::load_single_object("U3A_Link_Sections", $where);
+				$ret = $entity->id;
+			}
+			else if ($ent != null)
+			{
+				$ret = $ent->id;
+			}
+		}
+		return $ret;
+	}
+
+	public static function get_section($ent)
+	{
+		$ret = $ent;
+		if (is_numeric($ent))
+		{
+			$where = ["id" => $ent];
+			$ret = U3A_Row::load_single_object("U3A_Link_Sections", $where);
+		}
+		elseif (is_string($ent))
+		{
+			if (filter_var($ent, FILTER_VALIDATE_URL, FILTER_FLAG_SCHEME_REQUIRED | FILTER_FLAG_PATH_REQUIRED))
+			{
+				$where = ["url" => $ent];
+			}
+			else
+			{
+				$where = ["name" => $ent];
+			}
+			$ret = U3A_Row::load_single_object("U3A_Link_Sections", $where);
+		}
+		return $ret;
+	}
+
+	public function __construct($param = null)
+	{
+		parent::__construct("u3a_link_sections", "id", $param, null, null, null);
+	}
+
+	public function get_links()
+	{
+		return U3A_Links::get_links_in_section($this->_data["id"]);
 	}
 
 }

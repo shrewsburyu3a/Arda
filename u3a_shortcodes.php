@@ -10,6 +10,7 @@ require_once(ABSPATH . 'wp-config.php');
 require_once 'U3ADatabase.php';
 require_once 'u3a_information.php';
 require_once 'u3a_admin.php';
+require_once 'u3a_database_utilities.php';
 
 add_shortcode("u3a_find_member_dialog", "u3a_find_member_dialog_contents");
 
@@ -76,20 +77,22 @@ function u3a_group_contents($atts1)
 //	$grp = U3A_Groups::get_group(addslashes($atts["group"]));
 	$info = new U3A_DIV($grp->information, "u3a-group-info-" . $grp->id, "u3a-group-info-class u3a-group-class");
 	$when1 = $grp->get_meets_when();
-	$when = new U3A_DIV("meets: " . $when1, "u3a-group-when-" . $grp->id, "u3a-group-when-class u3a-group-class u3a-margin-top-5");
+	$when = new U3A_DIV([new U3A_SPAN("Meets: ", null, "u3a-inline-block u3a-width-12-em"), $when1], "u3a-group-when-" . $grp->id, "u3a-group-when-class u3a-group-class u3a-margin-top-5");
 	$venue = $grp->get_venue_name();
 	if ($venue)
 	{
-		$vnu = new U3A_DIV("venue: " . $venue, "u3a-group-venue-" . $grp->id, "u3a-group-venue-class u3a-group-class u3a-margin-top-5");
+		$vnu = new U3A_DIV([new U3A_SPAN("Venue: ", null, "u3a-inline-block u3a-width-12-em"), $venue], "u3a-group-venue-" . $grp->id, "u3a-group-venue-class u3a-group-class u3a-margin-top-5");
 	}
 	else
 	{
 		$vnu = null;
 	}
-	$nmem = "Current membership: " . $grp->get_number_of_members();
-	if (U3A_Committee::is_committee_member($member) && $atts['pgid'])
+	$nmem = new U3A_DIV([new U3A_SPAN("Current membership: ", null, "u3a-inline-block u3a-width-12-em"), "" . $grp->get_number_of_members()], null, "");
+	$nwait = new U3A_DIV([new U3A_SPAN("Waiting List: ", null, "u3a-inline-block u3a-width-12-em"), "" . $grp->get_number_waiting()], null, "");
+	if ($atts['pgid'])
 	{
-		$linkto = do_shortcode('<p class="u3a-group-link">[su_permalink id="' . $atts['pgid'] . '"]</p>');
+		$linkto1 = do_shortcode('[su_permalink id="' . $atts['pgid'] . '"]</p>');
+		$linkto = new U3A_DIV([new U3A_SPAN("Group Page: ", null, "u3a-inline-block u3a-width-12-em"), $linkto1], null, "");
 	}
 	else
 	{
@@ -113,8 +116,8 @@ function u3a_group_contents($atts1)
 //		write_log($coordinators);
 		$allcoordinators = implode(", ", $coordinators);
 //		write_log($allcoordinators);
-		$coord = new U3A_DIV((count($coordinators) > 1 ? "coordinators: " : "coordinator: ") . $allcoordinators, "u3a-group-coord-" . $grp->id, "u3a-group-coord-class u3a-group-class u3a-margin-top-5");
-		$ret = U3A_HTML::to_html([$info, $when, $vnu, $nmem, $coord, $linkto]);
+		$coord = new U3A_DIV([new U3A_SPAN((count($coordinators) > 1 ? "coordinators: " : "coordinator: "), null, "u3a-inline-block u3a-width-12-em"), $allcoordinators], "u3a-group-coord-" . $grp->id, "u3a-group-coord-class u3a-group-class u3a-margin-top-5");
+		$ret = U3A_HTML::to_html([$info, $when, $vnu, $nmem, $nwait, $coord, $linkto]);
 	}
 	else
 	{
@@ -185,6 +188,9 @@ function u3a_members_contents($atts1)
 		$mtype = "committee";
 	}
 	$checked = $atts["checked"] === "yes";
+	$select = $atts["select"];
+	$emailcoord = $atts["emailcoord"];
+	$waiting = null;
 	if (!$mbrs)
 	{
 		if ($atts["ids"])
@@ -194,8 +200,9 @@ function u3a_members_contents($atts1)
 		else
 		{
 			$mbrs = U3A_Group_Members::get_members_in_group($groups_id, true);
+			$waiting = U3A_Group_Members::get_waiting_list($groups_id, true);
 		}
-		usort($mbrs, ["U3A_Members", "compare"]);
+//		usort($mbrs, ["U3A_Members", "compare"]);
 	}
 	if ($atts["op"])
 	{
@@ -223,66 +230,81 @@ function u3a_members_contents($atts1)
 //	write_log($contents);
 	if ($mbrs)
 	{
-		if ($atts["select"] === "no")
+		$cdiv = new U3A_DIV(u3a_list_of_group_members($groups_id, $mbrs, $coord_ids, $select, $select_id, $checked, $mtype, $group_input, $groupname_input, $emailcoord, "member"), "u3a-group-members-list-div", "u3a-group-list-div-class");
+		$contents .= $cdiv->to_html();
+		if ($waiting)
 		{
-			$contents1 = [];
-			foreach ($mbrs as $mbr)
-			{
-				$asterix = array_search($mbr->id, $coord_ids) === FALSE ? "" : "<sup>*</sup>";
-				$mnum = " (" . $mbr->membership_number . ")";
-				if ($checked)
-				{
-					$cbid = "u3a-member-checkbox-" . $mbr->id;
-					$cb = new U3A_INPUT("checkbox", null, $cbid, "u3a-member-checkbox-class", $mbr->id);
-					$cb->add_attribute("onchange", "u3a_member_checkbox_changed('" . $cbid . "', '" . $mtype . "')");
-					$cblbl = new U3A_LABEL($cbid, $mbr->surname . ", " . $mbr->forename . $mnum . $asterix, null, "u3a-member-checkbox-label-class u3a-inline-block u3a-margin-left-5");
-					$p = new U3A_DIV([$cb, $cblbl], null, "u3a-member-class");
-				}
-				elseif ($atts["emailcoord"] == "yes" && $asterix)
-				{
-					$ml = new U3A_A("#u3a-send-mail-individual-" . $groups_id, $mbr->surname . ", " . $mbr->forename . $mnum . $asterix, null, "u3a-group-mail-class", "u3a_mail_clicked('" . $mbr->email . "')");
-					$ml->add_attribute("rel", "modal:open");
-					$p = new U3A_DIV($ml, null, "u3a-member-class");
-				}
-				else
-				{
-					$p = new U3A_DIV($mbr->surname . ", " . $mbr->forename . $mnum . $asterix, null, "u3a-member-class");
-				}
-//				$contents1[] = new U3A_DIV([$p, $group_input, $groupname_input], null, null);
-				$contents1[] .= $p;
-			}
-			if ($checked)
-			{
-				$cbid = "u3a-member-checkbox-all";
-				$cb = new U3A_INPUT("checkbox", null, $cbid, "u3a-member-checkbox-class", 0);
-				$cb->add_attribute("onchange", "u3a_member_checkbox_changed('" . $cbid . "', '" . $mtype . "')");
-				$cblbl = new U3A_LABEL($cbid, "all", null, "u3a-member-checkbox-label-class u3a-inline-block u3a-margin-left-5 u3a-margin-bottom-10");
-				$p = new U3A_DIV([$cb, $cblbl], null, "u3a-member-class");
-				array_unshift($contents1, $p);
-			}
-			$contents2 = new U3A_DIV([$contents1, $group_input, $groupname_input], null, "u3a-40vh-auto-y");
-			$contents .= $contents2->to_html();
-		}
-		else
-		{
-			$options = [];
-			foreach ($mbrs as $mbr)
-			{
-				$asterix = array_search($mbr->id, $coord_ids) === FALSE ? "" : "<sup>*</sup>";
-				$options[] = new U3A_OPTION($mbr->membership_number . ": " . $mbr->surname . ", " . $mbr->forename . " (" . $mbr->email . ")" . $asterix, $mbr->id, false, "u3a-member-select-option-" . $mbr->id, "u3a-member-select-option-class");
-			}
-			$sel = new U3A_SELECT($options, "u3a-member-select", $select_id, "u3a-member-select-class");
-			if ($atts["select"] !== "yes")
-			{
-				$sel->add_attribute("onchange", $atts["select"] . "()");
-			}
-			$lbl = U3A_HTML::labelled_html_object("select member", $sel, null, "u3a-select-label class", false, true);
-			$contents .= new U3A_DIV([$lbl, $group_input, $groupname_input], null, null);
+			$wait_text = new U3A_DIV(new U3A_B("waiting list"), null, "u3a-margin-left-10 u3a-margin-top-5 u3a-border-top");
+			$contents .= $wait_text->to_html();
+			$wdiv = new U3A_DIV(u3a_list_of_group_members($groups_id, $waiting, $coord_ids, $select, $select_id, $checked, $mtype, $group_input, $groupname_input, $emailcoord, "waiting"), "u3a-group-members-list-div", "u3a-group-list-div-class");
+			$contents .= $wdiv->to_html();
 		}
 	}
 
 //	write_log($contents);
 	return U3A_HTML::to_html($contents);
+}
+
+function u3a_list_of_group_members($groups_id, $mbrs, $coord_ids, $select, $select_id, $checked, $mtype, $group_input, $groupname_input, $emailcoord, $cbcss)
+{
+	$contents = "";
+	if ($select === "no")
+	{
+		$contents1 = [];
+		foreach ($mbrs as $mbr)
+		{
+			$asterix = array_search($mbr->id, $coord_ids) === FALSE ? "" : "<sup>*</sup>";
+			$mnum = " (" . $mbr->membership_number . ")";
+			if ($checked)
+			{
+				$cbid = "u3a-$cbcss-checkbox-" . $mbr->id;
+				$cb = new U3A_INPUT("checkbox", null, $cbid, "u3a-$cbcss-checkbox-class", $mbr->id);
+				$cb->add_attribute("onchange", "u3a_member_checkbox_changed('" . $cbid . "', '" . $mtype . "')");
+				$cblbl = new U3A_LABEL($cbid, $mbr->surname . ", " . $mbr->forename . $mnum . $asterix, null, "u3a-member-checkbox-label-class u3a-inline-block u3a-margin-left-5");
+				$p = new U3A_DIV([$cb, $cblbl], null, "u3a-member-class");
+			}
+			elseif ($emailcoord == "yes" && $asterix)
+			{
+				$ml = new U3A_A("#u3a-send-mail-individual-" . $groups_id, $mbr->surname . ", " . $mbr->forename . $mnum . $asterix, null, "u3a-group-mail-class", "u3a_mail_clicked('" . $mbr->email . "')");
+				$ml->add_attribute("rel", "modal:open");
+				$p = new U3A_DIV($ml, null, "u3a-member-class");
+			}
+			else
+			{
+				$p = new U3A_DIV($mbr->surname . ", " . $mbr->forename . $mnum . $asterix, null, "u3a-member-class");
+			}
+//				$contents1[] = new U3A_DIV([$p, $group_input, $groupname_input], null, null);
+			$contents1[] .= $p;
+		}
+		if ($checked && ($cbcss === 'member'))
+		{
+			$cbid = "u3a-$cbcss-checkbox-all";
+			$cb = new U3A_INPUT("checkbox", null, $cbid, "u3a-$cbcss-checkbox-class", 0);
+			$cb->add_attribute("onchange", "u3a_member_checkbox_changed('" . $cbid . "', '" . $mtype . "')");
+			$cblbl = new U3A_LABEL($cbid, "all", null, "u3a-member-checkbox-label-class u3a-inline-block u3a-margin-left-5 u3a-margin-bottom-10");
+			$p = new U3A_DIV([$cb, $cblbl], null, "u3a-member-class");
+			array_unshift($contents1, $p);
+		}
+		$contents2 = new U3A_DIV([$contents1, $group_input, $groupname_input], null, "u3a-40vh-auto-y");
+		$contents .= $contents2->to_html();
+	}
+	else
+	{
+		$options = [];
+		foreach ($mbrs as $mbr)
+		{
+			$asterix = array_search($mbr->id, $coord_ids) === FALSE ? "" : "<sup>*</sup>";
+			$options[] = new U3A_OPTION($mbr->membership_number . ": " . $mbr->surname . ", " . $mbr->forename . " (" . $mbr->email . ")" . $asterix, $mbr->id, false, "u3a-member-select-option-" . $mbr->id, "u3a-member-select-option-class");
+		}
+		$sel = new U3A_SELECT($options, "u3a-member-select", $select_id, "u3a-member-select-class");
+		if ($select !== "yes")
+		{
+			$sel->add_attribute("onchange", $select . "()");
+		}
+		$lbl = U3A_HTML::labelled_html_object("select member", $sel, null, "u3a-select-label class", false, true);
+		$contents .= new U3A_DIV([$lbl, $group_input, $groupname_input], null, null);
+	}
+	return $contents;
 }
 
 add_shortcode('u3a_document_list', 'u3a_document_list_contents');
@@ -294,10 +316,12 @@ function u3a_document_list_contents($atts1)
 		'member'		 => 0,
 		'category'	 => null,
 		'type'		 => 0,
-		'upload'		 => "no"
+		'upload'		 => "no",
+		"visibility" => U3A_Documents::VISIBILITY_GROUP
 	  ), $atts1, 'u3a_document_list');
 	$grp = intval($atts["group"]);
 	$typ = intval($atts["type"]);
+	$vis = intval($atts["visibility"]);
 	$doctype = $typ === U3A_Documents::NEWSLETTER_TYPE ? "newsletter" : "document";
 	$doctypes = $doctype . "s";
 	$mbr = U3A_Information::u3a_logged_in_user();
@@ -306,13 +330,17 @@ function u3a_document_list_contents($atts1)
 	{
 		if ($atts["member"])
 		{
-			$alldocs = U3A_Documents::get_all_documents_for_member($atts["member"], $typ);
-			$memgrp = intval($atts["member"]);
+			$alldocs = U3A_Documents::get_all_documents_for_member($atts["member"], $typ, $vis);
+			$id = intval($atts["member"]);
+			$memgrp = U3A_Document_Categories::MEMBER_CATEGORY;
+			$select = U3A_Document_Utilities::get_category_list_member($id, $typ);
 		}
 		else
 		{
-			$alldocs = U3A_Documents::get_all_documents_for_group($grp, $typ);
-			$memgrp = $grp;
+			$alldocs = U3A_Documents::get_all_documents_for_group($grp, $typ, $vis);
+			$id = $grp;
+			$memgrp = U3A_Document_Categories::GROUP_CATEGORY;
+			$select = U3A_Document_Utilities::get_category_list_group($id, $typ);
 		}
 //		write_log($alldocs["total"]);
 //		write_log($grp);
@@ -347,10 +375,11 @@ function u3a_document_list_contents($atts1)
 			if ($number_of_categories)
 			{
 				$include_default = array_key_exists("default", $alldocuments);
-				$select1 = U3A_Document_Categories::get_select_list($memgrp, $typ, "document-list", "u3a_document_category_select", $thecategory, $include_default);
-				$select = $select1["select"];
+//				$select1 = U3A_Document_Categories::get_select_list($id, $memgrp, $typ, "document-list", "u3a_document_category_select", $thecategory, $include_default);
+//				$select = $select1["select"];
+
 				$span = new U3A_SPAN("select category:", null, "u3a-inline-block u3a-right-margin-5");
-				$seldiv = new U3A_DIV([new U3A_LABEL("u3a-document-category-select-" . $memgrp . "-" . $typ, $span->to_html()), $select], "u3a-category-select-div-document-list-" . $memgrp . "-" . $typ, "u3a-category-select-div u3a-bottom-margin-5");
+				$seldiv = new U3A_DIV([new U3A_LABEL("u3a-document-category-select-" . $id . "-" . $typ, $span->to_html()), $select], "u3a-category-select-div-document-list-" . $id . "-" . $typ, "u3a-category-select-div u3a-bottom-margin-5");
 				$docs .= $seldiv->to_html();
 			}
 			foreach ($alldocuments as $catname => $documents)
@@ -373,13 +402,13 @@ function u3a_document_list_contents($atts1)
 				}
 				if ($documents["count"])
 				{
-					$tags[] = U3A_Documents::get_document_table($documents["documents"], $typ);
+					$tags[] = U3A_Document_Utilities::get_document_table($documents["documents"], $typ);
 				}
 				else
 				{
 					$tags[] = "There are no $doctypes in this category.";
 				}
-				$div = new U3A_DIV($tags, "u3a-document-div-$memgrp-$typ-$catid", "u3a-document-div-class-$typ $vis");
+				$div = new U3A_DIV($tags, "u3a-document-div-$id-$typ-$catid", "u3a-document-div-class-$typ $vis");
 				$docs .= $div->to_html();
 			}
 		}
@@ -390,7 +419,7 @@ function u3a_document_list_contents($atts1)
 		}
 		if ($atts["upload"] === "yes")
 		{
-			$docs .= '[u3a_manage_document group="' . $memgrp . '"]';
+			$docs .= '[u3a_manage_document group="' . $id . '"]';
 		}
 	}
 	return do_shortcode($docs);
@@ -410,7 +439,17 @@ function u3a_manage_document_contents($atts1)
 	$mbr = intval($atts["member"]);
 	$typ = intval($atts["type"]);
 	$cat = intval($atts["category"]);
-	$docs = U3A_Documents::get_document_management($mbr ? $mbr : $grp, $typ, $cat);
+	if ($mbr)
+	{
+		$id = $mbr;
+		$mbrgrp = U3A_Document_Categories::MEMBER_CATEGORY;
+	}
+	else
+	{
+		$id = $grp;
+		$mbrgrp = U3A_Document_Categories::GROUP_CATEGORY;
+	}
+	$docs = U3A_Document_Utilities::get_document_management($id, $mbrgrp, $typ, $cat);
 	return U3A_HTML::to_html($docs);
 }
 
@@ -435,23 +474,28 @@ function u3a_image_list_contents($atts1)
 		{
 			$attachment_ids = U3A_Documents::get_attachment_ids_for_member($atts["member"], $typ, $atts["category"]);
 			$alldocs = U3A_Documents::get_all_documents_for_member($atts["member"], $typ);
-			$memgrp = intval($atts["member"]);
+			$id = intval($atts["member"]);
+			$memgrp = U3A_Document_Categories::MEMBER_CATEGORY;
+			$select = U3A_Document_Utilities::get_category_list_member($id, $typ);
 		}
 		else
 		{
 			$attachment_ids = U3A_Documents::get_attachment_ids_for_group($grp, $typ, $atts["category"]);
 			$alldocs = U3A_Documents::get_all_documents_for_group($grp, $typ);
-			$memgrp = $grp;
+			$id = $grp;
+			$memgrp = U3A_Document_Categories::GROUP_CATEGORY;
+			$select = U3A_Document_Utilities::get_category_list_group($id, $typ);
 		}
+//		write_log($alldocs);
 		if ($alldocs["total"])
 		{
 			$docs1 = "";
 			if ($alldocs["number_of_categories"])
 			{
-				$select1 = U3A_Document_Categories::get_select_list($memgrp, $typ, "image-list", "u3a_document_category_select", $alldocs["first_non_empty"]);
-				$select = $select1["select"];
+//				$select1 = U3A_Document_Categories::get_select_list($id, $memgrp, $typ, "image-list", "u3a_document_category_select", $alldocs["first_non_empty"]);
+//				$select = $select1["select"];
 				$span = new U3A_SPAN("select album:", null, "u3a-inline-block u3a-right-margin-5");
-				$seldiv = new U3A_DIV([new U3A_LABEL("u3a-document-category-select-" . $memgrp . "-" . $typ, $span->to_html()), $select], "u3a-category-select-div-image-list-" . $memgrp . "-" . $typ, "u3a-category-select-div u3a-bottom-margin-5");
+				$seldiv = new U3A_DIV([new U3A_LABEL("u3a-document-category-select-" . $id . "-" . $typ, $span->to_html()), $select], "u3a-category-select-div-image-list-" . $id . "-" . $typ, "u3a-category-select-div u3a-bottom-margin-5");
 				$docs1 .= $seldiv->to_html();
 			}
 //			write_log($alldocs);
@@ -477,7 +521,7 @@ function u3a_image_list_contents($atts1)
 				{
 					if ($documents["count"])
 					{
-						$ssbtn = new U3A_BUTTON("button", "slideshow", null, "u3a-wide-button u3a-slideshow-button", "u3a_slideshow($memgrp, '" . $cat->name . "', '" . $attachments . "', '" . $alltitles . "')");
+						$ssbtn = new U3A_BUTTON("button", "slideshow", null, "u3a-wide-button u3a-slideshow-button", "u3a_slideshow($id, '" . $cat->name . "', '" . $attachments . "', '" . $alltitles . "')");
 						$tags[] = new U3A_H(4, $cat->name . $ssbtn->to_html());
 					}
 					else
@@ -490,7 +534,7 @@ function u3a_image_list_contents($atts1)
 //					write_log("images");
 //					write_log($attachment_ids);
 					$div = new U3A_DIV('[su_slider source="media: ' . implode(",", $attachment_ids) .
-					  '" link="image" target="blank" width="540" height="360" centered="yes" arrows="yes" autoplay="0" responsive="no" title="yes"]', "u3a-gallery-div-" . $memgrp . "-" . $typ . "-" . $catid, "u3a-gallery-div");
+					  '" link="image" target="blank" width="540" height="360" centered="yes" arrows="yes" autoplay="0" responsive="no" title="yes"]', "u3a-gallery-div-" . $id . "-" . $typ . "-" . $catid, "u3a-gallery-div");
 					$tags[] = $div;
 					$sl = new U3A_Slideshow();
 					$sl->write_page($attachment_ids);
@@ -499,7 +543,7 @@ function u3a_image_list_contents($atts1)
 				{
 					$tags[] = "There are no images in this album.";
 				}
-				$div = new U3A_DIV($tags, "u3a-document-div-$memgrp-1-$catid", "u3a-document-div-class-" . $typ . $vis);
+				$div = new U3A_DIV($tags, "u3a-document-div-$id-$typ-$catid", "u3a-document-div-class-" . $typ . $vis);
 				$docs2 .= $div->to_html();
 			}
 			$docs = $docs1 . $docs2;
@@ -509,10 +553,10 @@ function u3a_image_list_contents($atts1)
 			$h = new U3A_H(6, "no images to display");
 			$docs .= $h->to_html();
 		}
-		if (U3A_Information::u3a_has_permission($mbr, "manage images", $memgrp) && !(U3A_Group_Members::is_coordinator($mbr, $grp) || U3A_Committee::is_webmanager($mbr)))
-		{
-			$docs .= '[u3a_upload_image group="' . $memgrp . '"]';
-		}
+//		if (U3A_Information::u3a_has_permission($mbr, "manage images", $id) && !(U3A_Group_Members::is_coordinator($mbr, $grp) || U3A_Committee::is_webmanager($mbr)))
+//		{
+//			$docs .= '[u3a_upload_image group="' . $id . '"]';
+//		}
 	}
 	return do_shortcode($docs);
 }
@@ -584,28 +628,28 @@ function u3a_delete_document_contents($atts1)
 	return U3A_HTML::to_html($del);
 }
 
-add_shortcode("u3a_upload_image", "u3a_upload_image_contents");
-
-function u3a_upload_image_contents($atts1)
-{
-	$atts = shortcode_atts(array(
-		'group' => NULL
-	  ), $atts1, 'u3a_upload_image');
-	$gall = "";
-	if ($atts["group"] == null)
-	{
-		$grp = 0;
-	}
-	else
-	{
-		$grp = intval($atts["group"]);
-	}
-	$gall .= '<div class="u3a-upload-div-class">' . "\n";
-	$gall .= "<h4>Upload a new image</h4>";
-	$gall .= U3A_HTML::to_html(U3A_Documents::get_document_management($grp, U3A_Documents::GROUP_IMAGE_TYPE));
-	$gall .= '</div>';
-	return $gall;
-}
+//add_shortcode("u3a_upload_image", "u3a_upload_image_contents");
+//
+//function u3a_upload_image_contents($atts1)
+//{
+//	$atts = shortcode_atts(array(
+//		'group' => NULL
+//	  ), $atts1, 'u3a_upload_image');
+//	$gall = "";
+//	if ($atts["group"] == null)
+//	{
+//		$grp = 0;
+//	}
+//	else
+//	{
+//		$grp = intval($atts["group"]);
+//	}
+//	$gall .= '<div class="u3a-upload-div-class">' . "\n";
+//	$gall .= "<h4>Upload a new image</h4>";
+//	$gall .= U3A_HTML::to_html(U3A_Documents::get_document_management($grp, U3A_Documents::GROUP_IMAGE_TYPE));
+//	$gall .= '</div>';
+//	return $gall;
+//}
 
 add_shortcode("u3a_document_link", "u3a_document_link_contents");
 
@@ -830,7 +874,8 @@ add_shortcode("u3a_committee_members", "u3a_committee_members_contents");
 function u3a_committee_members_contents($atts1)
 {
 	$atts = shortcode_atts(array(
-		"email" => "no"
+		"email"	 => "no",
+		"spoiler" => "Manage Links"
 	  ), $atts1, 'u3a_committee_members');
 	$cmte = U3A_Committee::get_all_members();
 	$active = 1;
@@ -942,7 +987,14 @@ function u3a_committee_members_contents($atts1)
 			{
 				$mng[] = U3A_Information::not_available("other management functions");
 			}
-			$pgcontent .= '[su_tab title="Manage" anchor="manage" disabled="no" anchor="" url="" target="blank" class=""]' . "\n" . U3A_HTML::to_html($mng) . "\n[/su_tab]\n";
+			$mngst = U3A_HTML::to_html($mng);
+			$mngst .= "[su_accordion]\n";
+			$mngst .= U3A_Information::get_manage_open_spoiler("Manage Links", /* $atts["spoiler"] */ "");
+			$div = new U3A_DIV('[u3a_manage_links member="0" group="0"]', null, "u3a-manage-links-div");
+			$mngst .= $div->to_html();
+			$mngst .= "[/su_spoiler]\n";
+			$mngst .= "[/su_accordion]\n";
+			$pgcontent .= '[su_tab title="Manage" anchor="manage" disabled="no" anchor="" url="" target="blank" class=""]' . "\n" . $mngst . "\n[/su_tab]\n";
 			$mbrdiv = new U3A_DIV('[u3a_committee checked="yes"]', "u3a-committee-members-div-0", "u3a-committee-member-list-class u3a-inline-block u3a-padding-right-5 u3a-width-30-pc u3a-va-top");
 			$ndocs = U3A_Row::count_rows("U3A_Documents", ["groups_id" => 0, "document_type" => U3A_Documents::PRIVATE_DOCUMENT_TYPE]);
 			$nimgs = U3A_Row::count_rows("U3A_Documents", ["groups_id" => 0, "document_type" => U3A_Documents::COMMITTEE_IMAGE_TYPE]);
@@ -967,6 +1019,7 @@ function u3a_committee_members_contents($atts1)
 				$mailer1 .= "[/su_spoiler]\n";
 				$mailer .= $mailer1;
 			}
+			$mailer .= "[/su_accordion]\n";
 //		$mdiv = new U3A_DIV($mailer, null, "u3a-inline-block u3a-width-70-pc u3a-height-100-pc u3a-va-top");
 //		$mbrs = U3A_HTML::to_html([$mbrdiv, $mdiv]);
 			$pgcontent .= '[su_tab title="Email" anchor="email" disabled="no" anchor="" url="" target="blank" class=""]' . "\n" . $mailer . "\n[/su_tab]\n";
@@ -1102,6 +1155,25 @@ function u3a_view_member_contents($atts1)
 	$lbl2->add_attribute("role", "button");
 	$mbrsearchdiv2 = new U3A_DIV([$lbl2, $mbrsearch2], "u3a-select-member-text-div-view2", "u3a-margin-bottom-5");
 	$mbrdiv2 = new U3A_DIV("", "u3a-member-details-view2", "u3a-member-details-class");
+//	return /* U3A_Information::not_implemented("fully") . */$lbl->to_html() . $mbrsearch . $mbrdiv->to_html();
+	return U3A_HTML::to_html([$mbrsearchdiv1, $mbrdiv1, $mbrsearchdiv2, $mbrdiv2]);
+}
+
+add_shortcode("u3a_goto_member", "u3a_goto_member_contents");
+
+function u3a_goto_member_contents($atts1)
+{
+	$mbrsearch1 = do_shortcode('[u3a_find_member_dialog group="0" next_action="goto_member" close="tick" op="goto" byname="yes" suffix="1"]');
+	$mbrsearch2 = do_shortcode('[u3a_find_member_dialog group="0" next_action="goto_member" close="tick" op="goto" byname="no" suffix="2"]');
+//	$span = new U3A_SPAN("search for a member", "u3a-select-member-text-goto", "u3a-inline-block");
+	$lbl1 = new U3A_LABEL("u3a-find-member-search-a-goto-details-goto1", "search for a member by name", null, "u3a-search-label");
+	$lbl1->add_attribute("role", "button");
+	$mbrsearchdiv1 = new U3A_DIV([$lbl1, $mbrsearch1], "u3a-select-member-text-div-goto1", "u3a-margin-bottom-5");
+	$mbrdiv1 = new U3A_DIV("", "u3a-member-details-goto1", "u3a-member-details-class");
+	$lbl2 = new U3A_LABEL("u3a-find-member-search-a-goto-details-goto2", "search for a member by number", null, "u3a-search-label");
+	$lbl2->add_attribute("role", "button");
+	$mbrsearchdiv2 = new U3A_DIV([$lbl2, $mbrsearch2], "u3a-select-member-text-div-goto2", "u3a-margin-bottom-5");
+	$mbrdiv2 = new U3A_DIV("", "u3a-member-details-goto2", "u3a-member-details-class");
 //	return /* U3A_Information::not_implemented("fully") . */$lbl->to_html() . $mbrsearch . $mbrdiv->to_html();
 	return U3A_HTML::to_html([$mbrsearchdiv1, $mbrdiv1, $mbrsearchdiv2, $mbrdiv2]);
 }
@@ -1783,7 +1855,7 @@ function u3a_meetings_contents($atts1)
 			"telephone",
 			"email"
 		];
-		$vn = U3A_Row::load_array_of_objects("U3A_Venues");
+		$vn = U3A_Row::load_array_of_objects("U3A_Venues", null, "venue");
 		$venues = "[su_accordion]\n";
 		foreach ($vn["result"] as $venue)
 		{
@@ -1894,7 +1966,7 @@ function u3a_remove_member_from_group_contents($atts1)
 				$txt = '[u3a_members group="' . $grp->id . '" select="yes" op="remove"]';
 				$btn = new U3A_BUTTON("button", '<span class="dashicons dashicons-no"></span>', "u3a-remove-member-from-group-button", "u3a-remove-member-from-group-button-class u3a-button");
 				$btn->add_attribute("onclick", "u3a_remove_member_from_group_clicked()");
-				$div = new U3A_DIV([$hdr, $txt, $btn], null, "u3a-remove-member-from-group-div-class u3a-border-top");
+				$div = new U3A_DIV([$hdr, $txt, $btn], null, "u3a-remove-member-from-group-div-class u3a-dropdown-container u3a-border-top");
 				$pgcontent = do_shortcode($div->to_html());
 			}
 		}
@@ -1921,25 +1993,25 @@ function u3a_new_document_category_contents($atts1)
 			$candoimages = U3A_Information::u3a_has_permission($mbr, "manage images", $groups_id);
 			if ($candodocs)
 			{
-				$pgcontent .= U3A_HTML_Utilities::u3a_get_document_section("document", "category", $groups_id, U3A_Documents::GROUP_DOCUMENT_TYPE);
+				$pgcontent .= U3A_HTML_Utilities::u3a_get_document_section("document", "category", $groups_id, U3A_Documents::GROUP_DOCUMENT_TYPE, U3A_Document_Categories::GROUP_CATEGORY);
 			}
 			if ($candoimages)
 			{
-				$pgcontent .= U3A_HTML_Utilities::u3a_get_document_section("image", "album", $groups_id, U3A_Documents::GROUP_IMAGE_TYPE);
+				$pgcontent .= U3A_HTML_Utilities::u3a_get_document_section("image", "album", $groups_id, U3A_Documents::GROUP_IMAGE_TYPE, U3A_Document_Categories::GROUP_CATEGORY);
 			}
 		}
 		else
 		{
-			$pgcontent .= U3A_HTML_Utilities::u3a_get_document_section("private document", "category", $groups_id, U3A_Documents::PRIVATE_DOCUMENT_TYPE);
-			$pgcontent .= U3A_HTML_Utilities::u3a_get_document_section("public document", "category", $groups_id, U3A_Documents::PUBLIC_DOCUMENT_TYPE);
-			$pgcontent .= U3A_HTML_Utilities::u3a_get_document_section("image", "album", $groups_id, U3A_Documents::COMMITTEE_IMAGE_TYPE);
+			$pgcontent .= U3A_HTML_Utilities::u3a_get_document_section("private document", "category", $groups_id, U3A_Documents::PRIVATE_DOCUMENT_TYPE, U3A_Document_Categories::COMMITTEE_CATEGORY);
+			$pgcontent .= U3A_HTML_Utilities::u3a_get_document_section("public document", "category", $groups_id, U3A_Documents::PUBLIC_DOCUMENT_TYPE, U3A_Document_Categories::COMMITTEE_CATEGORY);
+			$pgcontent .= U3A_HTML_Utilities::u3a_get_document_section("image", "album", $groups_id, U3A_Documents::COMMITTEE_IMAGE_TYPE, U3A_Document_Categories::COMMITTEE_CATEGORY);
 		}
 	}
 	elseif ($atts["member"])
 	{
 		$members_id = intval($atts["member"]);
-		$pgcontent .= U3A_HTML_Utilities::u3a_get_document_section("document", "category", $members_id, U3A_Documents::PERSONAL_DOCUMENT_TYPE);
-		$pgcontent .= U3A_HTML_Utilities::u3a_get_document_section("image", "album", $members_id, U3A_Documents::PERSONAL_IMAGE_TYPE);
+		$pgcontent .= U3A_HTML_Utilities::u3a_get_document_section("document", "category", $members_id, U3A_Documents::PERSONAL_DOCUMENT_TYPE, U3A_Document_Categories::MEMBER_CATEGORY);
+		$pgcontent .= U3A_HTML_Utilities::u3a_get_document_section("image", "album", $members_id, U3A_Documents::PERSONAL_IMAGE_TYPE, U3A_Document_Categories::MEMBER_CATEGORY);
 	}
 	return $pgcontent;
 }
@@ -2008,6 +2080,25 @@ function u3a_group_page_contents($atts1)
 			{
 				$mbridinp = new U3A_INPUT("hidden", null, "u3a-group-page-member-id", null, $mbr->id);
 				$pgcontent .= $mbridinp->to_html();
+				$imgs1 = U3A_Documents::get_header_images($grp->id);
+				$imgs = $imgs1["images"];
+				$categories_id = $imgs1["categories_id"];
+				if ($imgs)
+				{
+					$ndx = rand(0, count($imgs) - 1);
+					$src = wp_get_attachment_url($imgs[$ndx]);
+//<figure class="wp-block-image"><img src="http://shrewsburyu3a.website/wp-content/uploads/2019/01/shrewsbury-u3a-banner.jpg" alt="" class="wp-image-25"/></figure>
+					$img = new U3A_IMG($src, null, "wp-image-25 u3a-header-image", "change_header_image(1)", "images for " . $grp->name);
+					$img->add_attribute("title", get_the_title($imgs[$ndx]));
+					$fig = new U3A_FIGURE($img, null, "wp-block-image");
+					$type_val = new U3A_INPUT("hidden", null, null, "u3a-home-image-type", U3A_Documents::COMMITTEE_IMAGE_TYPE);
+					$cat_val = new U3A_INPUT("hidden", null, null, "u3a-home-image-category", $categories_id);
+					$ndx_val = new U3A_INPUT("hidden", null, null, "u3a-home-image-index", $ndx);
+					$total_val = new U3A_INPUT("hidden", null, null, "u3a-home-image-total", count($imgs));
+					$group_val = new U3A_INPUT("hidden", null, null, "u3a-home-image-group", $grp->id);
+					$mbr_val = new U3A_INPUT("hidden", null, null, "u3a-home-image-member", $mbr->id);
+					$pgcontent .= U3A_HTML::to_html([$fig, $type_val, $cat_val, $ndx_val, $total_val]);
+				}
 				$candodocs = U3A_Information::u3a_has_permission($mbr, "manage documents", $grp);
 				$candoimages = U3A_Information::u3a_has_permission($mbr, "manage images", $grp);
 				$candoperms = U3A_Information::u3a_has_permission($mbr, "manage permissions", $grp);
@@ -2019,13 +2110,29 @@ function u3a_group_page_contents($atts1)
 				$gall = '[u3a_image_list group="' . $grp->id . '"]';
 				$active1 = U3A_Information::get_group_page_active_tab($atts["tab"]);
 //			$active1 = 2;
-//				write_log("active: " . $active1 . " " . $atts["tab"]);
+				write_log("active: " . $active1 . " " . $atts["tab"]);
 				$pgcontent .= '[su_tabs style="wood" active="' . $active1 . '"]\n';
 				$pgcontent .= '[su_tab title="Information" disabled="no" anchor="" url="" target="blank" class=""]' . $grp->information . "\n[/su_tab]\n";
 				if ($candoemail)
 				{
 					$checked = "yes";
-					$mbrdiv = new U3A_DIV('[u3a_members group="' . $grp->id . '" checked="' . $checked . '" includecount="yes"]', "u3a-group-members-div-" . $grp->id, "u3a-member-list-class u3a-inline-block u3a-padding-right-5 u3a-width-30-pc u3a-va-top");
+					$mbrlistdiv = new U3A_DIV('[u3a_members group="' . $grp->id . '" checked="' . $checked . '" includecount="yes"]', "u3a-group-members-list-div-" . $grp->id, "u3a-member-list-class u3a-border-bottom");
+					$sublist_hdr = new U3A_H(6, "group sublists");
+					$sub_save_btn = new U3A_BUTTON("button", "save", "u3a-group-save-button-" . $grp->id, "u3a-sublist-button u3a-button u3a-margin-right-5", "u3a_group_mailing_list('save', " . $grp->id . ")");
+					$sub_update_btn = new U3A_BUTTON("button", "update", "u3a-group-update-button-" . $grp->id, "u3a-sublist-button u3a-button u3a-margin-right-5", "u3a_group_mailing_list('update', " . $grp->id . ")");
+					$sub_delete_btn = new U3A_BUTTON("button", "delete", "u3a-group-delete-button-" . $grp->id, "u3a-sublist-button u3a-button", "u3a_group_mailing_list('delete', " . $grp->id . ")");
+					$sub_save_btn->add_attribute("disabled", "disabled");
+					$sub_update_btn->add_attribute("disabled", "disabled");
+					$sub_delete_btn->add_attribute("disabled", "disabled");
+					$btndiv = new U3A_DIV([$sub_save_btn, $sub_update_btn, $sub_delete_btn], "u3a-sublist-button-div-" . $grp->id, "u3a-sublist-button-div");
+					$lstdiv = null;
+					$existing_lists = U3A_Email_Utilities::get_group_mailing_sublist_select($grp->id);
+					if ($existing_lists)
+					{
+						$lstdiv = U3A_HTML::labelled_html_object("load sublist:", $existing_lists, null, null, false, true);
+					}
+					$current_list = new U3A_INPUT("hidden", "u3a-current-sublist", "u3a-current-sublist-" . $grp->id, NULL, 0);
+					$mbrdiv = new U3A_DIV([$mbrlistdiv, $sublist_hdr, $btndiv, $lstdiv, $current_list], "u3a-group-members-div-" . $grp->id, "u3a-inline-block u3a-padding-right-5 u3a-width-30-pc u3a-va-top");
 					$ndocs = U3A_Row::count_rows("U3A_Documents", ["groups_id" => $grp->id, "document_type" => U3A_Documents::GROUP_DOCUMENT_TYPE]);
 					$nimgs = U3A_Row::count_rows("U3A_Documents", ["groups_id" => $grp->id, "document_type" => U3A_Documents::GROUP_IMAGE_TYPE]);
 					$emaildiv = U3A_HTML_Utilities::get_mail_contents_div($mbr->id, "group", $grp->id, "u3a-height-100-pc u3a-width-100-pc", $ndocs, $nimgs);
@@ -2129,10 +2236,24 @@ function u3a_group_page_contents($atts1)
 						$mng .= '[u3a_mailing_list_name group="' . $grp->id . '"]';
 						$mng .= "[/su_spoiler]\n";
 					}
+					$mng .= U3A_Information::get_manage_open_spoiler("Manage Links", $atts["spoiler"]);
+					$div = new U3A_DIV('[u3a_manage_links member="0" group="' . $grp->id . '"]', null, "u3a-manage-links-div");
+					$mng .= $div->to_html();
+					$mng .= "[/su_spoiler]\n";
 					$mng .= "[/su_accordion]\n";
 					$pgcontent .= '[su_tab title="Manage" disabled="no" anchor="" url="" target="blank" class=""]' . "\n" . $mng . "\n[/su_tab]\n";
 				}
-
+//				if (U3A_Committee::is_webmanager($mbr))
+//				{
+				$links = new U3A_DIV('[u3a_links member="0" group="' . $grp->id . '"]', null, "u3a-links-div u3a-overflow-y-auto");
+				$pgcontent .= '[su_tab title="Links" disabled="no" anchor="" url="" target="blank" class=""]' . "\n" . $links . "\n[/su_tab]\n";
+				$pgcontent .= '[su_tab title="Forum" disabled="no" anchor="" url="" target="blank" class=""]';
+				$forum = new U3A_Forum($grp->name, $grp->id, $grp->keep_forum_posts);
+//					$posts = U3A_Forum_Posts::get_posts_for_group($grp->id);
+//					$forum->add($posts);
+				$pgcontent .= $forum->to_html(true);
+				$pgcontent .= '[/su_tab]';
+//				}
 				$pgcontent .= "[/su_tabs]\n";
 				if ($maildiv)
 				{
@@ -2641,7 +2762,7 @@ function u3a_manage_cooordinator_documents_contents()
 	{
 		$mng .= "[su_accordion]\n";
 		$mng .= '[su_spoiler title="Manage Categories" style="fabric" icon="arrow-circle-1"]';
-		$mng .= U3A_HTML_Utilities::u3a_get_document_section("document", "category", U3A_Documents::COMMITTEE_GROUP, U3A_Documents::COORDINATORS_DOCUMENT_TYPE);
+		$mng .= U3A_HTML_Utilities::u3a_get_document_section("document", "category", U3A_Documents::COMMITTEE_GROUP, U3A_Documents::COORDINATORS_DOCUMENT_TYPE, U3A_Document_Categories::COORDINATOR_CATEGORY);
 //		$groups_id = U3A_Documents::COMMITTEE_GROUP;
 //		$span0 = new U3A_SPAN("New Document Category ", null, "u3a-document-category-span-class");
 //		$txt0 = new U3A_INPUT("text", "document-category-name", "u3a-category-name-" . $groups_id . "-" . U3A_Documents::COORDINATORS_DOCUMENT_TYPE, "u3a-document-name-class u3a-name-input-class");
@@ -2781,25 +2902,33 @@ add_shortcode("u3a_home", "u3a_home_contents");
 
 function u3a_home_contents()
 {
+	$mbr = U3A_Information::u3a_logged_in_user();
 	$u3aname = ucfirst(U3A_Information::u3a_get_u3a_name());
-	$categories_id = U3A_Document_Categories::get_category_id("website home page", U3A_Documents::COMMITTEE_IMAGE_TYPE);
-	$imgs = U3A_Documents::get_attachment_ids_for_group(0, U3A_Documents::COMMITTEE_IMAGE_TYPE, $categories_id);
+	$imgs1 = U3A_Documents::get_header_images(0, $mbr);
+	$imgs = $imgs1["images"];
+	$categories_id = $imgs1["categories_id"];
 	$ndx = rand(0, count($imgs) - 1);
 	$src = wp_get_attachment_url($imgs[$ndx]);
-	//<figure class="wp-block-image"><img src="http://shrewsburyu3a.website/wp-content/uploads/2019/01/shrewsbury-u3a-banner.jpg" alt="" class="wp-image-25"/></figure>
-	$img = new U3A_IMG($src, null, "wp-image-25", "change_header_image()", "views of " . $u3aname);
+//<figure class="wp-block-image"><img src="http://shrewsburyu3a.website/wp-content/uploads/2019/01/shrewsbury-u3a-banner.jpg" alt="" class="wp-image-25"/></figure>
+	$img = new U3A_IMG($src, null, "wp-image-25 u3a-header-image", "change_header_image(1)", "views of " . $u3aname);
+	$type_val = new U3A_INPUT("hidden", null, null, "u3a-home-image-type", U3A_Documents::COMMITTEE_IMAGE_TYPE);
+	$cat_val = new U3A_INPUT("hidden", null, null, "u3a-home-image-category", $categories_id);
+	$ndx_val = new U3A_INPUT("hidden", null, null, "u3a-home-image-index", $ndx);
+	$total_val = new U3A_INPUT("hidden", null, null, "u3a-home-image-total", count($imgs));
+	$group_val = new U3A_INPUT("hidden", null, null, "u3a-home-image-group", 0);
+	$mbr_val = new U3A_INPUT("hidden", null, null, "u3a-home-image-member", $mbr ? $mbr->id : 0);
+	$img->add_attribute("title", get_the_title($imgs[$ndx]));
 	$fig = new U3A_FIGURE($img, null, "wp-block-image");
 	$names = U3A_Row::load_column("u3a_text", "name", ["name~%" => "home_"], false, true);
 	$bg = new U3A_H(5, "Background");
 	$urgent = "[u3a_urgent]";
-	$pgcontents = [$fig, $urgent, $bg];
+	$pgcontents = [$type_val, $cat_val, $ndx_val, $total_val, $fig, $urgent, $bg];
 	$joinbuttondiv = null;
 	foreach ($names as $name)
 	{
 		$div = new U3A_DIV('[u3a_text name="' . $name . '"]', null, "u3a-text-paragraph");
 		$pgcontents[] = $div;
 	}
-	$mbr = U3A_Information::u3a_logged_in_user();
 //	var_dump($mbr);
 	if ($mbr)
 	{
@@ -3419,30 +3548,57 @@ function u3a_members_personal_contents($atts1)
 {
 	wp_enqueue_editor();
 	$mbr = U3A_Information::u3a_logged_in_user();
+	$pgcontent = null;
 	if ($mbr)
 	{
-		$default_members_id = U3A_Utilities::get_post("member", $mbr->id);
+//		write_log("wpid " . $mbr->get_wpid());
+//		write_log("email " . $mbr->email);
+//		write_log("forename " . $mbr->forename);
+//		write_log("surname " . $mbr->surname);
+//		write_log(um_get_avatar('', $mbr->get_wpid()));
+		$default_member = U3A_Utilities::get_post("member", $mbr->membership_number);
 		$default_manage = U3A_Utilities::get_post("manage", 'no');
 		$atts = shortcode_atts(array(
-			'member'		 => $default_members_id,
+			'member'		 => $default_member,
 			'manage'		 => $default_manage,
-			"profile"	 => 'no',
 			'spoiler'	 => null,
 			'category'	 => 0
 		  ), $atts1, 'u3a_members_personal');
-		$profile = $atts["profile"];
+//		write_log($atts, $default_members_id);
+//		$profile = $atts["profile"];
+//		$inprofile = $profile === 'yes';
 		$manage = $atts["manage"];
 		$active1 = 1;
-		$isme = intval($atts["member"]) === intval($mbr->id);
-		$member = $isme ? $mbr : U3A_Members::get_member($atts["member"]);
+		$isme = intval($atts["member"]) === intval($mbr->membership_number);
+		$member = $isme ? $mbr : U3A_Members::get_member_from_membership_number($atts["member"]);
 		$member_id = new U3A_INPUT("hidden", "member-id", "u3a-member-personal-page-id", null, $member->id);
 		$member_firstname = new U3A_INPUT("hidden", "member-firstname", "u3a-member-personal-page-firstname", null, $member->get_first_name());
 		$member_surname = new U3A_INPUT("hidden", "member-surname", "u3a-member-personal-page-surname", null, $member->surname);
 		$member_number = new U3A_INPUT("hidden", "member-number", "u3a-member-personal-page-number", null, $member->membership_number);
 		$pgcontent = U3A_HTML::to_html([$member_id, $member_firstname, $member_surname, $member_number]);
+		$imgs1 = U3A_Documents::get_header_images(-1, $mbr);
+		$imgs = $imgs1["images"];
+		$categories_id = $imgs1["categories_id"];
+		if ($imgs)
+		{
+			$ndx = rand(0, count($imgs) - 1);
+			$src = wp_get_attachment_url($imgs[$ndx]);
+//<figure class="wp-block-image"><img src="http://shrewsburyu3a.website/wp-content/uploads/2019/01/shrewsbury-u3a-banner.jpg" alt="" class="wp-image-25"/></figure>
+			$img = new U3A_IMG($src, null, "wp-image-25 u3a-header-image", "change_header_image(1)", "images for " . $member->get_name());
+			$img->add_attribute("title", get_the_title($imgs[$ndx]));
+			$fig = new U3A_FIGURE($img, null, "wp-block-image");
+			$type_val = new U3A_INPUT("hidden", null, null, "u3a-home-image-type", U3A_Documents::PERSONAL_IMAGE_TYPE);
+			$cat_val = new U3A_INPUT("hidden", null, null, "u3a-home-image-category", $categories_id);
+			$ndx_val = new U3A_INPUT("hidden", null, null, "u3a-home-image-index", $ndx);
+			$total_val = new U3A_INPUT("hidden", null, null, "u3a-home-image-total", count($imgs));
+			$group_val = new U3A_INPUT("hidden", null, null, "u3a-home-image-group", -1);
+			$mbr_val = new U3A_INPUT("hidden", null, null, "u3a-home-image-member", $mbr->id);
+			$pgcontent .= $fig->to_html();
+		}
 		$pgcontent .= '[su_tabs style="wood" active="' . $active1 . '"]\n';
 		$pgcontent .= '[su_tab title="About" disabled="no" anchor="" url="" target="blank" class=""]';
-		$info = $member->information;
+		$info = $member->get_information();
+//		write_log("2.info", $info);
 		if (($manage === 'yes') && $isme)
 		{
 			if (!$info)
@@ -3452,7 +3608,7 @@ function u3a_members_personal_contents($atts1)
 			ob_start();
 			wp_editor($info, "u3a-member-personal-page-text", ["default_editor" => "tinymce"]);
 			$pgcontent .= ob_get_clean();
-			$updatebtn = new U3A_BUTTON("button", "update", "u3a-member-personal-page-update", "u3a-button", "u3a_update_information('" . $member->id . "')");
+			$updatebtn = new U3A_BUTTON("button", "update", "u3a-member-personal-page-update", "u3a-button u3a-margin-right-5", "u3a_update_information('" . $member->id . "')");
 			$pgcontent .= $updatebtn->to_html();
 		}
 		else
@@ -3461,32 +3617,12 @@ function u3a_members_personal_contents($atts1)
 			{
 				$info = '';
 			}
-			$ta = new U3A_TEXTAREA("member-personal-page-text", "u3a-member-personal-page-text", null, $info);
-			$ta->add_attribute("readonly", "readonly");
+			$ta = new U3A_DIV($info, "u3a-member-personal-page-text", "u3a-member-personal-page-text-class");
+//			$ta = new U3A_TEXTAREA("member-personal-page-text", "u3a-member-personal-page-text", null, $info);
+//			$ta->add_attribute("readonly", "readonly");
 			$pgcontent .= $ta->to_html();
 		}
-		$pgcontent .= "[/su_tab]";
-		$docs = '[u3a_document_list member="' . $member->id . '" type="' . U3A_Documents::PERSONAL_DOCUMENT_TYPE . '"]';
-		$gall = '[u3a_image_list member="' . $member->id . '" type="' . U3A_Documents::PERSONAL_IMAGE_TYPE . '"]';
-		$pgcontent .= '[su_tab title="Documents" disabled="no" anchor="" url="" target="blank" class=""]' . $docs . "\n[/su_tab]\n";
-		$pgcontent .= '[su_tab title="Gallery" disabled="no" anchor="" url="" target="blank" class=""]' . "\n" . $gall . "\n[/su_tab]\n";
-		if (($manage === 'yes') && $isme)
-		{
-			$mng = "[su_accordion]\n";
-			$mng .= U3A_Information::get_manage_open_spoiler("Manage Categories", $atts["spoiler"]);
-			$mng .= '[u3a_new_document_category member="' . $member->id . '"]';
-			$mng .= "[/su_spoiler]\n";
-			$mng .= U3A_Information::get_manage_open_spoiler("Manage Images", $atts["spoiler"]);
-			$mng .= '[u3a_manage_document member="' . $member->id . '" type="' . U3A_Documents::PERSONAL_IMAGE_TYPE . '" category="' . $atts["category"] . '"]';
-			$mng .= "[/su_spoiler]\n";
-			$mng .= U3A_Information::get_manage_open_spoiler("Manage Documents", $atts["spoiler"]);
-			$mng .= '[u3a_manage_document member="' . $member->id . '" type="' . U3A_Documents::PERSONAL_DOCUMENT_TYPE . '" category="' . $atts["category"] . '"]';
-			$mng .= "[/su_spoiler]\n";
-			$mng .= "[/su_accordion]\n";
-			$pgcontent .= '[su_tab title="Manage" disabled="no" anchor="" url="" target="blank" class=""]' . "\n" . $mng . "\n[/su_tab]\n";
-		}
-		$pgcontent .= "[/su_tabs]\n";
-		if ($isme && ($profile !== 'yes'))
+		if ($isme)
 		{
 			if (($atts["manage"] === 'yes'))
 			{
@@ -3501,6 +3637,130 @@ function u3a_members_personal_contents($atts1)
 			$editbtn = new U3A_BUTTON("button", $lbl, "u3a-member-personal-page-edit", "u3a-button", "u3a_refresh_personal_page('" . $member->id . "', '$manage')");
 			$pgcontent .= $editbtn->to_html();
 		}
+		$pgcontent .= "[/su_tab]";
+		$docs = '[u3a_document_list member="' . $member->id . '" type="' . U3A_Documents::PERSONAL_DOCUMENT_TYPE . '"]';
+		$gall = '[u3a_image_list member="' . $member->id . '" type="' . U3A_Documents::PERSONAL_IMAGE_TYPE . '"]';
+		$friends = $member->get_friends();
+		$fdivs = [];
+		if ($friends)
+		{
+			foreach ($friends as $friend)
+			{
+				$fbtn = new U3A_BUTTON("button", '<span class="dashicons dashicons-no"></span>', "u3a-remove-friend-button", "u3a-friend-button-class u3a-very-narrow-button u3a-margin-right-5");
+				$fbtn->add_attribute("onclick", "u3a_remove_friend_clicked(" . $mbr->id . ", " . $friend->id . ")");
+				$fbtn->add_attribute("title", "remove friend");
+				$fa = new U3A_A(home_url() . "/index.php/members-personal/?member=" . $friend->membership_number, $friend->get_name(), "u3a-friend-link-" . $friend->id, "u3a-friend-link");
+				$fdivs[] = new U3A_DIV([$fbtn, $fa], "u3a-back-to-my-page-link-div-" . $friend->id, "u3a-link-div-class");
+			}
+			$fdivs[count($fdivs) - 1]->add_class("u3a-border-bottom u3a-margin-bottom-5");
+		}
+		$goto = '[u3a_goto_member]';
+		$my_groups = U3A_Group_Members::get_groups_for_member($member);
+		$groups = "";
+		if (count($my_groups))
+		{
+			$grp_pages = U3A_Information::u3a_group_pages($my_groups);
+			$groups .= "<h4>My Groups</h4>";
+			foreach ($my_groups as $mgrp)
+			{
+				$newpgid = $grp_pages[$mgrp->name];
+				$groups .= '<p class="u3a-group-link">[su_permalink id="' . $newpgid . '"]</p>';
+			}
+		}
+		$pgcontent .= '[su_tab title="Groups" disabled="no" anchor="" url="" target="blank" class=""]' . $groups . "\n[/su_tab]\n";
+		$pgcontent .= '[su_tab title="Documents" disabled="no" anchor="" url="" target="blank" class=""]' . $docs . "\n[/su_tab]\n";
+		$pgcontent .= '[su_tab title="Gallery" disabled="no" anchor="" url="" target="blank" class=""]' . "\n" . $gall . "\n[/su_tab]\n";
+		$pgcontent .= '[su_tab title="Friends" disabled="no" anchor="" url="" target="blank" class=""]' . "\n" . U3A_HTML::to_html($fdivs) . $goto . "\n[/su_tab]\n";
+		$links = new U3A_DIV('[u3a_links group="0" member="' . $member->id . '"]', null, "u3a-links-div u3a-overflow-y-auto");
+		$pgcontent .= '[su_tab title="Links" disabled="no" anchor="" url="" target="blank" class=""]' . "\n" . $links . "\n[/su_tab]\n";
+
+		if (($manage === 'yes') && $isme)
+		{
+			$mng = "[su_accordion]\n";
+			$mng .= U3A_Information::get_manage_open_spoiler("Manage Categories", $atts["spoiler"]);
+			$mng .= '[u3a_new_document_category member="' . $member->id . '"]';
+			$mng .= "[/su_spoiler]\n";
+			$mng .= U3A_Information::get_manage_open_spoiler("Manage Images", $atts["spoiler"]);
+			$mng .= '[u3a_manage_document member="' . $member->id . '" type="' . U3A_Documents::PERSONAL_IMAGE_TYPE . '" category="' . $atts["category"] . '"]';
+			$mng .= "[/su_spoiler]\n";
+			$mng .= U3A_Information::get_manage_open_spoiler("Manage Documents", $atts["spoiler"]);
+			$mng .= '[u3a_manage_document member="' . $member->id . '" type="' . U3A_Documents::PERSONAL_DOCUMENT_TYPE . '" category="' . $atts["category"] . '"]';
+			$mng .= "[/su_spoiler]\n";
+			$mng .= U3A_Information::get_manage_open_spoiler("Manage Links", $atts["spoiler"]);
+			$div = new U3A_DIV('[u3a_manage_links group="0" member="' . $member->id . '"]', null, "u3a-manage-links-div");
+			$mng .= $div->to_html();
+			$mng .= "[/su_spoiler]\n";
+			$mng .= "[/su_accordion]\n";
+			$pgcontent .= '[su_tab title="Manage" disabled="no" anchor="" url="" target="blank" class=""]' . "\n" . $mng . "\n[/su_tab]\n";
+		}
+		$pgcontent .= "[/su_tabs]\n";
+		if (!$isme)
+		{
+			$email = $member->email;
+			if ($email)
+			{
+				$email_link = new U3A_A("mailto:" . $email, "send email to " . $member->get_first_name(), "u3a-personal-email-" . $member->id, "u3a-personal-email u3a-wide-button u3a-border");
+				$email_link->add_attribute("role", "button");
+				$pgcontent .= $email_link;
+			}
+			$friend_link = new U3A_A("#", "add " . $member->get_first_name() . " as a friend", "u3a-add-friend-" . $member->id, "u3a-wide-button u3a-margin-left-10 u3a-border", "u3a_add_friend(" . $mbr->id . ", " . $member->id . ")");
+			$friend_link->add_attribute("role", "button");
+			$back_link = new U3A_A(home_url() . "/index.php/members-personal/?member=" . $mbr->membership_number, "Back to My Page", "u3a-return-to-my-page-" . $member->id, "u3a-wide-button u3a-margin-left-10 u3a-border", "u3a_reload_member_page(" . $mbr->id . ");");
+			$pgcontent .= $friend_link;
+			$pgcontent .= $back_link;
+		}
 	}
 	return do_shortcode($pgcontent);
+}
+
+add_shortcode("u3a_manage_links", "u3a_manage_links_contents");
+
+function u3a_manage_links_contents($atts1)
+{
+	$mbr = U3A_Information::u3a_logged_in_user();
+	$pgcontents = null;
+	if ($mbr)
+	{
+		$default_member = U3A_Utilities::get_post("member", 0);
+		$default_group = U3A_Utilities::get_post("group", 0);
+		$atts = shortcode_atts(array(
+			'member'	 => $default_member,
+			'group'	 => $default_group
+		  ), $atts1, 'u3a_manage_links');
+		$groups_id = $atts["group"];
+		$members_id = $atts["member"];
+		if (($groups_id > 0 /* && U3A_Group_Members::is_coordinator($members_id, $groups_id) */) || ($members_id == $mbr->id) || (!$groups_id && !$members_id && U3A_Committee::is_committee_member($mbr)))
+		{
+			$sbtn = new U3A_BUTTON("button", "new link section", "u3a-new-link-section-button-$groups_id-$members_id", "u3a-wide-button", "u3a_new_link_section($groups_id, $members_id)");
+			$sbtn_div = new U3A_DIV($sbtn, null, "u3a-new-link-section-div");
+			$lbtn = new U3A_BUTTON("button", "new link in ", "u3a-new-link-button-$groups_id-$members_id", "u3a-wide-button", "u3a_new_link($groups_id, $members_id)");
+			$lbtn->add_attribute("disabled", "disabled");
+			$sel = U3A_Link_Utilities::get_section_select($groups_id, $members_id);
+			$lbtn_div = new U3A_DIV([$lbtn, $sel], null, "u3a-new-link-section-div");
+			$pgcontents = U3A_HTML::to_html([$sbtn_div, $lbtn_div]);
+		}
+	}
+	return $pgcontents;
+	//		$div = new U3A_DIV([], null, "u3a-manage-links-div");
+}
+
+add_shortcode("u3a_links", "u3a_links_contents");
+
+function u3a_links_contents($atts1)
+{
+	$mbr = U3A_Information::u3a_logged_in_user();
+	$pgcontents = null;
+	if ($mbr)
+	{
+		$default_member = U3A_Utilities::get_post("member", 0);
+		$default_group = U3A_Utilities::get_post("group", 0);
+		$atts = shortcode_atts(array(
+			'member'	 => $default_member,
+			'group'	 => $default_group
+		  ), $atts1, 'u3a_manage_links');
+		$groups_id = $atts["group"];
+		$members_id = $atts["member"];
+		$pgcontents = U3A_HTML::to_html(U3A_Link_Utilities::get_section_divs($groups_id, $members_id));
+	}
+	return $pgcontents;
 }

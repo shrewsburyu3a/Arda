@@ -20,14 +20,16 @@ add_action('wp_enqueue_scripts', 'u3a_enqueued_scripts');
 function u3a_enqueued_scripts()
 {
 	wp_enqueue_style('u3a-dropdown-style', plugin_dir_url(__FILE__) . 'css/dropdown.min.css');
+	wp_enqueue_style('u3a-chosen-style', plugin_dir_url(__FILE__) . 'chosen/chosen.min.css');
 	wp_enqueue_style('u3a-timepicker-style', plugin_dir_url(__FILE__) . 'css/timepicker.min.css');
 	wp_enqueue_style('u3a-style', plugin_dir_url(__FILE__) . 'css/u3a-website.css');
 	wp_enqueue_style('dashicons');
 	wp_enqueue_script('jquery-ui-core');
 	wp_enqueue_script('jquery-ui-sortable');
 	wp_enqueue_script('u3a-dropdown-script', plugin_dir_url(__FILE__) . 'js/jquery.dropdown.min.js', ['jquery'], null, true);
+	wp_enqueue_script('u3a-chosen-script', plugin_dir_url(__FILE__) . 'chosen/chosen.jquery.min.js', ['jquery'], null, true);
 	wp_enqueue_script('u3a-timepicker-script', plugin_dir_url(__FILE__) . 'js/timepicker.min.js', null, null, true);
-	wp_enqueue_script('u3a-uploads', plugin_dir_url(__FILE__) . 'js/u3a-website.js', ['jquery', 'u3a-dropdown-script'], null, true);
+	wp_enqueue_script('u3a-uploads', plugin_dir_url(__FILE__) . 'js/u3a-website.js', ['jquery', 'u3a-chosen-script'], null, true);
 //	if (is_home())
 //	{EBaCxw_3yOSbGTY0NtVfoqOMImS3jDlPmiGk7Gj6Cjf1h6t6KuXMWqcSNvV9dPnRLNf9WRgq5Xms3hRg
 //	wp_enqueue_script('u3a-paypal', "https://www.paypal.com/sdk/js?currency=GBP&client-id=ATpHQmey4eyA0ZNC7HdvVNHQ6DM7nPNufyDmYO1kHniGjE3692Km1nHVuHEfzzbdJk4bsVIyGO3ygDb8", null, null, true);
@@ -107,27 +109,6 @@ function um_account_content_hook_memberform($output)
 		<?php
 		$mbr = U3A_Information::u3a_logged_in_user();
 		echo (do_shortcode('[u3a_member_details_form member="' . $mbr->id . '" op="selfedit"]'))
-		?>
-		<!-- Here goes your custom content -->
-
-	</div>
-
-	<?php
-	$output .= ob_get_contents();
-	ob_end_clean();
-	return $output;
-}
-
-add_filter('um_account_content_hook_memberpage', 'um_account_content_hook_memberpage');
-
-function um_account_content_hook_memberpage($output)
-{
-	ob_start();
-	?>
-
-	<div class="um-field">
-		<?php
-		echo (do_shortcode('[u3a_members_personal manage="yes" profile="yes"]'))
 		?>
 		<!-- Here goes your custom content -->
 
