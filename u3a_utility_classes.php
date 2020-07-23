@@ -105,8 +105,8 @@ class U3A_File_Utilities
 		return OJ_Utilities::ends_with($dpath, DIRECTORY_SEPARATOR) ? $dpath : ($dpath . DIRECTORY_SEPARATOR);
 	}
 
-	// $restricted by of form [label=>[extensions]...]
-	// an empty extensions array means accept everything
+// $restricted by of form [label=>[extensions]...]
+// an empty extensions array means accept everything
 	public static function dir_info($dirpath, $recursive = false, $restricted_by = null)
 	{
 		if ($restricted_by === null)
@@ -211,7 +211,7 @@ class U3A_File_Utilities
 						$ret1 = self::already_imported($dirpath, $extensions);
 						print "check " . $dirpath . " " . $ret1 . "\n";
 					}
-					//				print "check ".$dirpath." ".$ret."\n";
+//				print "check ".$dirpath." ".$ret."\n";
 				}
 				$ret = ($cnt > 0) && $ret1;
 			}
@@ -257,7 +257,7 @@ class U3A_File_Utilities
 			if ($f != '.' && $f != '..')
 			{
 				$filePath = "$folder/$f";
-				// Remove prefix from file path before add to zip.
+// Remove prefix from file path before add to zip.
 				$localPath = substr($filePath, $exclusiveLength);
 				if (is_file($filePath))
 				{
@@ -265,7 +265,7 @@ class U3A_File_Utilities
 				}
 				elseif (is_dir($filePath))
 				{
-					// Add sub-directory.
+// Add sub-directory.
 					$zipFile->addEmptyDir($localPath);
 					self::folder_to_zip($filePath, $zipFile, $exclusiveLength);
 				}
@@ -401,6 +401,68 @@ class U3A_Utilities
 		"O",
 		"u",
 		"U"
+	];
+	public static $websafe_fonts = [
+		"Abel",
+		"Aclonica",
+		"Actor",
+		"Advent Pro",
+		"Alegreya",
+		"Alegreya Sans sc",
+		"Allan",
+		"Allerta stencil",
+		"Andale Mono",
+		"Archivo",
+		"Arial",
+		"Arial Black",
+		"Arvo",
+		"Bookman",
+		"Calisto MT",
+		"Cambria",
+		"Candara",
+		"Century Gothic",
+		"Comic Sans Ms",
+		"Consolas",
+		"Copperplate Gothic",
+		"Courier",
+		"Courier New",
+		"Dekko",
+		"Didact Gothic",
+		"Didot",
+		"Franklin Gothic",
+		"Garamond",
+		"Georgia",
+		"Gill Sans",
+		"Gruppo",
+		"Helvetica",
+		"Impact",
+		"Kalam",
+		"Lato",
+		"Lucia Sans Unicode",
+		"Lucida Console",
+		"Merienda",
+		"Montserrat",
+		"Noto Sans",
+		"Nova Flat",
+		"Nunito",
+		"Open Sans",
+		"Optima",
+		"Oswald",
+		"Palatino",
+		"Perpetua",
+		"Rakkas",
+		"Roboto",
+		"Rubik",
+		"Seogoe UI",
+		"Source Sans",
+		"Source Sans Pro",
+		"Tahoma",
+		"Times",
+		"Times New Roman",
+		"Trebuchet Ms",
+		"Ubuntu",
+		"Verdana",
+		"Yatra one"
 	];
 
 	public static function set_system_parameter($name, $value = true)
@@ -611,7 +673,7 @@ class U3A_Utilities
 
 	public static function starts_with($haystack, $needle)
 	{
-		// search backwards starting from haystack length characters from the end
+// search backwards starting from haystack length characters from the end
 		return $needle === "" || strrpos($haystack, $needle, -strlen($haystack)) !== FALSE;
 	}
 
@@ -644,8 +706,42 @@ class U3A_Utilities
 
 	public static function ends_with($haystack, $needle)
 	{
-		// search forward starting from end minus needle length characters
+// search forward starting from end minus needle length characters
 		return $needle === "" || (($temp = strlen($haystack) - strlen($needle)) >= 0 && strpos($haystack, $needle, $temp) !== FALSE);
+	}
+
+	public static function extract_bracketed_substring($haystack, $left, $right, $atstart = false)
+	{
+		$ret = null;
+		$start = strpos($haystack, $left);
+		if (($start !== FALSE) && (!$atstart || $start === 0))
+		{
+			$end = strpos($haystack, $right, $start + 1);
+			if ($end !== FALSE)
+			{
+				$ret = substr($haystack, $start + 1, $end - $start - 1);
+			}
+		}
+		return $ret;
+	}
+
+	public static function replace_bracketed_substring($haystack, $left, $right, $with, $atstart = false)
+	{
+		$ret = $haystack;
+		$start = strpos($haystack, $left);
+		if (($start !== FALSE) && (!$atstart || $start === 0))
+		{
+			$end = strpos($haystack, $right, $start + 1);
+			if ($end !== FALSE)
+			{
+				$to_replace = substr($haystack, $start + 1, $end - $start - 1);
+				if (is_array($with) && array_key_exists($to_replace, $with))
+				{
+					$ret = str_replace($left . $to_replace . $right, $with[$to_replace], $haystack);
+				}
+			}
+		}
+		return $ret;
 	}
 
 	public static function has_string_keys($array)
@@ -1216,7 +1312,7 @@ class U3A_Utilities
 			}
 			catch (Exception $e)
 			{
-				// err.println("decryption failure for " + st);
+// err.println("decryption failure for " + st);
 			}
 		}
 		return $ret;
@@ -1626,7 +1722,7 @@ class U3A_Timestamp_Utilities
 			}
 			else
 			{
-				// firmly in last month
+// firmly in last month
 				$tm = self::start_of_month($tm) - self::WEEK1;
 				for ($n = 0; $n > $nmonths; $n--)
 				{

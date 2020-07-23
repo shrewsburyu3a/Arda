@@ -3071,3 +3071,84 @@ function u3a_reload_links()
 	echo do_shortcode('[u3a_links member="' . $members_id . '" group="' . $groups_id . '"]');
 	wp_die();
 }
+
+add_action("wp_ajax_u3a_get_option_value", "u3a_get_option_value");
+
+function u3a_get_option_value()
+{
+	$category = U3A_Utilities::get_post("category", 0);
+	$option_name = U3A_Utilities::get_post("name", null);
+	$memgrp_id = U3A_Utilities::get_post("id", 0);
+	$val = U3A_Options_Values::get_option_value($category, $memgrp_id, $option_name, "", true);
+	echo $val;
+	wp_die();
+}
+
+add_action("wp_ajax_u3a_set_option_value", "u3a_set_option_value");
+
+function u3a_set_option_value()
+{
+	$category = U3A_Utilities::get_post("category", 0);
+	$name = U3A_Utilities::get_post("name", null);
+	$options_id = U3A_Utilities::get_post("option", 0);
+	$type = U3A_Utilities::get_post("type", 0);
+	$memgrp_id = U3A_Utilities::get_post("memgrp", 0);
+	$val = U3A_Utilities::get_post("value", null);
+	if ($name || $options_id)
+	{
+		if ($options_id)
+		{
+			$opt = U3A_Row::load_single_object("U3A_Options", ["id" => $options_id]);
+		}
+		else
+		{
+			$opt = U3A_Row::load_single_object("U3A_Options", ["category" => $category, "name" => $name]);
+		}
+		if ($opt)
+		{
+			$optid = $opt->id;
+			$type = intval($opt->option_type);
+		}
+		else
+		{
+			$opt = new U3A_Options(["category" => $category, "name" => $name, "option_type" => $type]);
+			$optid = $opt->save();
+		}
+		if ($val)
+		{
+			if (U3A_Options::validate_string_value_as_type($val, $type, $memgrp_id))
+			{
+				$optval = U3A_Row::load_single_object("U3A_Options_Values", ["memgrp_id" => $memgrp_id, "options_id" => $optid]);
+				if ($optval)
+				{
+					$optval->value = $val;
+				}
+				else
+				{
+					$optval = new U3A_Options_Values(["memgrp_id" => $memgrp_id, "options_id" => $optid, "value" => $val]);
+				}
+				$optval->save();
+				$result = ["success" => 1, "message" => "option value set!"];
+			}
+			else
+			{
+				$result = ["success" => 0, "message" => "value given is not valid for option type"];
+			}
+		}
+		else
+		{
+			$optval = U3A_Row::load_single_object("U3A_Options_Values", ["memgrp_id" => $memgrp_id, "options_id" => $optid]);
+			if ($optval)
+			{
+				$optval->delete();
+			}
+			$result = ["success" => 1, "message" => "option value reset!"];
+		}
+	}
+	else
+	{
+		$result = ["success" => 0, "message" => "no name specified"];
+	}
+	echo json_encode($result);
+	wp_die();
+}

@@ -346,7 +346,7 @@ class U3A_Document_Utilities
 		else
 		{
 			$subcats = U3A_Category_Category_Relationship::get_children_of($cat->id);
-			write_log("subcats of " . $cat->name, $subcats);
+//			write_log("subcats of " . $cat->name, $subcats);
 			if ($subcats)
 			{
 				$strict1 = false;
@@ -379,7 +379,7 @@ class U3A_Document_Utilities
 				}
 			}
 		}
-		write_log("items", $li);
+//		write_log("items", $li);
 		return new U3A_LIST($li, false, $list_idprefix . "list", $list_cssclass);
 	}
 
@@ -395,7 +395,7 @@ class U3A_Document_Utilities
 	public static function get_category_list_member($members_id, $type, $list_idprefix = "u3a-category-list-", $list_cssclass = "u3a-category-list", $item_cssclass = "u3a-category-listitem", $text_cssclass = "u3a-category-list-text")
 	{
 		$cats = U3A_Document_Categories::get_categories_for_member($members_id, $type, false);
-		write_log("cats", $cats);
+//		write_log("cats", $cats);
 		$list = self::get_category_list($cats, false, $list_idprefix, $list_cssclass, $item_cssclass, $text_cssclass);
 		$id = new U3A_INPUT("hidden", "listid", $list_idprefix . "id-value-$members_id-$type", "u3a-category-list-id-input", $members_id);
 		$typ = new U3A_INPUT("hidden", "listtype", $list_idprefix . "type-value-$members_id-$type", "u3a-category-list-type-input", $type);
@@ -447,7 +447,7 @@ class U3A_Link_Utilities
 					$divs[] = new U3A_DIV($a, "u3a-link-div-" . $link->id, "u3a-link-div u3a-margin-left-10");
 				}
 			}
-			$ret = new U3A_DIV([$h, $divs], "u3a-section-div-" . $section->id, "u3a-section-div");
+			$ret = new U3A_DIV([$h, $divs], "u3a-section-div-" . $section->id, "u3a-section-div u3a-border-bottom u3a-padding-bottom-5");
 		}
 		return $ret;
 	}
@@ -473,6 +473,109 @@ class U3A_Link_Utilities
 		}
 		$ret = new U3A_SELECT($opts, "link_section_select", "u3a-link-section-select-$groups_id-$members_id", "u3a-link-section-select u3a-width-30-em");
 		$ret->add_attribute("onchange", "u3a_link_section_select_changed($groups_id, $members_id)");
+		return $ret;
+	}
+
+}
+
+class U3A_Option_Utilities
+{
+
+	public static function get_option_select($category, $memgrp_id)
+	{
+		$options = U3A_Options::get_options_in_category($category);
+//		$n = 0;
+		$opts = [];
+		$vals = [];
+		$opts[0] = new U3A_OPTION("", 0, true);
+		$vals[0] = new U3A_DIV("", "u3a-option-value-$memgrp_id-0", "u3a-option-select-value-div u3a-inline-block");
+		foreach ($options as $opt)
+		{
+//			$n++;
+			$name = $opt->name;
+			$id = $opt->id;
+			$nameinp = new U3A_INPUT("hidden", "option-css", "u3a-option-name-$id-$memgrp_id", null, $name);
+			$css = $opt->css;
+			if ($css)
+			{
+				$cssinp = new U3A_INPUT("hidden", "option-css", "u3a-option-css-$id-$memgrp_id", null, $css);
+				$name = $css . ' ' . $name;
+			}
+			else
+			{
+				$cssinp = null;
+			}
+			$dname = $opt->display_name ? $opt->display_name : $name;
+			$optval = $opt->get_the_value($memgrp_id);
+			$valinp = self::get_option_input($opt, $memgrp_id, $optval);
+			$valinp->add_attribute("disabled", "disabled");
+			$opts[] = new U3A_OPTION($dname, $id);
+			$vals[] = new U3A_DIV([$valinp, $cssinp, $nameinp], "u3a-option-value-$memgrp_id-$id", "u3a-option-select-value-div u3a-invisible u3a-width-100-pc");
+		}
+		$sel = new U3A_SELECT($opts, "option_select", "u3a-option-select-$category-$memgrp_id", "u3a-option-select u3a-width-20-em");
+		$sel->add_attribute("onchange", "u3a_option_select_changed($category, $memgrp_id)");
+		$div = new U3A_DIV($vals, "u3a-value-div-$category-$memgrp_id", "u3a-inline-block u3a-width-50-pc u3a-margin-left-10 u3a-margin-right-5");
+		$btn = new U3A_BUTTON("button", "edit", "u3a-option-edit-$category-$memgrp_id", "u3a-button u3a-option-button-edit u3a-margin-right-5", "u3a_edit_option_button_clicked($category, $memgrp_id)");
+		$cbtn = new U3A_BUTTON("button", "cancel", "u3a-option-cancel-$category-$memgrp_id", "u3a-button u3a-margin-right-5", "u3a_cancel_option_button_clicked($category, $memgrp_id)");
+		$rbtn = new U3A_BUTTON("button", "reset", "u3a-option-reset-$category-$memgrp_id", "u3a-button", "u3a_reset_option_button_clicked($category, $memgrp_id)");
+		$cbtn->add_attribute("disabled", "disabled");
+		return new U3A_DIV([$sel, $div, $btn, $cbtn, $rbtn], "u3a-select-option-div-$category-$memgrp_id", "");
+	}
+
+	public static function get_option_input($opt, $memgrp_id, $optval = null)
+	{
+		$option = U3A_Options::get_option($opt);
+		$type = $option->option_type;
+		if (!$optval)
+		{
+			$optval = U3A_Row::get_single_value("U3A_Options_Values", "value", ["options_id" => $option->id, "memgrp_id" => $memgrp_id]);
+			if ($optval === null)
+			{
+				$optval = $option->default_value;
+			}
+		}
+		$ret = null;
+		if ($type < 0)
+		{
+			$enumerations_id = 0 - $type;
+			$enumvalues = U3A_Enumeration_Values::list_enumeration_values($enumerations_id, $memgrp_id);
+			$opts = [];
+			foreach ($enumvalues as $name => $val)
+			{
+				$opts[] = new U3A_OPTION($name, $val, $val == $optval, null, "u3a-option-values");
+			}
+			$ret = new U3A_SELECT($opts, "u3a-option-value", "u3a-option-value-" . $option->id . '-' . $memgrp_id, "u3a-option-value u3a-option-value-enumeration");
+		}
+		else
+		{
+			switch ($type) {
+				case U3A_Options::OPTION_TYPE_INT:
+					{
+						$ret = new U3A_INPUT("number", "u3a-option-value", "u3a-option-value-" . $option->id . '-' . $memgrp_id, "u3a-option-value u3a-option-value-number", $optval);
+						break;
+					}
+				case U3A_Options::OPTION_TYPE_COLOUR:
+					{
+						$ret = new U3A_INPUT("color", "u3a-option-value", "u3a-option-value-" . $option->id . '-' . $memgrp_id, "u3a-option-value u3a-option-value-number", $optval);
+						break;
+					}
+				case U3A_Options::OPTION_TYPE_BOOLEAN:
+					{
+						$optvall = strtolower($optval);
+						$ret = new U3A_INPUT("checkbox", "u3a-option-value", "u3a-option-value-" . $option->id . '-' . $memgrp_id, "u3a-option-value u3a-option-value-boolean", $optval);
+						if (($optvall === "true") || ($optvall = "yes"))
+						{
+							$ret->add_attribute("checked", "checked");
+						}
+						break;
+					}
+				default:
+					{
+						$ret = new U3A_INPUT("text", "u3a-option-value", "u3a-option-value-" . $option->id . '-' . $memgrp_id, "u3a-option-value u3a-option-value-text", $optval);
+						break;
+					}
+			}
+		}
 		return $ret;
 	}
 

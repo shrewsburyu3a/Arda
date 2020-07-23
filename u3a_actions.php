@@ -51,6 +51,39 @@ function u3a_wp_head()
 	<?php
 }
 
+add_action("spacious_before_header", "u3a_option_values");
+
+function u3a_option_values()
+{
+	$mbr = U3A_Information::u3a_logged_in_user();
+	if ($mbr)
+	{
+		$opts = U3A_Options_Values::get_option_values(U3A_Options::OPTION_CATEGORY_MEMBER, $mbr->id, true);
+		foreach ($opts as $oname => $oval)
+		{
+			echo "<input type='hidden' value='$oval' name='$oname' class='u3a-member-option u3a-option'/>";
+		}
+		$grps = U3A_Group_Members::get_groups_for_member($mbr);
+		if ($grps)
+		{
+			foreach ($grps as $grp)
+			{
+				$opts = U3A_Options_Values::get_option_values(U3A_Options::OPTION_CATEGORY_GROUP, $grp->id, true);
+				foreach ($opts as $oname => $oval)
+				{
+					echo "<input type='hidden' value='$oval' name='$oname' class='u3a-group-option u3a-option'/>";
+				}
+			}
+		}
+	}
+//	$imagick = new Imagick();
+//	$fonts = $imagick->queryFonts();
+//	foreach ($fonts as $font)
+//	{
+//		write_log("font $font");
+//	}
+}
+
 /* add new tab called "mytab" */
 
 add_filter('um_account_page_default_tabs_hook', 'my_custom_tab_in_um', 100);
@@ -237,4 +270,34 @@ function u3a_member_edited_action($mbr, $changed)
 function u3a_test_task_run()
 {
 	write_log("u3a_test_task_run");
+}
+
+//add_filter('um_browser_url_redirect_to__filter', 'u3a_browser_url_redirect_to', 10, 1);
+//
+//function u3a_browser_url_redirect_to($url)
+//{
+//	// your code here
+//	$mbr = U3A_Information::u3a_logged_in_user();
+//	write_log("old url", $url, ($mbr ? $mbr->id : "null"));
+//	if ($mbr)
+//	{
+//		$url = U3A_Options_Values::get_option_value(U3A_Options::OPTION_CATEGORY_MEMBER, $mbr->id, "initial page", $url, true);
+//		write_log("new url", $mbr->id, $url);
+//	}
+//	return $url;
+//}
+
+
+add_action('um_on_login_before_redirect', 'u3a_on_login_before_redirect', 10, 1);
+
+function u3a_on_login_before_redirect($user_id)
+{
+	$mbr = U3A_Information::u3a_logged_in_user();
+	write_log("on login", ($mbr ? $mbr->id : "null"));
+	if ($mbr)
+	{
+		$url = U3A_Options_Values::get_option_value(U3A_Options::OPTION_CATEGORY_MEMBER, $mbr->id, "initial page", "/", true);
+		write_log("new url", $mbr->id, $url);
+		exit(wp_redirect($url));
+	}
 }

@@ -149,6 +149,25 @@ function u3a_on_activation()
 	$my_page = U3A_Information::u3a_members_personal_page();
 	$links_page = U3A_Information::u3a_links_page();
 	wp_schedule_event(time(), 'daily', 'u3a_daily_check');
+	$afont = U3A_Row::load_single_object("U3A_Enumeration_Values", ["name" => U3A_Utilities::$websafe_fonts[0]]);
+	$enum = U3A_Row::load_single_object("U3A_Enumerations", ["name" => "websafe fonts"]);
+	if ($enum)
+	{
+		$enumid = $enum->id;
+	}
+	else
+	{
+		$enum = new U3A_Enumerations(["name" => "websafe fonts"]);
+		$enumid = $enum->save();
+	}
+	if (!$afont)
+	{
+		foreach (U3A_Utilities::$websafe_fonts as $wsf)
+		{
+			$ev = new U3A_Enumeration_Values(["name" => $wsf, "enumerations_id" => $enumid, "value" => $wsf]);
+			$ev->save();
+		}
+	}
 }
 
 function u3a_on_deactivation()
@@ -382,7 +401,7 @@ function u3a_registration_complete($user_id)
 
 function u3a_is_member($args)
 {
-	write_log($args);
+//	write_log($args);
 	$user_number = $args["user_login"];
 	$user_email = $args["user_email"];
 	$real_email = $args["real_email"];

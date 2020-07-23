@@ -353,7 +353,8 @@ jQuery(document).ready(function (jQuery)
 	}
 	else
 	{
-		jQuery('select').chosen();
+		jQuery('select.u3a-option-value-enumeration').chosen({width: "30em"});
+		jQuery('select:not(.u3a-option-value-enumeration').chosen();
 		console.debug("chosen no width");
 	}
 	if (jQuery('div.um-account-meta-img').length > 0)
@@ -366,6 +367,31 @@ jQuery(document).ready(function (jQuery)
 		var href = jQuery('div.um-account-meta-img-b a').attr("href");
 		jQuery('div.um-account-meta-img-b a').attr("href", href + "?action=edit&um_action=edit");
 	}
+	jQuery(".u3a-option").each(function ()
+	{
+		var vals = jQuery(this).val().split("|");
+		console.debug(vals);
+		var v = vals[0];
+		var nm = vals[1];
+		var type = vals[2];
+		if (vals.length > 3)
+		{
+			var css = vals[3];
+			var priority = vals[4] === '1' ? "important" : "";
+			jQuery(css).each(function ()
+			{
+				if (nm === "font-size")
+				{
+					v += "%";
+				}
+				else if (nm === "font-family")
+				{
+					v += ", sans-serif";
+				}
+				this.style.setProperty(nm, v, priority);
+			});
+		}
+	});
 });
 function u3a_get_query_vars()
 {
@@ -3574,5 +3600,91 @@ function u3a_reload_links()
 			}
 		});
 	}
+}
+
+function u3a_option_select_changed(category, memgrp_id)
+{
+	var id = jQuery('#u3a-option-select-' + category + '-' + memgrp_id).val();
+	jQuery('.u3a-option-select-value-div').removeClass("u3a-inline-block").addClass('u3a-invisible');
+	jQuery('#u3a-option-value-' + memgrp_id + '-' + id).removeClass("u3a-invisible").addClass('u3a-inline-block');
+	jQuery("#u3a-option-edit-" + category + "-" + memgrp_id).removeClass("u3a-option-button-update").addClass("u3a-option-button-edit").text("edit");
+	jQuery("#u3a-option-cancel-" + category + "-" + memgrp_id).prop("disabled", true);
+	jQuery(".u3a-option-value").prop("disabled", true);
+	jQuery("select.u3a-option-value").chosen("destroy");
+	jQuery("select.u3a-option-value").chosen();
+}
+
+function u3a_change_bg()
+{
+	Swal.fire({
+		title: 'background colour',
+		input: 'text',
+		showCancelButton: true
+	}).then(
+			  function (result)
+			  {
+				  console.debug(result);
+				  if (result.isConfirmed && result.value)
+				  {
+					  var col = result.value;
+					  jQuery('body').css("background-color", col);
+				  }
+			  });
+}
+
+function u3a_edit_option_button_clicked(category, memgrp_id)
+{
+	if (jQuery("#u3a-option-edit-" + category + "-" + memgrp_id).hasClass("u3a-option-button-edit"))
+	{
+		jQuery("#u3a-option-edit-" + category + "-" + memgrp_id).removeClass("u3a-option-button-edit").addClass("u3a-option-button-update").text("update");
+		jQuery("#u3a-option-cancel-" + category + "-" + memgrp_id).prop("disabled", false);
+		jQuery("#u3a-option-select-" + category + "-" + memgrp_id).prop("disabled", true);
+		jQuery(".u3a-option-value").prop("disabled", false);
+//		jQuery(".chosen-container").removeClass("chosen-disabled");
+		jQuery("select.u3a-option-value").chosen("destroy");
+		jQuery("select.u3a-option-value").chosen();
+	}
+	else
+	{
+		u3a_cancel_option_button_clicked(category, memgrp_id);
+		var options_id = jQuery("#u3a-option-select-" + category + "-" + memgrp_id).val();
+		var val = jQuery("#u3a-option-value-" + options_id + "-" + memgrp_id).val();
+		var form_data = {
+			action: "u3a_set_option_value",
+			option: options_id,
+			memgrp: memgrp_id,
+			value: val
+		};
+		u3a_ajax(form_data, "set option", u3a_reload_page);
+//		var css = jQuery("#u3a-option-css" + options_id + "-" + memgrp_id);
+//		if (css)
+//		{
+//			var name = jQuery("#u3a-option-css" + options_id + "-" + memgrp_id);
+//			jQuery(css).css(name, val);
+//		}
+//		jQuery(".chosen-container").addClass("chosen-disabled");
+	}
+}
+
+function u3a_cancel_option_button_clicked(category, memgrp_id)
+{
+	jQuery("#u3a-option-edit-" + category + "-" + memgrp_id).removeClass("u3a-option-button-update").addClass("u3a-option-button-edit").text("edit");
+	jQuery("#u3a-option-cancel-" + category + "-" + memgrp_id).prop("disabled", true);
+	jQuery("#u3a-option-select-" + category + "-" + memgrp_id).prop("disabled", false);
+	jQuery(".u3a-option-value").prop("disabled", true);
+//	jQuery(".chosen-container").addClass("chosen-disabled");
+	jQuery("select.u3a-option-value").chosen("destroy");
+	jQuery("select.u3a-option-value").chosen();
+}
+
+function u3a_reset_option_button_clicked(category, memgrp_id)
+{
+	var options_id = jQuery("#u3a-option-select-" + category + "-" + memgrp_id).val();
+	var form_data = {
+		action: "u3a_set_option_value",
+		option: options_id,
+		memgrp: memgrp_id
+	};
+	u3a_ajax(form_data, "reset option");
 }
 

@@ -3140,6 +3140,8 @@ function u3a_administration_contents()
 		$json = "TAM=1";
 		$testalist = new U3A_BUTTON("button", "test address list", null, "u3a-wide-button", "u3a_download_address_list('$json')");
 		$testalistdiv = new U3A_DIV($testalist, "site-testaddresslist-div", "update-type-div-class");
+		$testbg = new U3A_BUTTON("button", "test background colour", null, "u3a-wide-button", "u3a_change_bg()");
+		$testbgdiv = new U3A_DIV($testbg, "site-background-div", "update-type-div-class");
 		if (U3A_Information::u3a_management_enabled())
 		{
 			$mngenbtn = new U3A_BUTTON("button", "disable management", null, "u3a-wide-button", "u3a_set_option('enable_management', 'no')");
@@ -3149,7 +3151,7 @@ function u3a_administration_contents()
 			$mngenbtn = new U3A_BUTTON("button", "enable management", null, "u3a-wide-button", "u3a_set_option('enable_management', 'yes')");
 		}
 		$mngenbtndiv = new U3A_DIV($mngenbtn, "site-enable-management-div", "update-type-div-class");
-		$pgcontents = U3A_HTML::to_html([/* $form, $btndiv, */$vdiv, $hvdiv, $mdiv, $gmdiv, $iddiv, $logdiv, $testmemcarddiv, $testmldiv, $testaldiv, $testalertdiv, $testrpdiv, $testalistdiv, $mngenbtndiv]);
+		$pgcontents = U3A_HTML::to_html([/* $form, $btndiv, */$vdiv, $hvdiv, $mdiv, $gmdiv, $iddiv, $logdiv, $testmemcarddiv, $testmldiv, $testaldiv, $testalertdiv, $testrpdiv, $testalistdiv, $mngenbtndiv, $testbgdiv]);
 	}
 	return $pgcontents;
 }
@@ -3689,6 +3691,10 @@ function u3a_members_personal_contents($atts1)
 			$mng .= U3A_Information::get_manage_open_spoiler("Manage Links", $atts["spoiler"]);
 			$div = new U3A_DIV('[u3a_manage_links group="0" member="' . $member->id . '"]', null, "u3a-manage-links-div");
 			$mng .= $div->to_html();
+			$mng .= "[/su_spoiler]\n";
+			$mng .= U3A_Information::get_manage_open_spoiler("Manage Options", $atts["spoiler"]);
+			$optdiv = U3A_Option_Utilities::get_option_select(U3A_Options::OPTION_CATEGORY_MEMBER, $member->id);
+			$mng .= $optdiv->to_html();
 			$mng .= "[/su_spoiler]\n";
 			$mng .= "[/su_accordion]\n";
 			$pgcontent .= '[su_tab title="Manage" disabled="no" anchor="" url="" target="blank" class=""]' . "\n" . $mng . "\n[/su_tab]\n";

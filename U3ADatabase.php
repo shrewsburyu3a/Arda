@@ -1765,6 +1765,11 @@ class U3A_Groups extends U3A_Database_Row
 		return $this->_data["name"];
 	}
 
+	public function get_slug()
+	{
+		return sanitize_title($this->_data["name"]);
+	}
+
 }
 
 class U3A_Group_Members extends U3A_Database_Row
@@ -2132,7 +2137,7 @@ class U3A_Committee extends U3A_Database_Row
 		return $wm && $wm->members_id == $mbr;
 	}
 
-	public static function get_role($role)
+	public static function get_the_role($role)
 	{
 		$ret = null;
 		$rl = U3A_Row::load_single_object("U3A_Committee", ["role" => $role]);
@@ -2512,7 +2517,7 @@ class U3A_Roles extends U3A_Database_Row
 		return $cm["result"];
 	}
 
-	public static function get_role($role)
+	public static function get_the_role($role)
 	{
 		$ret = null;
 		$rl = U3A_Row::load_single_object("U3A_Roles", ["role" => $role]);
@@ -4658,6 +4663,246 @@ class U3A_Link_Sections extends U3A_Database_Row
 	public function get_links()
 	{
 		return U3A_Links::get_links_in_section($this->_data["id"]);
+	}
+
+}
+
+class U3A_Options_Values extends U3A_Database_Row
+{
+
+	public static function get_option_value($category, $memgrp_id, $option_name, $default_value, $as_string = false)
+	{
+		$sql = "SELECT u3a_options_values.value AS value, u3a_options.option_type AS option_type FROM u3a_options_values JOIN u3a_options ON u3a_options.id = u3a_options_values.options_id WHERE " .
+		  "u3a_options.name = '$option_name' AND u3a_options.category = $category AND u3a_options_values.memgrp_id = $memgrp_id";
+		$hash = [];
+		$loaded = Project_Details::get_db()->loadHash($sql, $hash);
+		if ($loaded)
+		{
+			$ret = $as_string ? $hash["value"] : U3A_Options::convert_value_to_type($hash["value"], intval($hash["option_type"]));
+		}
+		else
+		{
+			$ret = $default_value;
+		}
+		return $ret;
+	}
+
+//	public static function get_option_values($category, $memgrp_id)
+//	{
+//		$sql = "SELECT u3a_options_values.value AS value, u3a_options.option_type AS option_type, u3a_options.name AS name FROM u3a_options LEFT OUTER JOIN u3a_options_values ON " .
+//		  "u3a_options.id = u3a_options_values.options_id WHERE u3a_options.category = $category AND u3a_options_values.memgrp_id = $memgrp_id";
+//		$list = Project_Details::get_db()->loadList($sql);
+//		$ret = [];
+//		foreach ($list as $l)
+//		{
+//			$ret[$l["name"]] = U3A_Options::convert_value_to_type($l["value"], $l["option_type"]);
+//		}
+//		return $ret;
+//	}
+//
+	public static function get_option_values($category, $memgrp_id, $css = false)
+	{
+		$sql = "SELECT u3a_options_values.value AS value, u3a_options.option_type AS option_type, u3a_options.name AS name, u3a_options.css AS css, u3a_options.default_value AS default_value, " .
+		  "u3a_options.priority AS priority, u3a_options.display_name AS display_name FROM u3a_options LEFT OUTER JOIN u3a_options_values ON " .
+		  "u3a_options.id = u3a_options_values.options_id WHERE u3a_options.category = $category AND u3a_options_values.memgrp_id = $memgrp_id";
+		if ($css !== null)
+		{
+			$sql .= " AND u3a_options.css IS NOT NULL";
+		}
+		$list = Project_Details::get_db()->loadList($sql);
+		$ret = [];
+		foreach ($list as $l)
+		{
+			$val = $l["value"] ? $l["value"] : $l["default_value"];
+			$v = $val . '|' . $l["name"] . '|' . $l["option_type"];
+			if ($css)
+			{
+				$v .= '|' . $l["css"] . '|' . $l["priority"];
+			}
+			$ret[$l["name"]] = $v;
+		}
+		return $ret;
+	}
+
+	public function __construct($param = null)
+	{
+		parent::__construct("u3a_options_values", "id", $param, null, null, null);
+	}
+
+}
+
+class U3A_Options extends U3A_Database_Row
+{
+
+	const OPTION_TYPE_STRING = 0;
+	const OPTION_TYPE_INT = 1;
+	const OPTION_TYPE_BOOLEAN = 2;
+	const OPTION_TYPE_COLOUR = 3;
+	const OPTION_CATEGORY_MEMBER = 0;
+	const OPTION_CATEGORY_GROUP = 1;
+	const OPTION_CATEGORY_U3A = 2;
+
+	public static function get_option($ent)
+	{
+		$ret = $ent;
+		if (is_numeric($ent))
+		{
+			$ret = U3A_Row::load_single_object("U3A_Options", ["id" => $ent]);
+		}
+		else if (is_string($ent))
+		{
+			$ret = U3A_Row::load_single_object("U3A_Options", ["name" => addslashes($ent)]);
+		}
+		return $ret;
+	}
+
+	public static function convert_value_to_type($val, $type)
+	{
+		switch ($type) {
+			case self::OPTION_TYPE_INT:
+				{
+					$ret = intval($val);
+					break;
+				}
+			case self::OPTION_TYPE_BOOLEAN:
+				{
+					$lval = strtolower($val);
+					$ret = $lval === "yes" || $lavl === "true";
+					break;
+				}
+			default:
+				{
+					$ret = $val;
+					break;
+				}
+		}
+		return $ret;
+	}
+
+	public static function validate_string_value_as_type($val, $type, $memgrp_id)
+	{
+		if (is_string($val))
+		{
+			if ($type < 0)
+			{
+				$enumerations_id = 0 - $type;
+				$enumvalues = U3A_Enumeration_Values::list_enumeration_values($enumerations_id, $memgrp_id);
+				$enumvals = array_values($enumvalues);
+				$ret = array_search($val, $enumvals) !== FALSE;
+			}
+			else
+			{
+				switch ($type) {
+					case self::OPTION_TYPE_INT:
+						{
+							$ret = is_numeric($val);
+							break;
+						}
+					case self::OPTION_TYPE_BOOLEAN:
+						{
+							$lval = strtolower($val);
+							$ret = $lval === "yes" || $lavl === "true" || $lval === "no" || $lavl === "false";
+							break;
+						}
+					default:
+						{
+							$ret = true;
+							break;
+						}
+				}
+			}
+		}
+		else
+		{
+			$ret = false;
+		}
+		return $ret;
+	}
+
+	public static function get_options_in_category($category)
+	{
+		$ret = U3A_Row::load_array_of_objects("U3A_Options", ["category" => $category]);
+		return $ret["result"];
+	}
+
+	private $_value;
+
+	public function __construct($param = null)
+	{
+		parent::__construct("u3a_options", "id", $param, null, null, null);
+	}
+
+	public function get_the_value($memgrp_id, $default_value = null)
+	{
+		$id = intval($this->_data["id"]);
+		$ov = U3A_Row::load_single_object("U3A_Options_Values", ["options_id" => $id, "memgrp_id" => $memgrp_id]);
+		return $ov ? $ov->value : $default_value;
+	}
+
+}
+
+class U3A_Enumerations extends U3A_Database_Row
+{
+
+	public function __construct($param = null)
+	{
+		parent::__construct("u3a_enumerations", "id", $param, null, null, null);
+	}
+
+}
+
+class U3A_Enumeration_Values extends U3A_Database_Row
+{
+
+	public static function list_enumeration_values($enumerations_id, $memgrp_id)
+	{
+		$list = U3A_Row::load_array_of_objects("U3A_Enumeration_Values", ["enumerations_id" => $enumerations_id]);
+		$ret = [];
+		foreach ($list["result"] as $l)
+		{
+			$val = $l->value;
+			$name = $l->name;
+			$sw = U3A_Utilities::extract_bracketed_substring($val, '{', '}', true);
+			if ($sw)
+			{
+				$val = substr($val, strlen($sw) + 2);
+				switch ($sw) {
+					case "mygroups":
+						{
+							$grps = U3A_Group_Members::get_groups_for_member($memgrp_id);
+							foreach ($grps as $grp)
+							{
+								$with = ["slug" => $grp->slug, "name" => $grp->name];
+								$val = U3A_Utilities::replace_bracketed_substring($val, '[', ']', $with);
+								$name = U3A_Utilities::replace_bracketed_substring($name, '[', ']', $with);
+								$ret[$name] = $val;
+							}
+						}
+					case "allgroups":
+						{
+							$ag = U3A_Row::load_array_of_objects("U3A_Groups");
+							$grps = $ag["result"];
+							foreach ($grps as $grp)
+							{
+								$with = ["slug" => $grp->slug, "name" => $grp->name];
+								$val = U3A_Utilities::replace_bracketed_substring($val, '[', ']', $with);
+								$name = U3A_Utilities::replace_bracketed_substring($name, '[', ']', $with);
+								$ret[$name] = $val;
+							}
+						}
+				}
+			}
+			else
+			{
+				$ret[$name] = $val;
+			}
+		}
+		return $ret;
+	}
+
+	public function __construct($param = null)
+	{
+		parent::__construct("u3a_enumeration_values", "id", $param, null, null, null);
 	}
 
 }
