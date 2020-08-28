@@ -12,8 +12,12 @@ and open the template in the editor.
 
 @font-face { font-family: Arda; src: url('hobbitonbrushhand.ttf'); }
 
+:root {
+}
+
 body
 {
+	--menu-text-color: #138D75;
 	font-family: 'Noto Sans', sans-serif;
 	background-color: whitesmoke;
 }
@@ -25,7 +29,7 @@ body.wait, body.wait *
 
 a:not(.dropdown-toggle):not(.dropdown-link)
 {
-	color : #138D75 !important;
+	color: var(--menu-text-color) !important;
 }
 
 a.dropdown-toggle
@@ -1283,4 +1287,9 @@ i.dropdown-icon
 	float:right;
 	margin-top:9%;
 	margin-right:5px;
+}
+
+.u3a-section-div h6
+{
+	padding-bottom:0px;
 }

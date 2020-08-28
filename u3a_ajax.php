@@ -107,6 +107,12 @@ function u3a_find_members_search_action()
 //				$member_details_action = new U3A_INPUT("hidden", "action", "u3a-found-members-action" . $idsuffix, null, "be_coordinator_of_new_group");
 			$form = new U3A_FORM([$sel], "/wp-admin/admin-ajax.php", "POST", "u3a-member-status-form" . $idsuffix, "u3a-member-details-form-class");
 		}
+		elseif ($next_action === "renew_member")
+		{
+//				$add_btn = new U3A_BUTTON("button", "select", "u3a-found-members-button", "u3a-found-members-button-class");
+//				$member_details_action = new U3A_INPUT("hidden", "action", "u3a-found-members-action" . $idsuffix, null, "be_coordinator_of_new_group");
+			$form = new U3A_FORM([$sel], "/wp-admin/admin-ajax.php", "POST", "u3a-member-status-form" . $idsuffix, "u3a-member-details-form-class");
+		}
 		elseif ($next_action === "delete")
 		{
 //				$add_btn = new U3A_BUTTON("button", "select", "u3a-found-members-button", "u3a-found-members-button-class");
@@ -830,7 +836,7 @@ function u3a_select_group_action()
 		{
 			$group_id = $grp->id;
 			$group_name = $grp->name;
-			$gmw = $grp->get_meets_when();
+			$gmw = $grp->get_meets_when_text();
 			$gmwj = $grp->meets_when;
 			$group_venue = $grp->venue;
 			$group_info = $grp->information;
@@ -965,13 +971,16 @@ function u3a_member_action()
 			$params["class"] = "Individual";
 			$params["renew"] = U3A_Members::get_next_renewal_date();
 			$member = new U3A_Members($params);
-			$member->save();
+			$members_id = $member->save();
 			$result = ["success" => 1, "message" => $params["forename"] . " " . $params["surname"] . " has been successfully added with membership number " . $params["membership_number"] . "."];
 			if (($params["payment_type"] === "PayPal") || ($params["payment_type"] === "CreditCard"))
 			{
 				if ($op === "join")
 				{
 					$sent = send_new_member_email($member);
+					$amount = isset($params["amount"]) ? $params["amount"] : U3A_Information::u3a_get_current_join_rate($member->associate !== null);
+					$sub = new U3A_Subscriptions(["members_id" => $members_id, "amount" => $amount]);
+					$sub->save();
 				}
 				else
 				{
@@ -998,56 +1007,53 @@ function u3a_member_action()
 	elseif ($op == "edit" || $op == "selfedit")
 	{
 		$mbr = U3A_Row::load_single_object("U3A_Members", ["membership_number" => $params["membership_number"], "status" => "Current"]);
+//		write_log($mbr);
 		if ($mbr)
 		{
 			$changed = false;
 			$changed_values = [];
 			foreach ($members_columns as $column)
 			{
-				if (isset($params[$column]) && $params[$column] !== $mbr->$column)
+				if (array_key_exists($column, $params))
 				{
+					$newval = $params[$column];
 					$oldval = $mbr->$column;
-					$mbr->$column = $params[$column];
-					$changed = true;
-					$changed_values[$column] = ["oldval" => $oldval, "newval" => $mbr->$column];
-					switch ($column) {
-						case "email":
-							{
-								$email_changed = ["oldval" => $oldval, "newval" => $mbr->$column];
-								break;
+					if ($newval != $oldval)
+					{
+						if ($oldval && !$newval)
+						{
+							// remove old value
+							$mbr->$column = null;
+							$changed = true;
+						}
+						elseif ($newval)
+						{
+							switch ($column) {
+								case "gift_aid":
+									{
+										// only change if oldval was null
+										if (!$oldval)
+										{
+											$changed = true;
+											$mbr->$column = $newval;
+											$changed_values[$column] = ["oldval" => $oldval, "newval" => $newval];
+										}
+										break;
+									}
+								default:
+									{
+										$changed = true;
+										$mbr->$column = $newval;
+										$changed_values[$column] = ["oldval" => $oldval, "newval" => $newval];
+									}
 							}
-						case "forename":
-							{
-								$forename_changed = ["oldval" => $oldval, "newval" => $mbr->$column];
-								break;
-							}
-						case "surname":
-							{
-								$surname_changed = ["oldval" => $oldval, "newval" => $mbr->$column];
-								break;
-							}
-						case "gift_aid":
-							{
-								$gift_aid_changed = ["oldval" => $oldval, "newval" => $mbr->$column];
-								break;
-							}
-						case "payment_type":
-							{
-								$payment_type_changed = ["oldval" => $oldval, "newval" => $mbr->$column];
-								break;
-							}
-						default:
-							{
-								break;
-							}
+						}
 					}
-					// if email change wp_users table
-					// if forename or surname change wp_usersmeta
-					// if giftaid or payment type inform treasurer
 				}
 			}
 			if ($changed)
 			{
+//				write_log($changed);
 				$mbr->save();
 				$result = ["success" => 1, "message" => "member has been changed!"];
 				audit_log("member edited", $mbr);
@@ -1106,8 +1112,8 @@ function send_renewal_email($mbr)
 	$wm = U3A_Committee::get_webmanager();
 	$tr = U3A_Committee::get_treasurer();
 	$ms = U3A_Committee::get_membership_secretary();
-	$cc = [$wm->email, $tr->email, $ms->email];
-	$who = $mbr->get_full_name() . " (" . $mbr->membership_number . ")";
+	$cc = [$wm->email, /* $tr->email, $ms->email */];
+	$who = $mbr->get_name() . " (" . $mbr->membership_number . ")";
 	$contents = "<p>$who has renewed his membership</p>";
 	$sent = U3A_Sent_Mail::send($wm->id, $wm->email, "Membership Renewal", $contents, $cc);
 	$p0 = new U3A_DIV("Hi " . $mbr->get_first_name());
@@ -1175,11 +1181,14 @@ function u3a_change_member_status()
 	{
 		$oldstatus = $mbr->status;
 		$mbr->status = $newstatus;
-		$mbr->save();
+		$members_id = $mbr->save();
 		$name = $mbr->get_name();
 		if ($oldstatus === "Provisional" && $newstatus === "Current")
 		{
 			$sent = send_new_member_email($mbr);
+			$amount = isset($_POST["amount"]) ? $_POST["amount"] : U3A_Information::u3a_get_current_join_rate($mbr->associate !== null);
+			$sub = new U3A_Subscriptions(["members_id" => $members_id, "amount" => $amount]);
+			$sub->save();
 			if ($sent)
 			{
 				$result = ["success" => 1, "message" => "member $name now has status $newstatus, an email has been sent."];
@@ -2593,6 +2602,35 @@ function u3a_download_address_list()
 //	write_log($where);
 }
 
+add_action("wp_ajax_u3a_download_gift_aid", "u3a_download_gift_aid");
+
+function u3a_download_gift_aid()
+{
+	$from_date = U3A_Utilities::get_post("from", null);
+	$to_date = U3A_Utilities::get_post("to", null);
+	if ($from_date)
+	{
+		$payments = U3A_Subscriptions::get_payments($from_date, $to_date);
+		$ga = new U3A_GiftAid_List();
+		$path = $ga->write_list($payments);
+		if ($path)
+		{
+			$result = ["success" => 1, "arg" => $path];
+		}
+		else
+		{
+			$result = ["success" => 0, "message" => "no path"];
+		}
+	}
+	else
+	{
+		$result = ["success" => 0, "message" => "no from date set"];
+	}
+	echo json_encode($result);
+	wp_die();
+//	write_log($where);
+}
+
 add_action("wp_ajax_u3a_members_download", "u3a_members_download");
 
 function u3a_members_download()
@@ -2628,20 +2666,28 @@ function u3a_renew_membership()
 	if ($members_id)
 	{
 		$mbr = U3A_Members::get_member($members_id);
-		if ($mbr)
-		{
-			$renew = $mbr->renew_membership();
-			send_renewal_email($mbr);
-			$result = ["success" => 1, "message" => "your membership has been renewed"];
-		}
-		else
-		{
-			$result = ["success" => 0, "message" => "your membership has not been renewed, please contact support"];
-		}
 	}
 	else
 	{
-		$result = ["success" => 0, "message" => "your membership has not been renewed, please contact support"];
+		$mnum = U3A_Utilities::get_post("membership_number", 0);
+		if ($mnum)
+		{
+			$mbr = U3A_Members::get_member_from_membership_number($mnum);
+			$members_id = $mbr->id;
+		}
+	}
+	if ($mbr)
+	{
+		$renew = $mbr->renew_membership();
+		send_renewal_email($mbr);
+		$amount = isset($_POST["amount"]) ? $_POST["amount"] : U3A_Information::u3a_get_renewal_rate($mbr->associate !== null);
+		$sub = new U3A_Subscriptions(["members_id" => $members_id, "amount" => $amount]);
+		$sub->save();
+		$result = ["success" => 1, "message" => "membership has been renewed"];
+	}
+	else
+	{
+		$result = ["success" => 0, "message" => "membership has not been renewed, please contact the membership secretary"];
 	}
 	echo json_encode($result);
 	wp_die();
@@ -2873,7 +2919,7 @@ function u3a_group_mailing_list()
 				{
 					if ($members && $name)
 					{
-						$list = U3A_Row::load_single_object("U3A_Email_Lists", ["name" => $name]);
+						$list = U3A_Row::load_single_object("U3A_Email_Lists", ["name" => $name, "groups_id" => $groups_id]);
 						if ($list)
 						{
 							$result = ["success" => 0, "message" => "a list $name already exists"];
@@ -3148,6 +3194,66 @@ function u3a_set_option_value()
 	else
 	{
 		$result = ["success" => 0, "message" => "no name specified"];
+	}
+	echo json_encode($result);
+	wp_die();
+}
+
+add_action("wp_ajax_u3a_move_members", "u3a_move_members");
+
+function u3a_move_members()
+{
+	$from = U3A_Utilities::get_post("from", 0);
+	$to = U3A_Utilities::get_post("to", 0);
+	$mbrsa = U3A_Utilities::get_post("members", null);
+	$mbrs = $mbrsa ? explode(",", $mbrsa) : [];
+	if ($from)
+	{
+		if ($to)
+		{
+			if ($mbrs)
+			{
+				foreach ($mbrs as $mbr)
+				{
+					if ($mbr)
+					{
+						$gm = U3A_Row::load_single_object("U3A_Group_Members", ["members_id" => $mbr, "groups_id" => $to]);
+						if ($gm)
+						{
+							//already a member so just delete
+							$gm1 = U3A_Row::load_single_object("U3A_Group_Members", ["members_id" => $mbr, "groups_id" => $from]);
+							if ($gm1)
+							{
+								$gm1->delete();
+							}
+						}
+						else
+						{
+							$gm = U3A_Row::load_single_object("U3A_Group_Members", ["members_id" => $mbr, "groups_id" => $from]);
+							if ($gm)
+							{
+								$gm->groups_id = $to;
+								$gm->status = U3A_Group_Members::MEMBER;
+								$gm->save();
+							}
+						}
+					}
+				}
+				$result = ["success" => 1, "message" => "members moved"];
+			}
+			else
+			{
+				$result = ["success" => 0, "message" => "no members to move"];
+			}
+		}
+		else
+		{
+			$result = ["success" => 0, "message" => "no destination group"];
+		}
+	}
+	else
+	{
+		$result = ["success" => 0, "message" => "no source group"];
 	}
 	echo json_encode($result);
 	wp_die();

@@ -240,12 +240,14 @@ jQuery(document).ready(function (jQuery)
 						  return actions.order.capture().then(function (details)
 						  {
 							  console.debug(details, details.status);
-							  var ppaction = jQuery("#u3a-paypal-action").val();
-							  if (ppaction === 'join')
+							  if (details.status === "COMPLETED")
 							  {
-								  var op = jQuery(".u3a-member-op-class").val();
-								  if (details.status === "COMPLETED")
+								  var ppaction = jQuery("#u3a-paypal-action").val();
+								  var affiliation = jQuery('input.u3a-name-input-class[name="member-affiliation"').val().trim();
+								  var rate = affiliation.length > 0 ? jQuery('#u3a-associate-subscription-rate').val() : jQuery('#u3a-subscription-rate').val();
+								  if (ppaction === 'join')
 								  {
+									  var op = jQuery(".u3a-member-op-class").val();
 									  var form_data = {};
 									  for (var n = 0; n < member_fields.length; n++)
 									  {
@@ -259,44 +261,21 @@ jQuery(document).ready(function (jQuery)
 											  }
 										  }
 									  }
+									  form_data["amount"] = rate;
 									  console.debug(form_data);
 									  u3a_ajax(form_data, capitalizeFirstLetter(op) + " Member", gotoregister);
 								  }
+								  else
+								  {
+									  var members_id = jQuery("#u3a-member-id").val();
+									  var formdata = {
+										  action: "u3a_renew_membership",
+										  amount: rate,
+										  member: members_id
+									  };
+									  u3a_ajax(form_data, "renew member");
+								  }
 							  }
-							  else
-							  {
-								  var members_id = jQuery("#u3a-member-id").val();
-								  var formdata = {
-									  action: "u3a_renew_membership",
-									  member: members_id
-								  };
-							  }
-//							  var msg = u3a_validate_member_details_form();
-//							  console.debug("msg", msg);
-//							  if (msg)
-//							  {
-//								  swal.fire("Incomplete Form", '"' + msg + '" must be supplied.', "error");
-//							  }
-//							  else
-//							  {
-//								  var form_data = {};
-//								  for (var n = 0; n < member_fields.length; n++)
-//								  {
-//									  var value = jQuery("#u3a-member-" + member_fields[n] + "-" + op).val();
-//									  if (typeof value !== 'undefined')
-//									  {
-//										  form_data[member_fields[n]] = value;
-//										  if (jQuery("input[type='checkbox']#u3a-member-" + member_fields[n] + "-" + op).length > 0)
-//										  {
-//											  form_data[member_fields[n]] = jQuery("#u3a-member-" + member_fields[n] + "-" + op).prop("checked") ? "yes" : "no";
-//										  }
-//									  }
-//								  }
-//								  console.debug(form_data);
-//								  u3a_ajax(form_data, capitalizeFirstLetter(op) + " Member");
-//							  }
-							  // This function shows a transaction success message to your buyer.
-//							  alert('Transaction completed by ' + details.payer.name.given_name);
 						  });
 					  }
 				  }
@@ -378,18 +357,25 @@ jQuery(document).ready(function (jQuery)
 		{
 			var css = vals[3];
 			var priority = vals[4] === '1' ? "important" : "";
-			jQuery(css).each(function ()
+			if (nm.startsWith("--"))
 			{
-				if (nm === "font-size")
+				document.body.style.setProperty(nm, v);
+			}
+			else
+			{
+				jQuery(css).each(function ()
 				{
-					v += "%";
-				}
-				else if (nm === "font-family")
-				{
-					v += ", sans-serif";
-				}
-				this.style.setProperty(nm, v, priority);
-			});
+					if (nm === "font-size")
+					{
+						v += "%";
+					}
+					else if (nm === "font-family")
+					{
+						v += ", sans-serif";
+					}
+					this.style.setProperty(nm, v, priority);
+				});
+			}
 		}
 	});
 });
@@ -492,7 +478,7 @@ function u3a_find_member_dialog_close(nxt, op, sfx)
 			},
 			success: function (data)
 			{
-				console.log("success", data);
+//				console.log("success", data);
 				var returned = JSON.parse(data);
 				if (returned["success"])
 				{
@@ -535,6 +521,15 @@ function u3a_find_member_dialog_close(nxt, op, sfx)
 				}
 			}
 		});
+	}
+	else if (nxt == "renew_member")
+	{
+		var form_data = {
+			action: "u3a_renew_membership",
+			membership_number: mnum
+		};
+		u3a_ajax(form_data, "renew member");
+//		console.debug(form_data);
 	}
 	else if (nxt == "view_details")
 	{
@@ -823,6 +818,35 @@ function u3a_after_select_group(op)
 //					console.debug(ret);
 				}
 			}});
+	}
+	else if (op == "move_members")
+	{
+		form_data["action"] = "u3a_move_members";
+		form_data["from"] = jQuery("#u3a-group-page-group-id").val();
+		form_data["to"] = jQuery("#u3a-select-group-move_members").val();
+		var members = jQuery("#u3a-group-members-list-div input:checkbox:checked").map(function ()
+		{
+			return $(this).val();
+		}).get();
+		var fromname = jQuery("#u3a-group-page-group-name").val();
+		console.debug("move_members", members);
+		form_data["members"] = members.join(",");
+		swal.fire({title: "move group members!",
+			text: "Confirm move these members from " + fromname + " to " + gname + "?",
+			icon: "warning",
+			showCancelButton: true,
+			confirmButtonColor: '#d33',
+			confirmButtonText: 'confirm move'})
+//			buttons: true,
+//			dangerMode: true})
+				  .then(
+							 function (result)
+							 {
+								 if (result.value)
+								 {
+									 u3a_ajax(form_data, "move members", u3a_reload_group_page);
+								 }
+							 });
 	}
 	else
 	{
@@ -2799,7 +2823,7 @@ function test_membership_card()
 	var form_data = {
 		action: "u3a_test_membership_card",
 		membership_number: 174
-	}
+	};
 	u3a_ajax(form_data, "Membership Card");
 }
 
@@ -2807,7 +2831,7 @@ function u3a_address_labels()
 {
 	var form_data = {
 		action: "u3a_address_labels"
-	}
+	};
 	u3a_ajax(form_data, "Address Labels", u3a_open);
 }
 
@@ -2816,7 +2840,7 @@ function test_mailing_lists()
 	var form_data = {
 		action: "u3a_test_mailing_list",
 		mailing_list: "posc"
-	}
+	};
 	u3a_ajax(form_data, "Mailing List");
 }
 
@@ -2826,7 +2850,7 @@ function u3a_set_option(optname, optval)
 		action: "u3a_set_option",
 		option: optname,
 		optval: optval
-	}
+	};
 	u3a_ajax(form_data, "Set Option");
 }
 
@@ -2847,7 +2871,7 @@ function u3a_create_mailing_list(groups_id)
 			action: "u3a_create_mailing_list",
 			name: name,
 			group: groups_id
-		}
+		};
 		u3a_ajax(form_data, "Create Mailing List");
 	}
 }
@@ -2859,7 +2883,7 @@ function u3a_select_contact_details()
 	var form_data = {
 		action: "u3a_contact_details",
 		member: members_id
-	}
+	};
 	u3a_ajax(form_data, "Contact Details", function (html)
 	{
 		jQuery('#u3a-group-member-contact-details').html(html);
@@ -2872,7 +2896,7 @@ function u3a_remove_from_waiting_list(groups_id, members_id)
 		action: "u3a_remove_from_waiting_list",
 		member: members_id,
 		group: groups_id
-	}
+	};
 	u3a_ajax(form_data, "Remove from Waiting List");
 }
 
@@ -2882,7 +2906,7 @@ function u3a_accept_from_waiting_list(groups_id, members_id)
 		action: "u3a_accept_from_waiting_list",
 		member: members_id,
 		group: groups_id
-	}
+	};
 	u3a_ajax(form_data, "Accept from Waiting List");
 }
 
@@ -2892,7 +2916,7 @@ function u3a_test_reply_preference(email)
 	var form_data = {
 		action: "u3a_test_reply_preference",
 		email: email
-	}
+	};
 	u3a_ajax(form_data, "Test Reply Preference");
 }
 
@@ -2903,6 +2927,18 @@ function u3a_download_address_list(where)
 		where: where
 	}
 	u3a_ajax(form_data, "Download Address List", u3a_open);
+}
+
+function u3a_download_gift_aid()
+{
+	var from = jQuery("#u3a-gift-aid-from").val();
+	var to = jQuery("#u3a-gift-aid-to").val();
+	var form_data = {
+		action: "u3a_download_gift_aid",
+		from: from,
+		to: to
+	};
+	u3a_ajax(form_data, "Download Gift Aid", u3a_open);
 }
 
 function u3a_enable_if_checked(check_if_checked, to_enable)
@@ -3602,6 +3638,12 @@ function u3a_reload_links()
 	}
 }
 
+function u3a_modal_open(div)
+{
+	jQuery('#' + div + " select").chosen("destroy");
+	jQuery('#' + div + " select").chosen({width: "6em"});
+}
+
 function u3a_option_select_changed(category, memgrp_id)
 {
 	var id = jQuery('#u3a-option-select-' + category + '-' + memgrp_id).val();
@@ -3687,4 +3729,3 @@ function u3a_reset_option_button_clicked(category, memgrp_id)
 	};
 	u3a_ajax(form_data, "reset option");
 }
-

@@ -646,7 +646,18 @@ function u3a_header_title($ttl)
 		}
 		if ($mbr)
 		{
-			$ret = $mbr->get_name();
+			$wpid = $mbr->get_wpid();
+			$avatar = "";
+			if ($wpid)
+			{
+				$url = esc_url(get_avatar_url($wpid, ['size' => '32']));
+				if ($url)
+				{
+					$img = new U3A_IMG($url, "u3a-avatar-" . $mbr->id, "u3a-avatar-image");
+					$avatar = $img->to_html();
+				}
+			}
+			$ret = $avatar . $mbr->get_name();
 		}
 		else
 		{

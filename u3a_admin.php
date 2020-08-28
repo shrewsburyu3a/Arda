@@ -1330,6 +1330,61 @@ class U3A_Address_List
 
 }
 
+class U3A_GiftAid_List
+{
+
+	public function write_list($list, $filename = null)
+	{
+		write_log(U3A_Information::get_temp_dir());
+		if (!$filename)
+		{
+			$filename = U3A_Information::u3a_get_u3a_name() . "U3A_gift_aid_" . date('Ymd');
+		}
+		$path = U3A_Information::get_temp_dir() . $filename . ".xlsx";
+		$url = U3A_Information::get_temp_url() . $filename . ".xlsx";
+		$spreadsheet = new Spreadsheet();
+		$spreadsheet->getActiveSheet()->setCellValue('A1', 'Title');
+		$spreadsheet->getActiveSheet()->setCellValue('B1', 'First Name');
+		$spreadsheet->getActiveSheet()->setCellValue('C1', 'Surname');
+		$spreadsheet->getActiveSheet()->setCellValue('D1', 'House Number or Name');
+		$spreadsheet->getActiveSheet()->setCellValue('E1', 'Postcode');
+		$spreadsheet->getActiveSheet()->setCellValue('F1', 'Donation Date');
+		$spreadsheet->getActiveSheet()->setCellValue('G1', 'Donation Amount ');
+		$n = 2;
+		foreach ($list as $mbr)
+		{
+			$spreadsheet->getActiveSheet()->setCellValue('A' . $n, $mbr["title"]);
+			$spreadsheet->getActiveSheet()->setCellValue('B' . $n, $mbr["first_name"]);
+			$spreadsheet->getActiveSheet()->setCellValue('C' . $n, $mbr["surname"]);
+			$spreadsheet->getActiveSheet()->setCellValue('D' . $n, $mbr["house_number_or_name"]);
+			$spreadsheet->getActiveSheet()->setCellValue('E' . $n, $mbr["postcode"]);
+			$spreadsheet->getActiveSheet()->setCellValue('F' . $n, date("Y-m-d", strtotime($mbr["donation_date"])));
+			$spreadsheet->getActiveSheet()
+			  ->getStyle('G' . $n)
+			  ->getNumberFormat()
+			  ->setFormatCode(PhpOffice\PhpSpreadsheet\Style\NumberFormat::FORMAT_DATE_DDMMYYYY);
+			$spreadsheet->getActiveSheet()->setCellValue('G' . $n, $mbr["donation_amount"]);
+			$spreadsheet->getActiveSheet()
+			  ->getStyle('G' . $n)
+			  ->getNumberFormat()
+			  ->setFormatCode('"£"#,##0.00_-');
+			$n++;
+		}
+		$spreadsheet->getActiveSheet()->getColumnDimension('A')->setAutoSize(true);
+		$spreadsheet->getActiveSheet()->getColumnDimension('B')->setAutoSize(true);
+		$spreadsheet->getActiveSheet()->getColumnDimension('C')->setAutoSize(true);
+		$spreadsheet->getActiveSheet()->getColumnDimension('D')->setAutoSize(true);
+		$spreadsheet->getActiveSheet()->getColumnDimension('E')->setAutoSize(true);
+		$spreadsheet->getActiveSheet()->getColumnDimension('F')->setAutoSize(true);
+		$spreadsheet->getActiveSheet()->getColumnDimension('G')->setAutoSize(true);
+		$writer = IOFactory::createWriter($spreadsheet, "Xlsx");
+		$writer->save($path);
+		write_log($url);
+		return $url;
+	}
+
+}
+
 class U3A_Members_List
 {
 

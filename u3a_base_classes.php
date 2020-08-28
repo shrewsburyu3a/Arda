@@ -341,12 +341,13 @@ class U3A_HTML_Utilities
 		return new U3A_SELECT($options, $name, $id, $cssclass);
 	}
 
-	public static function get_day_of_week_select($name, $id, $cssclass, $selected = "monday")
+	public static function get_day_of_week_select($name, $id, $cssclass, $selected = "monday", $short = false)
 	{
 		$options = [];
 		foreach (self::$days_of_week as $dw)
 		{
-			$options[] = new U3A_OPTION($dw, $dw, $selected == $dw);
+			$txt = $short ? substr($dw, 0, 3) : $dw;
+			$options[] = new U3A_OPTION($txt, $dw, $selected == $dw);
 		}
 		return new U3A_SELECT($options, $name, $id, $cssclass);
 	}

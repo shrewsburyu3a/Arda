@@ -875,7 +875,7 @@ class U3A_Information
 				$type = U3A_Permission_Types::GROUP_TYPE;
 				$members_id = U3A_Members::get_member_id($member);
 				// coordinators automatically have permission
-				if (U3A_Group_Members::is_coordinator($members_id, $groups_id))
+				if (U3A_Group_Members::is_coordinator($members_id, $groups_id) || U3A_Committee::is_groups_administrator($member))
 				{
 					$ret = true;
 				}

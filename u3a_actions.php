@@ -59,9 +59,9 @@ function u3a_option_values()
 	if ($mbr)
 	{
 		$opts = U3A_Options_Values::get_option_values(U3A_Options::OPTION_CATEGORY_MEMBER, $mbr->id, true);
-		foreach ($opts as $oname => $oval)
+		foreach ($opts as $oval)
 		{
-			echo "<input type='hidden' value='$oval' name='$oname' class='u3a-member-option u3a-option'/>";
+			echo "<input type='hidden' value='$oval' class='u3a-member-option u3a-option'/>";
 		}
 		$grps = U3A_Group_Members::get_groups_for_member($mbr);
 		if ($grps)
@@ -69,9 +69,9 @@ function u3a_option_values()
 			foreach ($grps as $grp)
 			{
 				$opts = U3A_Options_Values::get_option_values(U3A_Options::OPTION_CATEGORY_GROUP, $grp->id, true);
-				foreach ($opts as $oname => $oval)
+				foreach ($opts as $oval)
 				{
-					echo "<input type='hidden' value='$oval' name='$oname' class='u3a-group-option u3a-option'/>";
+					echo "<input type='hidden' value='$oval' class='u3a-group-option u3a-option'/>";
 				}
 			}
 		}
@@ -205,9 +205,18 @@ function u3a_member_edited_action($mbr, $changed)
 	if ($email_changed)
 	{
 		$user = get_user_by('login', $mbr->membership_number);
+		if (!$user)
+		{
+			$user = get_user_by('login', '0' . $mbr->membership_number);
+			if (!$user)
+			{
+				$user = get_user_by('login', '00' . $mbr->membership_number);
+			}
+		}
 		if ($user)
 		{
 			$wpid = $user->ID;
+			write_log("update wp user email " . $wpid);
 			wp_update_user([
 				'ID'			 => $wpid,
 				'user_email' => $email_changed["newval"]
@@ -254,16 +263,22 @@ function u3a_member_edited_action($mbr, $changed)
 	{
 		$wm = U3A_Committee::get_webmanager();
 		$tr = U3A_Committee::get_treasurer();
+		$mb = U3A_Committee::get_membership_secretary();
 		$contents = "<p>" . $mbr->get_name() . " (" . $mbr->membership_number . ") has changed their payment details" . "</p>";
 		if ($gift_aid_changed)
 		{
 			$contents .= "<p>Gift Aid has changed from " . $mbr->get_gift_aid_text($gift_aid_changed["oldval"]) . " to " . $mbr->get_gift_aid_text() . "</p>";
+			$to = $tr->email;
+			$cc = null;
 		}
 		if ($payment_type_changed)
 		{
 			$contents .= "<p>Payment Type has changed from " . $payment_type_changed["oldval"] . " to " . $payment_type_changed["newval"] . "</p>";
+			$to = $mb->email;
+			$cc = [$tr->email];
 		}
-		$sent = U3A_Sent_Mail::send($wm->id, $tr->email, "Member edit", $contents);
+		$to = $wm->email;
+		$sent = U3A_Sent_Mail::send($wm->id, $to, "Member edit", $contents, $cc);
 	}
 }
 

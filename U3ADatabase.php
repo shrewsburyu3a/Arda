@@ -1518,7 +1518,7 @@ class U3A_Groups extends U3A_Database_Row
 		$this->_must_be_set_to_save[] = 'name';
 	}
 
-	public function get_meets_when()
+	public function get_meets_when_text()
 	{
 		$meets_when = $this->_data["meets_when"];
 //		print ("MEETS WHEN " . $meets_when . "\n");
@@ -2109,6 +2109,11 @@ class U3A_Committee extends U3A_Database_Row
 		return U3A_Row::load_single_object("U3A_Committee", ["login" => "chairperson"]);
 	}
 
+	public static function get_groups_administrator()
+	{
+		return U3A_Row::load_single_object("U3A_Committee", ["login" => "groupsadministrator"]);
+	}
+
 	public static function is_webmanager($mbr1)
 	{
 		$mbr = U3A_Members::get_member_id($mbr1);
@@ -2134,6 +2139,13 @@ class U3A_Committee extends U3A_Database_Row
 	{
 		$mbr = U3A_Members::get_member_id($mbr1);
 		$wm = self::get_chairperson();
+		return $wm && $wm->members_id == $mbr;
+	}
+
+	public static function is_groups_administrator($mbr1)
+	{
+		$mbr = U3A_Members::get_member_id($mbr1);
+		$wm = self::get_groups_administrator();
 		return $wm && $wm->members_id == $mbr;
 	}
 
@@ -4719,7 +4731,7 @@ class U3A_Options_Values extends U3A_Database_Row
 			{
 				$v .= '|' . $l["css"] . '|' . $l["priority"];
 			}
-			$ret[$l["name"]] = $v;
+			$ret[] = $v;
 		}
 		return $ret;
 	}
@@ -4903,6 +4915,48 @@ class U3A_Enumeration_Values extends U3A_Database_Row
 	public function __construct($param = null)
 	{
 		parent::__construct("u3a_enumeration_values", "id", $param, null, null, null);
+	}
+
+}
+
+class U3A_Subscriptions extends U3A_Database_Row
+{
+
+	public static function get_payments($from_date, $to_date = null)
+	{
+		if (is_numeric($from_date))
+		{
+			$since = $from_date;
+		}
+		else
+		{
+			$since = strtotime($from_date);
+		}
+		if ($to_date)
+		{
+			if (is_numeric($to_date))
+			{
+				$upto = $to_date;
+			}
+			else
+			{
+				$upto = strtotime($to_date);
+			}
+		}
+		else
+		{
+			$upto = time();
+		}
+		$sql = "SELECT u3a_members.title as title, u3a_members.forename as first_name, u3a_members.surname as surname, u3a_members.house as house_number_or_name, u3a_members.postcode as postcode, " .
+		  "u3a_subscriptions.date_paid as donation_date, u3a_subscriptions.amount as donation_amount FROM `u3a_subscriptions` JOIN u3a_members ON u3a_members.id = u3a_subscriptions.members_id " .
+		  "WHERE UNIX_TIMESTAMP(u3a_subscriptions.date_paid) > $since AND UNIX_TIMESTAMP(u3a_subscriptions.date_paid) < $upto ORDER BY u3a_members.surname";
+		$ret = Project_Details::get_db()->loadList($sql);
+		return $ret;
+	}
+
+	public function __construct($param = null)
+	{
+		parent::__construct("u3a_subscriptions", "id", $param, null, null, null);
 	}
 
 }
