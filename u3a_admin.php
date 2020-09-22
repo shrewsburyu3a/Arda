@@ -1472,7 +1472,7 @@ class U3A_PDF extends FPDF
 		$path = U3A_Information::get_temp_dir() . "membership_card_" . $mbr->membership_number . ".pdf";
 		$url = U3A_Information::get_temp_url() . "membership_card_" . $mbr->membership_number . ".pdf";
 		$pdf->Output('F', $path);
-		return $path;
+		return ["path" => $path, "url" => $url];
 	}
 
 	public function get_header_file()

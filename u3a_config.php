@@ -51,14 +51,52 @@ class U3A_CONFIG extends U3A_Object
 	{
 		parent::__construct();
 		$contents = file(dirname(__FILE__) . '/config.txt', FILE_IGNORE_NEW_LINES);
+		$live = [];
+		$test = [];
 		foreach ($contents as $line)
 		{
-			if ($line[0] !== '#')
+			if ($line[0] === '#')
 			{
-				$l = explode('=', $line);
-				$this->_data[$l[0]] = $l[1];
+				if (U3A_Utilities::starts_with($line, '#live:'))
+				{
+					$live[] = substr($line, 6);
+				}
+				elseif (U3A_Utilities::starts_with($line, '#test:'))
+				{
+					$test[] = substr($line, 6);
+				}
+			}
+			else
+			{
+				$eq = strpos($line, '=');
+				if ($eq)
+				{
+					$p = trim(substr($line, 0, $eq));
+					$v = trim(substr($line, $eq + 1));
+					$this->_data[$p] = $v;
+//				$l = explode('=', $line);
+//					$this->_data[$l[0]] = $l[1];
+				}
 			}
 		}
+		$usethis1 = $this->_data["DOMAIN_NAME"] === $_SERVER["SERVER_NAME"] ? $live : $test;
+		if ($usethis1)
+		{
+			foreach ($usethis1 as $line)
+			{
+				$eq = strpos($line, '=');
+				if ($eq)
+				{
+					$p = trim(substr($line, 0, $eq));
+					$v = trim(substr($line, $eq + 1));
+					$this->_data[$p] = $v;
+//				$l = explode('=', $line);
+//					$this->_data[$l[0]] = $l[1];
+				}
+			}
+		}
+//		write_log($this->_data);
+//		write_log($_SERVER);
 	}
 
 }

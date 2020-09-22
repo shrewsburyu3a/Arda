@@ -27,37 +27,81 @@ require_once 'u3a_shortcodes.php';
 require_once 'u3a_actions.php';
 require_once 'u3a_ajax.php';
 
+function debug_log_path()
+{
+	return plugin_dir_path(__FILE__) . "logs/debuglog_" . date("Ymd") . ".log";
+}
+
+error_reporting(E_ALL);
+
+// Sets to display errors on screen. Use 0 to turn off.
+ini_set('display_errors', U3A_Information::u3a_is_live_server() ? 0 : 1 );
+
+// Sets to log errors. Use 0 (or omit) to not log errors.
+ini_set('log_errors', 1);
+
+ini_set('error_log', debug_log_path());
+
+//if (!function_exists('write_log'))
+//{
+//
+//	function write_log($log, ...$rest)
+//	{
+//		if (true === WP_DEBUG)
+//		{
+//			$t = "[" . gettype($log) . "] ";
+//			if (is_array($log) || is_object($log))
+//			{
+//				error_log($t . print_r($log, true));
+//			}
+//			else
+//			{
+//				error_log($t . $log);
+//			}
+//			if ($rest)
+//			{
+//				foreach ($rest as $r)
+//				{
+//					$t = "[" . gettype($r) . "] ";
+//					if (is_array($r) || is_object($r))
+//					{
+//						error_log($t . print_r($r, true));
+//					}
+//					else
+//					{
+//						error_log($t . $r);
+//					}
+//				}
+//			}
+//		}
+//	}
+//
+//}
+
 if (!function_exists('write_log'))
 {
 
 	function write_log($log, ...$rest)
 	{
-		if (true === WP_DEBUG)
+		$debug_path = debug_log_path();
+		$debug_file = fopen($debug_path, "a");
+//		write_log("attempting writing to " . $audit_path);
+		if ($debug_file)
 		{
-			$t = "[" . gettype($log) . "] ";
-			if (is_array($log) || is_object($log))
+			$prefix = "";
+			$current_wp_user = wp_get_current_user();
+			if ($current_wp_user && $current_wp_user->ID)
 			{
-				error_log($t . print_r($log, true));
+				$lg = $current_wp_user->user_login;
+				$prefix .= "\n" . $lg . date("Y-m-d H:i:s") . " :- ";
 			}
-			else
+//			write_log("writing to " . $audit_path . ": " . U3A_Utilities::as_string($log));
+			fwrite($debug_file, $prefix . U3A_Utilities::as_string($log));
+			foreach ($rest as $r)
 			{
-				error_log($t . $log);
+				fwrite($debug_file, $prefix . U3A_Utilities::as_string($r));
 			}
-			if ($rest)
-			{
-				foreach ($rest as $r)
-				{
-					$t = "[" . gettype($r) . "] ";
-					if (is_array($r) || is_object($r))
-					{
-						error_log($t . print_r($r, true));
-					}
-					else
-					{
-						error_log($t . $r);
-					}
-				}
-			}
+			fclose($debug_file);
 		}
 	}
 

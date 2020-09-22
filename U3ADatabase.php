@@ -4104,6 +4104,8 @@ class U3A_Sent_Mail extends U3A_Database_Row
 		$mailer = U3A_Mail::get_the_mailer();
 		$config = U3A_CONFIG::get_the_config();
 		$subject = '[' . $config->U3ANAME . ' U3A] ' . $subject1;
+//		write_log("sending mail $subject");
+//		write_log($bcc);
 		$ret = $mailer->sendmail($to, $subject, $contents, $cc, $bcc, $from, $reply_to, $attachments, $html);
 		if ($ret)
 		{

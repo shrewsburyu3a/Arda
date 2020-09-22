@@ -1072,4 +1072,15 @@ class U3A_Information
 		return $cfg->DOMAIN_NAME;
 	}
 
+	public static function u3a_get_paypal()
+	{
+		$cfg = U3A_CONFIG::get_the_config();
+		return $cfg->PAYPAL;
+	}
+
+	public static function u3a_is_live_server()
+	{
+		return self::u3a_get_domain_name() === $_SERVER["SERVER_NAME"];
+	}
+
 }

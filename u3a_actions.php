@@ -34,7 +34,9 @@ function u3a_enqueued_scripts()
 //	{EBaCxw_3yOSbGTY0NtVfoqOMImS3jDlPmiGk7Gj6Cjf1h6t6KuXMWqcSNvV9dPnRLNf9WRgq5Xms3hRg
 //	wp_enqueue_script('u3a-paypal', "https://www.paypal.com/sdk/js?currency=GBP&client-id=ATpHQmey4eyA0ZNC7HdvVNHQ6DM7nPNufyDmYO1kHniGjE3692Km1nHVuHEfzzbdJk4bsVIyGO3ygDb8", null, null, true);
 //	wp_enqueue_script('u3a-paypal', "https://www.paypal.com/sdk/js?currency=GBP&client-id=AdhOTZv-wHs1S07WdSbHmXnD2w8Aip93Bq18amjIYrsKGG8V4oFd4kRj7uVRLUP0VcV9wT0ZWiKIc0wv&disable-funding=card", null, null, true);
-	wp_enqueue_script('u3a-paypal', "https://www.paypal.com/sdk/js?currency=GBP&client-id=AWswT9r10ULNtH8sOmXNRhlgWcN4S4TqeVn8RAAQn1H00IU9D-mqPg8Ua6E_vH2UppjwXJ05Jv4jrUYo", null, null, true);
+//	wp_enqueue_script('u3a-paypal', "https://www.paypal.com/sdk/js?currency=GBP&client-id=AWswT9r10ULNtH8sOmXNRhlgWcN4S4TqeVn8RAAQn1H00IU9D-mqPg8Ua6E_vH2UppjwXJ05Jv4jrUYo", null, null, true);
+	$pp = U3A_Information::u3a_get_paypal();
+	wp_enqueue_script('u3a-paypal', "$pp", null, null, true);
 //	}
 	wp_enqueue_script("u3a-alerts", "https://cdn.jsdelivr.net/npm/sweetalert2@9");
 //	wp_enqueue_script("u3a-alerts", "https://unpkg.com/sweetalert/dist/sweetalert.min.js");
@@ -76,6 +78,8 @@ function u3a_option_values()
 			}
 		}
 	}
+	$is_live = U3A_Information::u3a_is_live_server() ? 1 : 0;
+	echo "<input type='hidden' value='$is_live' id='u3a-is-live'/>";
 //	$imagick = new Imagick();
 //	$fonts = $imagick->queryFonts();
 //	foreach ($fonts as $font)

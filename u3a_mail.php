@@ -22,6 +22,7 @@ class U3A_Mail
 	private static $the_mailer = null;
 
 	const MAX_ATTACHMENTS = 20;
+	const MAX_CC = 200;
 
 	private static function get_public_api_key()
 	{
@@ -315,6 +316,72 @@ class U3A_Mail
 	}
 
 	public function sendmail($to, $subject, $contents, $cc = null, $bcc = null, $from = null, $reply_to = null, $attachments = null, $html = true)
+	{
+		$ret = 0;
+		if (is_array($cc) && count($cc) > self::MAX_CC)
+		{
+			$ccs = U3A_Utilities::chop_array($cc, self::MAX_CC);
+			write_log("sending split " . count($cc) . " cc in " . count($ccs) . " lots of " . self::MAX_CC);
+			foreach ($ccs as $ccc)
+			{
+				if ($this->sendmail1($to, $subject, $contents, $ccc, $bcc, $from, $reply_to, $attachments, $html))
+				{
+					$ret += count($ccc);
+					sleep(1);
+				}
+				else
+				{
+					write_log("not sent");
+					write_log($ccc);
+				}
+			}
+		}
+		elseif ((is_array($bcc) && count($bcc) > self::MAX_CC))
+		{
+			$bccs = U3A_Utilities::chop_array($bcc, self::MAX_CC);
+			write_log("sending split " . count($bcc) . " bcc in " . count($bccs) . " lots of " . self::MAX_CC);
+			foreach ($bccs as $bccc)
+			{
+				if ($this->sendmail1($to, $subject, $contents, $cc, $bccc, $from, $reply_to, $attachments, $html))
+				{
+					$ret += count($bccc);
+					sleep(1);
+				}
+				else
+				{
+					write_log("not sent");
+					write_log($bccc);
+				}
+			}
+		}
+		else
+		{
+			write_log("sending all");
+			if (!$this->sendmail1($to, $subject, $contents, $cc, $bcc, $from, $reply_to, $attachments, $html))
+			{
+				write_log("cc", $cc);
+				write_log("bcc", $bcc);
+			}
+			else
+			{
+				if (is_array($bcc))
+				{
+					$ret += count($bcc);
+				}
+				elseif (is_array($cc))
+				{
+					$ret += count($cc);
+				}
+				else
+				{
+					$ret = 1;
+				}
+			}
+		}
+		return $ret;
+	}
+
+	private function sendmail1($to, $subject, $contents, $cc = null, $bcc = null, $from = null, $reply_to = null, $attachments = null, $html = true)
 	{
 		if ($html)
 		{

@@ -1212,6 +1212,24 @@ class U3A_Utilities
 		}
 	}
 
+	public static function chop_array($an_array, $size)
+	{
+		$ret = [];
+		$start = 0;
+		$len = count($an_array);
+		while ($len > $size)
+		{
+			$ret[] = array_slice($an_array, $start, $size);
+			$len -= $size;
+			$start += $size;
+		}
+		if ($len)
+		{
+			$ret[] = array_slice($an_array, $start, $len);
+		}
+		return $ret;
+	}
+
 	public static function find_in_array($haystack, $needle, $case_sensitive = true)
 	{
 		$ret = -1;
@@ -1659,12 +1677,12 @@ class U3A_Timestamp_Utilities
 		return (int) (self::day_of_year($tm) / 7);
 	}
 
-	public static function month($tm)
+	public static function month($tm = null)
 	{
-		return date('z', $tm);
+		return $tm ? date('z', $tm) : date('z');
 	}
 
-	public static function month_from_0($tm)
+	public static function month_from_0($tm = null)
 	{
 		return self::month($tm) - 1;
 	}

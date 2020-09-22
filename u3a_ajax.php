@@ -979,7 +979,7 @@ function u3a_member_action()
 				{
 					$sent = send_new_member_email($member);
 					$amount = isset($params["amount"]) ? $params["amount"] : U3A_Information::u3a_get_current_join_rate($member->associate !== null);
-					$sub = new U3A_Subscriptions(["members_id" => $members_id, "amount" => $amount]);
+					$sub = new U3A_Subscriptions(["members_id" => $members_id, "amount" => $amount, "subscription_year" => U3A_Timestamp_Utilities::year()]);
 					$sub->save();
 				}
 				else
@@ -1103,7 +1103,7 @@ function send_new_member_email($mbr)
 	$p4 = new U3A_DIV($wm->get_name() . " (webmanager)");
 	$contents1 = U3A_HTML::to_html([$p0, $p1, $p2, $p3, $p4]);
 	$card = U3A_PDF::get_membership_card($mbr);
-	$sent1 = U3A_Sent_Mail::send($wm->id, $mbr->email, "Welcome to " . U3A_Information::u3a_get_u3a_name() . " U3A", $contents1, $cc, null, null, null, [$card]);
+	$sent1 = U3A_Sent_Mail::send($wm->id, $mbr->email, "Welcome to " . U3A_Information::u3a_get_u3a_name() . " U3A", $contents1, $cc, null, null, null, [$card["path"]]);
 	return $sent && $sent1;
 }
 
@@ -1124,7 +1124,7 @@ function send_renewal_email($mbr)
 	$p4 = new U3A_DIV($wm->get_name() . " (webmanager)");
 	$contents1 = U3A_HTML::to_html([$p0, $p1, $p2, $p3, $p4]);
 	$card = U3A_PDF::get_membership_card($mbr);
-	$sent1 = U3A_Sent_Mail::send($wm->id, $mbr->email, "Welcome back to " . U3A_Information::u3a_get_u3a_name() . " U3A", $contents1, $cc, null, null, null, [$card]);
+	$sent1 = U3A_Sent_Mail::send($wm->id, $mbr->email, "Welcome back to " . U3A_Information::u3a_get_u3a_name() . " U3A", $contents1, $cc, null, null, null, [$card["path"]]);
 	return $sent && $sent1;
 }
 
@@ -1145,7 +1145,7 @@ function send_add_member_email($mbr)
 	$p4 = new U3A_DIV($wm->get_name() . " (webmanager)");
 	$contents1 = U3A_HTML::to_html([$p0, $p1, $p2, $p3, $p4]);
 	$card = U3A_PDF::get_membership_card($mbr);
-	$sent1 = U3A_Sent_Mail::send($wm->id, $mbr->email, "Welcome to " . U3A_Information::u3a_get_u3a_name() . " U3A", $contents1, $cc, null, null, null, [$card]);
+	$sent1 = U3A_Sent_Mail::send($wm->id, $mbr->email, "Welcome to " . U3A_Information::u3a_get_u3a_name() . " U3A", $contents1, $cc, null, null, null, [$card["path"]]);
 	return $sent && $sent1;
 }
 
@@ -1187,7 +1187,7 @@ function u3a_change_member_status()
 		{
 			$sent = send_new_member_email($mbr);
 			$amount = isset($_POST["amount"]) ? $_POST["amount"] : U3A_Information::u3a_get_current_join_rate($mbr->associate !== null);
-			$sub = new U3A_Subscriptions(["members_id" => $members_id, "amount" => $amount]);
+			$sub = new U3A_Subscriptions(["members_id" => $members_id, "amount" => $amount, "subscription_year" => U3A_Timestamp_Utilities::year()]);
 			$sub->save();
 			if ($sent)
 			{
@@ -1202,7 +1202,7 @@ function u3a_change_member_status()
 		{
 			$result = ["success" => 1, "message" => "member $name now has status $newstatus."];
 		}
-		audit_log("meber status changed from $oldstatus to $newstatus", $mbr);
+		audit_log("member status changed from $oldstatus to $newstatus", $mbr);
 	}
 	else
 	{
@@ -2342,7 +2342,7 @@ function u3a_test_membership_card()
 	$path = U3A_PDF::get_membership_card($mbr);
 	if ($path)
 	{
-		$result = ["success" => 1, "message" => $path];
+		$result = ["success" => 1, "message" => $path["path"]];
 	}
 	else
 	{
@@ -2681,7 +2681,14 @@ function u3a_renew_membership()
 		$renew = $mbr->renew_membership();
 		send_renewal_email($mbr);
 		$amount = isset($_POST["amount"]) ? $_POST["amount"] : U3A_Information::u3a_get_renewal_rate($mbr->associate !== null);
-		$sub = new U3A_Subscriptions(["members_id" => $members_id, "amount" => $amount]);
+		$mth = U3A_Timestamp_Utilities::month_from_0();
+		$renewmth = U3A_Timestamp_Utilities::month_from_0(U3A_CONFIG::u3a_get_as_timestamp("RENEWALS_FROM"));
+		$subyr = U3A_Timestamp_Utilities::year();
+		if ($mth < $renewmth)
+		{
+			$subyr++;
+		}
+		$sub = new U3A_Subscriptions(["members_id" => $members_id, "amount" => $amount, "subscription_year" => $subyr]);
 		$sub->save();
 		$result = ["success" => 1, "message" => "membership has been renewed"];
 	}
@@ -3254,6 +3261,110 @@ function u3a_move_members()
 	else
 	{
 		$result = ["success" => 0, "message" => "no source group"];
+	}
+	echo json_encode($result);
+	wp_die();
+}
+
+add_action("wp_ajax_u3a_is_live", "u3a_is_live");
+
+function u3a_is_live()
+{
+	echo U3A_Information::u3a_is_live_server() ? "1" : "0";
+	wp_die();
+}
+
+add_action("wp_ajax_u3a_looking_for_members", "u3a_looking_for_members");
+
+function u3a_looking_for_members()
+{
+	$groups_id = U3A_Utilities::get_post("group", 0);
+	if ($groups_id)
+	{
+		$lfm = U3A_Utilities::get_post("lfm", null);
+		$newlfm = 1 - $lfm;
+		if ($lfm !== null)
+		{
+			$group = U3A_Row::load_single_object("U3A_Groups", ["id" => $groups_id]);
+			if ($group)
+			{
+				$group->looking_for_members = $newlfm;
+				$group->save();
+				$msg = "group " . $group->name . " is now" . ($newlfm ? "" : " no longer") . " accepting for new members";
+				$result = ["success" => 1, "message" => $msg];
+			}
+			else
+			{
+				$result = ["success" => 0, "message" => "no group found with id $groups_id"];
+			}
+		}
+		else
+		{
+			$result = ["success" => 0, "message" => "no lfm value provided"];
+		}
+	}
+	else
+	{
+		$result = ["success" => 0, "message" => "no group provided"];
+	}
+}
+
+add_action("wp_ajax_u3a_virtual_meetings", "u3a_virtual_meetings");
+
+function u3a_virtual_meetings()
+{
+	$groups_id = U3A_Utilities::get_post("group", 0);
+	if ($groups_id)
+	{
+		$vm = U3A_Utilities::get_post("vm", null);
+		$newvm = 1 - $vm;
+		if ($vm !== null)
+		{
+			$group = U3A_Row::load_single_object("U3A_Groups", ["id" => $groups_id]);
+			if ($group)
+			{
+				$group->virtual_meetings = $newvm;
+				$group->save();
+				$msg = "group " . $group->name . " is now" . ($newvm ? "" : " no longer") . " holding virtual meetings";
+				$result = ["success" => 1, "message" => $msg];
+			}
+			else
+			{
+				$result = ["success" => 0, "message" => "no group found with id $groups_id"];
+			}
+		}
+		else
+		{
+			$result = ["success" => 0, "message" => "no vm value provided"];
+		}
+	}
+	else
+	{
+		$result = ["success" => 0, "message" => "no group provided"];
+	}
+}
+
+add_action("wp_ajax_u3a_get_card", "u3a_get_card");
+
+function u3a_get_card()
+{
+	$members_id = U3A_Utilities::get_post("member", 0);
+	if ($members_id)
+	{
+		$mbr = U3A_Members::get_member($members_id);
+		if ($mbr)
+		{
+			$mcard = U3A_PDF::get_membership_card($mbr);
+			$result = ["success" => 1, "arg" => $mcard["url"]];
+		}
+		else
+		{
+			$result = ["success" => 0, "message" => "no member found with id $members_id"];
+		}
+	}
+	else
+	{
+		$result = ["success" => 0, "message" => "no member provided"];
 	}
 	echo json_encode($result);
 	wp_die();

@@ -642,7 +642,7 @@ class U3A_HTML_Utilities
 					$item[] = $inp;
 //				$item[] = new U3A_H(6, $n->title . " (" . date("d M Y", strtotime($n->created)) . ")");
 				}
-				$txtarea = new U3A_TEXTAREA("news-item", "news-item-" . $n->id, "u3a-news-item-div", $n->item);
+				$txtarea = new U3A_TEXTAREA("news-item", "news-item-" . $n->id, "u3a-news-item-div", stripslashes($n->item));
 				$txtarea->add_attribute("readonly", "readonly");
 				$item[] = $txtarea;
 				if ($mbr && (($n->members_id == $mbr->id) || U3A_Information::u3a_has_permission($mbr, "edit news")))

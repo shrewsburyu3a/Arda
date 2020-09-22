@@ -2140,11 +2140,12 @@ function u3a_group_page_contents($atts1)
 			$grppginp = new U3A_INPUT("hidden", null, "u3a-group-page-page-id", null, $grppgid);
 			$pgcontent .= $grppginp->to_html();
 			$mbr = U3A_Information::u3a_logged_in_user();
+			$grpid = $grp->id;
 			if ($mbr)
 			{
 				$mbridinp = new U3A_INPUT("hidden", null, "u3a-group-page-member-id", null, $mbr->id);
 				$pgcontent .= $mbridinp->to_html();
-				$imgs1 = U3A_Documents::get_header_images($grp->id);
+				$imgs1 = U3A_Documents::get_header_images($grpid);
 				$imgs = $imgs1["images"];
 				$categories_id = $imgs1["categories_id"];
 				if ($imgs)
@@ -2159,7 +2160,7 @@ function u3a_group_page_contents($atts1)
 					$cat_val = new U3A_INPUT("hidden", null, null, "u3a-home-image-category", $categories_id);
 					$ndx_val = new U3A_INPUT("hidden", null, null, "u3a-home-image-index", $ndx);
 					$total_val = new U3A_INPUT("hidden", null, null, "u3a-home-image-total", count($imgs));
-					$group_val = new U3A_INPUT("hidden", null, null, "u3a-home-image-group", $grp->id);
+					$group_val = new U3A_INPUT("hidden", null, null, "u3a-home-image-group", $grpid);
 					$mbr_val = new U3A_INPUT("hidden", null, null, "u3a-home-image-member", $mbr->id);
 					$pgcontent .= U3A_HTML::to_html([$fig, $type_val, $cat_val, $ndx_val, $total_val]);
 				}
@@ -2170,8 +2171,8 @@ function u3a_group_page_contents($atts1)
 				$candoemail = U3A_Information::u3a_has_permission($mbr, "email group", $grp) || U3A_Information::u3a_has_permission($mbr, "email group", 0);
 				$candodetails = U3A_Information::u3a_has_permission($mbr, "edit group details", $grp);
 				$cando = $candodocs || $candoimages || $candoperms || $candomembers;
-				$docs = '[u3a_document_list group="' . $grp->id . '" type="' . U3A_Documents::GROUP_DOCUMENT_TYPE . '"]';
-				$gall = '[u3a_image_list group="' . $grp->id . '"]';
+				$docs = '[u3a_document_list group="' . $grpid . '" type="' . U3A_Documents::GROUP_DOCUMENT_TYPE . '"]';
+				$gall = '[u3a_image_list group="' . $grpid . '"]';
 				$active1 = U3A_Information::get_group_page_active_tab($atts["tab"]);
 //			$active1 = 2;
 				write_log("active: " . $active1 . " " . $atts["tab"]);
@@ -2180,26 +2181,26 @@ function u3a_group_page_contents($atts1)
 				if ($candoemail || $candomembers)
 				{
 					$checked = "yes";
-					$mbrlistdiv = new U3A_DIV('[u3a_members group="' . $grp->id . '" checked="' . $checked . '" includecount="yes"]', "u3a-group-members-list-div-" . $grp->id, "u3a-member-list-class u3a-border-bottom");
+					$mbrlistdiv = new U3A_DIV('[u3a_members group="' . $grpid . '" checked="' . $checked . '" includecount="yes"]', "u3a-group-members-list-div-" . $grpid, "u3a-member-list-class u3a-border-bottom");
 					$sublist_hdr = new U3A_H(6, "group sublists");
-					$sub_save_btn = new U3A_BUTTON("button", "save", "u3a-group-save-button-" . $grp->id, "u3a-sublist-button u3a-button u3a-margin-right-5", "u3a_group_mailing_list('save', " . $grp->id . ")");
-					$sub_update_btn = new U3A_BUTTON("button", "update", "u3a-group-update-button-" . $grp->id, "u3a-sublist-button u3a-button u3a-margin-right-5", "u3a_group_mailing_list('update', " . $grp->id . ")");
-					$sub_delete_btn = new U3A_BUTTON("button", "delete", "u3a-group-delete-button-" . $grp->id, "u3a-sublist-button u3a-button", "u3a_group_mailing_list('delete', " . $grp->id . ")");
+					$sub_save_btn = new U3A_BUTTON("button", "save", "u3a-group-save-button-" . $grpid, "u3a-sublist-button u3a-button u3a-margin-right-5", "u3a_group_mailing_list('save', " . $grpid . ")");
+					$sub_update_btn = new U3A_BUTTON("button", "update", "u3a-group-update-button-" . $grpid, "u3a-sublist-button u3a-button u3a-margin-right-5", "u3a_group_mailing_list('update', " . $grpid . ")");
+					$sub_delete_btn = new U3A_BUTTON("button", "delete", "u3a-group-delete-button-" . $grpid, "u3a-sublist-button u3a-button", "u3a_group_mailing_list('delete', " . $grpid . ")");
 					$sub_save_btn->add_attribute("disabled", "disabled");
 					$sub_update_btn->add_attribute("disabled", "disabled");
 					$sub_delete_btn->add_attribute("disabled", "disabled");
-					$btndiv = new U3A_DIV([$sub_save_btn, $sub_update_btn, $sub_delete_btn], "u3a-sublist-button-div-" . $grp->id, "u3a-sublist-button-div");
+					$btndiv = new U3A_DIV([$sub_save_btn, $sub_update_btn, $sub_delete_btn], "u3a-sublist-button-div-" . $grpid, "u3a-sublist-button-div");
 					$lstdiv = null;
-					$existing_lists = U3A_Email_Utilities::get_group_mailing_sublist_select($grp->id);
+					$existing_lists = U3A_Email_Utilities::get_group_mailing_sublist_select($grpid);
 					if ($existing_lists)
 					{
 						$lstdiv = U3A_HTML::labelled_html_object("load sublist:", $existing_lists, null, null, false, true);
 					}
-					$current_list = new U3A_INPUT("hidden", "u3a-current-sublist", "u3a-current-sublist-" . $grp->id, NULL, 0);
-					$mbrdiv = new U3A_DIV([$mbrlistdiv, $sublist_hdr, $btndiv, $lstdiv, $current_list], "u3a-group-members-div-" . $grp->id, "u3a-inline-block u3a-padding-right-5 u3a-width-30-pc u3a-va-top");
-					$ndocs = U3A_Row::count_rows("U3A_Documents", ["groups_id" => $grp->id, "document_type" => U3A_Documents::GROUP_DOCUMENT_TYPE]);
-					$nimgs = U3A_Row::count_rows("U3A_Documents", ["groups_id" => $grp->id, "document_type" => U3A_Documents::GROUP_IMAGE_TYPE]);
-					$emaildiv = U3A_HTML_Utilities::get_mail_contents_div($mbr->id, "group", $grp->id, "u3a-height-100-pc u3a-width-100-pc", $ndocs, $nimgs);
+					$current_list = new U3A_INPUT("hidden", "u3a-current-sublist", "u3a-current-sublist-" . $grpid, NULL, 0);
+					$mbrdiv = new U3A_DIV([$mbrlistdiv, $sublist_hdr, $btndiv, $lstdiv, $current_list], "u3a-group-members-div-" . $grpid, "u3a-inline-block u3a-padding-right-5 u3a-width-30-pc u3a-va-top");
+					$ndocs = U3A_Row::count_rows("U3A_Documents", ["groups_id" => $grpid, "document_type" => U3A_Documents::GROUP_DOCUMENT_TYPE]);
+					$nimgs = U3A_Row::count_rows("U3A_Documents", ["groups_id" => $grpid, "document_type" => U3A_Documents::GROUP_IMAGE_TYPE]);
+					$emaildiv = U3A_HTML_Utilities::get_mail_contents_div($mbr->id, "group", $grpid, "u3a-height-100-pc u3a-width-100-pc", $ndocs, $nimgs);
 					$mailer = "[su_accordion]\n";
 					if ($candoemail)
 					{
@@ -2225,7 +2226,7 @@ function u3a_group_page_contents($atts1)
 					{
 						$mailer .= '[su_spoiler title="move members to another group" style="fabric" icon="arrow-circle-1"]';
 						$mailer .= do_shortcode('[u3a_group_select op="move_members"]');
-//						$dlbtn = new U3A_BUTTON("button", "move", "u3a-group-move-members", "u3a-button", "u3a_move_group_members(" . $grp->id . ")");
+//						$dlbtn = new U3A_BUTTON("button", "move", "u3a-group-move-members", "u3a-button", "u3a_move_group_members(" . $grpid . ")");
 						$mailer .= "[/su_spoiler]\n";
 					}
 					$mailer .= "[/su_accordion]\n";
@@ -2236,9 +2237,9 @@ function u3a_group_page_contents($atts1)
 				else
 				{
 					$checked = "no";
-					$mbrdiv = new U3A_DIV('[u3a_members group="' . $grp->id . '" checked="' . $checked . '" emailcoord="yes" includecount="yes"]', "u3a-group-members-div-" . $grp->id, "u3a-member-list-class");
+					$mbrdiv = new U3A_DIV('[u3a_members group="' . $grpid . '" checked="' . $checked . '" emailcoord="yes" includecount="yes"]', "u3a-group-members-div-" . $grpid, "u3a-member-list-class");
 					$mbrs = $mbrdiv->to_html();
-					$maildiv = U3A_HTML_Utilities::get_mail_contents_div($mbr->id, "individual", $grp->id, "modal u3a-mail-dialog", 0, 0, "", "modal:close");
+					$maildiv = U3A_HTML_Utilities::get_mail_contents_div($mbr->id, "individual", $grpid, "modal u3a-mail-dialog", 0, 0, "", "modal:close");
 				}
 				$pgcontent .= '[su_tab title="Members" disabled="no" anchor="" url="" target="blank" class=""]' . $mbrs . "\n[/su_tab]\n";
 				$pgcontent .= '[su_tab title="Documents" disabled="no" anchor="" url="" target="blank" class=""]' . $docs . "\n[/su_tab]\n";
@@ -2249,48 +2250,48 @@ function u3a_group_page_contents($atts1)
 					if ($candoimages || $candodocs)
 					{
 						$mng .= U3A_Information::get_manage_open_spoiler("Manage Categories", $atts["spoiler"]);
-						$mng .= '[u3a_new_document_category group="' . $grp->id . '"]';
+						$mng .= '[u3a_new_document_category group="' . $grpid . '"]';
 						$mng .= "[/su_spoiler]\n";
 					}
 					if ($candoimages)
 					{
 						$mng .= U3A_Information::get_manage_open_spoiler("Manage Images", $atts["spoiler"]);
-						$mng .= '[u3a_manage_document group="' . $grp->id . '" type="' . U3A_Documents::GROUP_IMAGE_TYPE . '" category="' . $atts["category"] . '"]';
+						$mng .= '[u3a_manage_document group="' . $grpid . '" type="' . U3A_Documents::GROUP_IMAGE_TYPE . '" category="' . $atts["category"] . '"]';
 						$mng .= "[/su_spoiler]\n";
 					}
 					if ($candodocs)
 					{
 						$mng .= U3A_Information::get_manage_open_spoiler("Manage Documents", $atts["spoiler"]);
-						$mng .= '[u3a_manage_document group="' . $grp->id . '" type="' . U3A_Documents::GROUP_DOCUMENT_TYPE . '" category="' . $atts["category"] . '"]';
+						$mng .= '[u3a_manage_document group="' . $grpid . '" type="' . U3A_Documents::GROUP_DOCUMENT_TYPE . '" category="' . $atts["category"] . '"]';
 						$mng .= "[/su_spoiler]\n";
 					}
 					if ($candoperms)
 					{
 						$mng .= U3A_Information::get_manage_open_spoiler("Manage Permissions", $atts["spoiler"]);
-						$mng .= '[u3a_manage_permissions group="' . $grp->id . '" committee="0"]';
+						$mng .= '[u3a_manage_permissions group="' . $grpid . '" committee="0"]';
 						$mng .= "[/su_spoiler]\n";
 					}
 					if (U3A_Information::u3a_management_enabled() && $candomembers)
 					{
 						$mng .= U3A_Information::get_manage_open_spoiler("Manage Members", $atts["spoiler"]);
-						$mng .= '[u3a_add_member_to_group group="' . $grp->id . '"]';
-						$mng .= '[u3a_remove_member_from_group group="' . $grp->id . '"]';
+						$mng .= '[u3a_add_member_to_group group="' . $grpid . '"]';
+						$mng .= '[u3a_remove_member_from_group group="' . $grpid . '"]';
 						$mng .= "[/su_spoiler]\n";
 						$mng .= U3A_Information::get_manage_open_spoiler("View Contact Details", $atts["spoiler"]);
-						$mng .= '[u3a_select_group_members next_action="view_contact_details" onselect="u3a_select_contact_details" op="contact" group="' . $grp->id . '"]';
-						$first1 = U3A_Group_Members::get_first_id($grp->id, true);
+						$mng .= '[u3a_select_group_members next_action="view_contact_details" onselect="u3a_select_contact_details" op="contact" group="' . $grpid . '"]';
+						$first1 = U3A_Group_Members::get_first_id($grpid, true);
 						$contact_details_div = new U3A_DIV('[u3a_view_member_contact_details member="' . $first1 . '"]', "u3a-group-member-contact-details", "u3a-group-member-contact-details-class");
 						$mng .= $contact_details_div->to_html();
 						$mng .= "[/su_spoiler]\n";
 						$mng .= U3A_Information::get_manage_open_spoiler("Manage Waiting List", $atts["spoiler"]);
-						$wait = U3A_Group_Members::get_waiting_list($grp->id, true);
+						$wait = U3A_Group_Members::get_waiting_list($grpid, true);
 						if ($wait)
 						{
 							foreach ($wait as $wt)
 							{
-								$yesbtn = new U3A_BUTTON("button", 'accept', null, "u3a-button u3a-inline-block", "u3a_accept_from_waiting_list(" . $grp->id . ", " . $wt->id . ")");
+								$yesbtn = new U3A_BUTTON("button", 'accept', null, "u3a-button u3a-inline-block", "u3a_accept_from_waiting_list(" . $grpid . ", " . $wt->id . ")");
 								$yesbtn->add_tooltip("accept into group");
-								$nobtn = new U3A_BUTTON("button", 'remove', null, "u3a-button u3a-inline-block u3a-margin-left-5", "u3a_remove_from_waiting_list(" . $grp->id . ", " . $wt->id . ")");
+								$nobtn = new U3A_BUTTON("button", 'remove', null, "u3a-button u3a-inline-block u3a-margin-left-5", "u3a_remove_from_waiting_list(" . $grpid . ", " . $wt->id . ")");
 								$nobtn->add_tooltip("remove");
 								$txt = $wt->get_formal_name() . " (" . $wt->membership_number . ")";
 								$spn = new U3A_SPAN($txt, null, "u3a-width-20-em u3a-inline-block");
@@ -2303,17 +2304,27 @@ function u3a_group_page_contents($atts1)
 					if (U3A_Information::u3a_management_enabled() && $candodetails)
 					{
 						$mng .= '[su_spoiler title="Edit Group Details" style="fabric" icon="arrow-circle-1"]';
-						$mng .= '[u3a_edit_group_form group="' . $grp->id . '" source="group"]';
+						$mng .= '[u3a_edit_group_form group="' . $grpid . '" source="group"]';
+						$lfm = $grp->looking_for_members;
+						$lfmbtn_text = $lfm ? "not accepting new members" : "accepting new members";
+						$lfmbtn = new U3A_BUTTON("button", $lfmbtn_text, "u3a-lfm-button", "u3a-very-wide-button", "u3a_looking_for_members($grpid, $lfm)");
+						$lfmbtndiv = new U3A_DIV($lfmbtn, "u3a-lfm-button-div", "u3a-member-manage-button-div");
+						$mng .= $lfmbtndiv;
+						$vm = $grp->virtual_meetings;
+						$vmbtn_text = $vm ? "not holding virtual meetings" : "holding virtual meetings";
+						$vmbtn = new U3A_BUTTON("button", $vmbtn_text, "u3a-vm-button", "u3a-very-wide-button", "u3a_virtual_meetings($grpid, $vm)");
+						$vmbtndiv = new U3A_DIV($vmbtn, "u3a-vm-button-div", "u3a-member-manage-button-div");
+						$mng .= $vmbtndiv;
 						$mng .= "[/su_spoiler]\n";
 					}
 					if (!$grp->has_mailing_list())
 					{
 						$mng .= '[su_spoiler title="Create Mailing List" style="fabric" icon="arrow-circle-1"]';
-						$mng .= '[u3a_mailing_list_name group="' . $grp->id . '"]';
+						$mng .= '[u3a_mailing_list_name group="' . $grpid . '"]';
 						$mng .= "[/su_spoiler]\n";
 					}
 					$mng .= U3A_Information::get_manage_open_spoiler("Manage Links", $atts["spoiler"]);
-					$div = new U3A_DIV('[u3a_manage_links member="0" group="' . $grp->id . '"]', null, "u3a-manage-links-div");
+					$div = new U3A_DIV('[u3a_manage_links member="0" group="' . $grpid . '"]', null, "u3a-manage-links-div");
 					$mng .= $div->to_html();
 					$mng .= "[/su_spoiler]\n";
 					$mng .= "[/su_accordion]\n";
@@ -2321,11 +2332,11 @@ function u3a_group_page_contents($atts1)
 				}
 //				if (U3A_Committee::is_webmanager($mbr))
 //				{
-				$links = new U3A_DIV('[u3a_links member="0" group="' . $grp->id . '"]', null, "u3a-links-div u3a-overflow-y-auto");
+				$links = new U3A_DIV('[u3a_links member="0" group="' . $grpid . '"]', null, "u3a-links-div u3a-overflow-y-auto");
 				$pgcontent .= '[su_tab title="Links" disabled="no" anchor="" url="" target="blank" class=""]' . "\n" . $links . "\n[/su_tab]\n";
 				$pgcontent .= '[su_tab title="Forum" disabled="no" anchor="" url="" target="blank" class=""]';
-				$forum = new U3A_Forum($grp->name, $grp->id, $grp->keep_forum_posts);
-//					$posts = U3A_Forum_Posts::get_posts_for_group($grp->id);
+				$forum = new U3A_Forum($grp->name, $grpid, $grp->keep_forum_posts);
+//					$posts = U3A_Forum_Posts::get_posts_for_group($grpid);
 //					$forum->add($posts);
 				$pgcontent .= $forum->to_html(true);
 				$pgcontent .= '[/su_tab]';
@@ -2537,7 +2548,26 @@ function u3a_groups_page_contents($atts)
 		foreach ($my_groups as $mgrp)
 		{
 			$newpgid = $grp_pages[$mgrp->name];
-			$content .= '<p class="u3a-group-link">[su_permalink id="' . $newpgid . '"]</p>';
+			if ($mgrp->virtual_meetings)
+			{
+				if ($mgrp->looking_for_members)
+				{
+					$lfmtext = " (holding virtual meetings and accepting new members)";
+				}
+				else
+				{
+					$lfmtext = " (holding virtual meetings)";
+				}
+			}
+			elseif ($mgrp->looking_for_members)
+			{
+				$lfmtext = " (accepting new members)";
+			}
+			else
+			{
+				$lfmtext = " ";
+			}
+			$content .= '<p class="u3a-group-link">[su_permalink id="' . $newpgid . '"] ' . $lfmtext . '</p>';
 		}
 	}
 	$content .= $member ? "<h4>Other Active Groups</h4>" : "<h4>Active Groups</h4>";
@@ -2545,8 +2575,27 @@ function u3a_groups_page_contents($atts)
 	foreach ($active_groups as $grp)
 	{
 		$apageid = $grp_pages[$grp->name];
+		if ($grp->virtual_meetings)
+		{
+			if ($grp->looking_for_members)
+			{
+				$lfmtext = " (holding virtual meetings and accepting new members)";
+			}
+			else
+			{
+				$lfmtext = " (holding virtual meetings)";
+			}
+		}
+		elseif ($grp->looking_for_members)
+		{
+			$lfmtext = " (accepting new members)";
+		}
+		else
+		{
+			$lfmtext = " ";
+		}
 // add group entry
-		$content .= '[su_spoiler title="' . $grp->name . '" style="fabric" icon="arrow-circle-1"]';
+		$content .= '[su_spoiler title="' . $grp->name . $lfmtext . '" style="fabric" icon="arrow-circle-1"]';
 		$content .= '[u3a_group group="' . $grp->name . '" groupid="' . $grp->id . '" pgid="' . $apageid . '"]' . "\n";
 		$content .= "[/su_spoiler]\n";
 	}
@@ -2701,103 +2750,109 @@ function u3a_meeting_times_contents($atts1)
 //		"min"	 => 1,
 //		"max"	 => 4
 //	]);
-	$op = $atts["op"];
-	$maxntimes = 5;
-	$ntimes = U3A_HTML_Utilities::get_number_select("number_of_times", "u3a-number-of-meetings-$op", "u3a-number-input u3a-inline-block u3a-margin-left-5", $val["ntimes"]);
-	$ntimes->add_attribute("onchange", "u3a_meet_ntimes_change('$op')");
-	$weekly = $val["every"] === "week";
-	$monthly = $val["every"] === "month";
-	$everyopts = [
-		new U3A_OPTION("week", "week", $weekly),
-		new U3A_OPTION("month", "month", $monthly)
-	];
-	$every = new U3A_SELECT($everyopts, "every", "u3a-every-$op", "u3a-every-select u3a-inline-block u3a-margin-left-5");
-	$every->add_attribute("onchange", "u3a_meet_every_change('$op')");
-	$span1 = new U3A_SPAN("meet ", "u3a-meet-text-$op", "u3a-text u3a-inline-block");
-	$span2 = new U3A_SPAN($val["ntimes"] == 1 ? "time every" : "times every", "u3a-time-text-$op", "u3a-text u3a-inline-block u3a-margin-left-5");
-	$div1 = new U3A_DIV([$span1, $ntimes, $span2, $every], "u3a-ntimes-div-$op", "u3a-meeting-times-div");
-	$onw = $val["onweek"];
-	$divw = [];
-	$defonw = [
-		"ord"	 => 0,
-		"day"	 => "monday",
-		"from" => "14:00:00",
-		"to"	 => "16:00:00"
-	];
-	for ($n = 0; $n < $maxntimes; $n++)
+	$div1 = null;
+	$divw = null;
+	$divm = null;
+	if ($val)
 	{
-		if ($onw)
+		$op = $atts["op"];
+		$maxntimes = 5;
+		$ntimes = U3A_HTML_Utilities::get_number_select("number_of_times", "u3a-number-of-meetings-$op", "u3a-number-input u3a-inline-block u3a-margin-left-5", $val["ntimes"]);
+		$ntimes->add_attribute("onchange", "u3a_meet_ntimes_change('$op')");
+		$weekly = $val["every"] === "week";
+		$monthly = $val["every"] === "month";
+		$everyopts = [
+			new U3A_OPTION("week", "week", $weekly),
+			new U3A_OPTION("month", "month", $monthly)
+		];
+		$every = new U3A_SELECT($everyopts, "every", "u3a-every-$op", "u3a-every-select u3a-inline-block u3a-margin-left-5");
+		$every->add_attribute("onchange", "u3a_meet_every_change('$op')");
+		$span1 = new U3A_SPAN("meet ", "u3a-meet-text-$op", "u3a-text u3a-inline-block");
+		$span2 = new U3A_SPAN($val["ntimes"] == 1 ? "time every" : "times every", "u3a-time-text-$op", "u3a-text u3a-inline-block u3a-margin-left-5");
+		$div1 = new U3A_DIV([$span1, $ntimes, $span2, $every], "u3a-ntimes-div-$op", "u3a-meeting-times-div");
+		$onw = $val["onweek"];
+		$divw = [];
+		$defonw = [
+			"ord"	 => 0,
+			"day"	 => "monday",
+			"from" => "14:00:00",
+			"to"	 => "16:00:00"
+		];
+		for ($n = 0; $n < $maxntimes; $n++)
 		{
-			if ($n < $val["ntimes"] && $n < count($onw))
+			if ($onw)
 			{
-				$onwn = $onw[$n];
+				if ($n < $val["ntimes"] && $n < count($onw))
+				{
+					$onwn = $onw[$n];
+				}
+				else
+				{
+					$onwn = $onw[0];
+				}
 			}
 			else
 			{
-				$onwn = $onw[0];
+				$onwn = $defonw;
 			}
-		}
-		else
-		{
-			$onwn = $defonw;
-		}
-		$sel = U3A_HTML_Utilities::get_day_of_week_select("weekday-" . $n, "u3a-weekday-select-week-$op-$n", "u3a-weekday-select u3a-inline-block u3a-margin-left-5", $onwn["day"], true);
-		$fromw = new U3A_INPUT("text", "from-time", "u3a-group-from-time-week-$op-$n", "u3a-input u3a-time-input u3a-inline-block u3a-margin-left-5", $onwn["from"]);
+			$sel = U3A_HTML_Utilities::get_day_of_week_select("weekday-" . $n, "u3a-weekday-select-week-$op-$n", "u3a-weekday-select u3a-inline-block u3a-margin-left-5", $onwn["day"], true);
+			$fromw = new U3A_INPUT("text", "from-time", "u3a-group-from-time-week-$op-$n", "u3a-input u3a-time-input u3a-inline-block u3a-margin-left-5", $onwn["from"]);
 //		$fromw->add_attribute("min", "08:00");
 //		$fromw->add_attribute("max", "22:00");
 //		$frmw = U3A_HTML::labelled_html_object("from:", $fromw, "u3a-group-from-label-week-$op-$n", "u3a-group-time-label-class u3a-inline-block u3a-margin-left-5", false, false);
-		$tow = new U3A_INPUT("text", "to-time", "u3a-group-to-time-week-$op-$n", "u3a-input u3a-time-input u3a-inline-block u3a-margin-left-5", $onwn["to"]);
+			$tow = new U3A_INPUT("text", "to-time", "u3a-group-to-time-week-$op-$n", "u3a-input u3a-time-input u3a-inline-block u3a-margin-left-5", $onwn["to"]);
 //		$tow->add_attribute("min", "09:00");
 //		$tow->add_attribute("max", "23:00");
 //		$tw = U3A_HTML::labelled_html_object("to:", $tow, "u3a-group-to-label-week-$op-$n", "u3a-group-time-label-class u3a-inline-block", false, false);
-		$spantow = new U3A_SPAN("to", "u3a-week-text-$op", "u3a-text u3a-inline-block u3a-margin-left-5  u3a-margin-right-5");
+			$spantow = new U3A_SPAN("to", "u3a-week-text-$op", "u3a-text u3a-inline-block u3a-margin-left-5  u3a-margin-right-5");
 //		$timedivw = new U3A_DIV([$fromw, $spantow, $tow], "u3a-group-time-div-week-$op-$n", "u3a-group-time-div-class u3a-margin-bottom-10 u3a-inline-block");
 //		$selectw = U3A_HTML::to_html([$sel, $fromw, $spantow, $tow]);
-		$spanw = new U3A_SPAN($n === 0 ? "on" : "and", "u3a-week-text-$op-$n", "u3a-meet-text u3a-text u3a-inline-block");
-		$vis = ($val["every"] === "week") && ($n < $val["ntimes"]) ? "u3a-visible" : "u3a-invisible";
-		$divw[$n] = new U3A_DIV([$spanw, $sel, $fromw, $spantow, $tow], "u3a-week-div-$op-$n", "u3a-week-month-div-class u3a-week-div-class u3a-week-div-class-$op u3a-margin-top-5 " . $vis);
-	}
-	$onm = $val["onmonth"];
-	$divm = [];
-	$defonm = [
-		"ord"	 => 1,
-		"day"	 => "monday",
-		"from" => "14:00:00",
-		"to"	 => "16:00:00"
-	];
-	for ($n = 0; $n < $maxntimes; $n++)
-	{
-		if ($onm)
+			$spanw = new U3A_SPAN($n === 0 ? "on" : "and", "u3a-week-text-$op-$n", "u3a-meet-text u3a-text u3a-inline-block");
+			$vis = ($val["every"] === "week") && ($n < $val["ntimes"]) ? "u3a-visible" : "u3a-invisible";
+			$divw[$n] = new U3A_DIV([$spanw, $sel, $fromw, $spantow, $tow], "u3a-week-div-$op-$n", "u3a-week-month-div-class u3a-week-div-class u3a-week-div-class-$op u3a-margin-top-5 " . $vis);
+		}
+		$onm = $val["onmonth"];
+		$divm = [];
+		$defonm = [
+			"ord"	 => 1,
+			"day"	 => "monday",
+			"from" => "14:00:00",
+			"to"	 => "16:00:00"
+		];
+		for ($n = 0; $n < $maxntimes; $n++)
 		{
-			if ($n < $val["ntimes"] && $n < count($onm))
+			if ($onm)
 			{
-				$onmn = $onm[$n];
+				if ($n < $val["ntimes"] && $n < count($onm))
+				{
+					$onmn = $onm[$n];
+				}
+				else
+				{
+					$onmn = $onm[0];
+				}
 			}
 			else
 			{
-				$onmn = $onm[0];
+				$onmn = $defonm;
 			}
-		}
-		else
-		{
-			$onmn = $defonm;
-		}
-		$selo = U3A_HTML_Utilities::get_ordinal_select("ordinal-" . $n, "u3a-ordinal-select-month-$op-$n", "u3a-ordinal-select u3a-inline-block u3a-margin-left-5", $onmn["ord"]);
-		$seld = U3A_HTML_Utilities::get_day_of_week_select("weekday-" . $n, "u3a-weekday-select-month-$op-$n", "u3a-weekday-select u3a-inline-block", $onmn["day"], true);
-		$fromm = new U3A_INPUT("text", "from-time", "u3a-group-from-time-month-$op-$n", "u3a-input u3a-time-input u3a-inline-block u3a-margin-left-5", $onmn["from"]);
+			$selo = U3A_HTML_Utilities::get_ordinal_select("ordinal-" . $n, "u3a-ordinal-select-month-$op-$n", "u3a-ordinal-select u3a-inline-block u3a-margin-left-5", $onmn["ord"]);
+			$seld = U3A_HTML_Utilities::get_day_of_week_select("weekday-" . $n, "u3a-weekday-select-month-$op-$n", "u3a-weekday-select u3a-inline-block", $onmn["day"], true);
+			$fromm = new U3A_INPUT("text", "from-time", "u3a-group-from-time-month-$op-$n", "u3a-input u3a-time-input u3a-inline-block u3a-margin-left-5", $onmn["from"]);
 //		$fromm->add_attribute("min", "08:00");
 //		$fromm->add_attribute("max", "22:00");
 //		$frmm = U3A_HTML::labelled_html_object("from:", $fromm, "u3a-group-from-label-month-$op-$n", "u3a-group-time-label-class u3a-inline-block u3a-margin-left-5", false, false);
-		$tom = new U3A_INPUT("text", "to-time", "u3a-group-to-time-month-$op-$n", "u3a-input u3a-time-input u3a-inline-block u3a-margin-left-5", $onmn["to"]);
+			$tom = new U3A_INPUT("text", "to-time", "u3a-group-to-time-month-$op-$n", "u3a-input u3a-time-input u3a-inline-block u3a-margin-left-5", $onmn["to"]);
 //		$tom->add_attribute("min", "09:00");
 //		$tom->add_attribute("max", "23:00");
 //		$tm = U3A_HTML::labelled_html_object("to:", $tom, "u3a-group-to-label-month-$op-$n", "u3a-group-time-label-class u3a-inline-block", false, false);
-		$spantom = new U3A_SPAN("to", "u3a-month-text-$op", "u3a-text u3a-inline-block u3a-margin-left-5  u3a-margin-right-5");
+			$spantom = new U3A_SPAN("to", "u3a-month-text-$op", "u3a-text u3a-inline-block u3a-margin-left-5  u3a-margin-right-5");
 //		$timedivm = new U3A_DIV([$frmm, $spantom, $tm], "u3a-group-time-div-month-$op-$n", "u3a-group-time-div-class u3a-margin-bottom-10 u3a-inline-block");
 //		$selectm = U3A_HTML::to_html([$selo, $seld, $fromm, $spantom, $tom]);
-		$spanm = new U3A_SPAN($n === 0 ? "on the " : "and the ", "u3a-month-text-$op-$n", "u3a-meet-text u3a-text u3a-inline-block");
-		$vis = ($val["every"] === "month") && ($n < $val["ntimes"]) ? "u3a-visible" : "u3a-invisible";
-		$divm[$n] = new U3A_DIV([$spanm, $selo, $seld, $fromm, $spantom, $tom], "u3a-month-div-$op-$n", "u3a-week-month-div-class u3a-month-div-class u3a-month-div-class-$op u3a-margin-top-5 " . $vis);
+			$spanm = new U3A_SPAN($n === 0 ? "on the " : "and the ", "u3a-month-text-$op-$n", "u3a-meet-text u3a-text u3a-inline-block");
+			$vis = ($val["every"] === "month") && ($n < $val["ntimes"]) ? "u3a-visible" : "u3a-invisible";
+			$divm[$n] = new U3A_DIV([$spanm, $selo, $seld, $fromm, $spantom, $tom], "u3a-month-div-$op-$n", "u3a-week-month-div-class u3a-month-div-class u3a-month-div-class-$op u3a-margin-top-5 " . $vis);
+		}
 	}
 	return U3A_HTML::to_html([$div1, $divw, $divm]);
 }
@@ -3818,6 +3873,9 @@ function u3a_members_personal_contents($atts1)
 			$mng .= $optdiv->to_html();
 			$mng .= "[/su_spoiler]\n";
 			$mng .= "[/su_accordion]\n";
+			$mcardbtn = new U3A_BUTTON("button", "Get Membership Card", "u3a-get-card-button", "u3a-very-wide-button", "u3a_get_card(" . $member->id . ")");
+			$mcardbtndiv = new U3A_DIV($mcardbtn, "u3a-get-card-button-div", "u3a-get-card-button-div-class");
+			$mng .= $mcardbtndiv;
 			$pgcontent .= '[su_tab title="Manage" disabled="no" anchor="" url="" target="blank" class=""]' . "\n" . $mng . "\n[/su_tab]\n";
 		}
 		$pgcontent .= "[/su_tabs]\n";
@@ -3888,6 +3946,25 @@ function u3a_links_contents($atts1)
 		$groups_id = $atts["group"];
 		$members_id = $atts["member"];
 		$pgcontents = U3A_HTML::to_html(U3A_Link_Utilities::get_section_divs($groups_id, $members_id));
+	}
+	return $pgcontents;
+}
+
+add_shortcode("u3a_sent_mails", "u3a_sent_mails_contents");
+
+function u3a_sent_mails_contents($atts1)
+{
+	$atts = shortcode_atts(array(
+		'to'			 => 0,
+		'committee'	 => 0
+	  ), $atts1, 'u3a_sent_mails');
+	$mbr = U3A_Information::u3a_logged_in_user();
+	$pgcontents = null;
+	$groups_id = $atts["group"];
+	$is_committee = $atts["committee"];
+	if ($mbr && (U3A_Committee::is_webmanager($mbr) || ($is_committee && U3A_Committee::is_committee_member($mbr)) || (!$is_committee && U3A_Group_Members::is_coordinator($mbr, $groups_id))))
+	{
+
 	}
 	return $pgcontents;
 }

@@ -3729,3 +3729,32 @@ function u3a_reset_option_button_clicked(category, memgrp_id)
 	};
 	u3a_ajax(form_data, "reset option");
 }
+
+function u3a_looking_for_members(grpid, lfm)
+{
+	var form_data = {
+		action: "u3a_looking_for_members",
+		group: grpid,
+		lfm: lfm
+	};
+	u3a_ajax(form_data, "looking for new members", u3a_reload_group_page);
+}
+
+function u3a_virtual_meetings(grpid, vm)
+{
+	var form_data = {
+		action: "u3a_virtual_meetings",
+		group: grpid,
+		vm: vm
+	};
+	u3a_ajax(form_data, "virtual meetings", u3a_reload_group_page);
+}
+
+function u3a_get_card(memberid)
+{
+	var form_data = {
+		action: "u3a_get_card",
+		member: memberid
+	};
+	u3a_ajax(form_data, "membership card", u3a_open);
+}
