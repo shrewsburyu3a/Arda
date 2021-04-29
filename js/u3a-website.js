@@ -1,7 +1,19 @@
-/*
- * To change this license header, choose License Headers in Pru3aect Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+/* Arda v1.0
+ * Copyright 2021 Mike Curtis (mike@computermike.biz)
+ *
+ * This file is part of Arda.
+ *   Arda is free software: you can redistribute it and/or modify
+ *   it under the terms of the GNU Affero General Public License version 3
+ *   as published by the Free Software Foundation
+ *
+ *   Ardais distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU Affero General Public License for more details.
+ *
+ *   You can get a copy The GNU Affero General Public license from
+ *   http://www.gnu.org/licenses/agpl-3.0.html
+ *
  */
 
 var last_document_category_selection = {};
@@ -45,12 +57,44 @@ jQuery(document).ready(function (jQuery)
 			return false;
 		}
 	});
+	jQuery('.find-member-input-class').keypress(function (e)
+	{
+		var key = e.which;
+		if (key == 13)  // the enter key code
+		{
+			var textid = jQuery(this).attr("id");
+			if (textid)
+			{
+				var btnid = textid.replace('find-member-forename', 'u3a-find-members-search-button').replace('find-member-surname', 'u3a-find-members-search-button');
+				jQuery('#' + btnid).click();
+			}
+			return false;
+		}
+	});
 	jQuery('input.u3a-arrow-only').keydown(function (e)
 	{
 		var allow_key_codes = [37, 39];
 		if (jQuery.inArray(e.keyCode, allow_key_codes) < 0)
 		{
 			e.preventDefault();
+		}
+	});
+	jQuery('#u3a-group-members-list-div').keyup(function (e)
+	{
+		console.debug(e);
+		e.preventDefault();
+		var key = e.which;
+		if (key == 46)  // the delete key code
+		{
+			console.debug("del pressed");
+			u3a_remove_member_from_group_clicked(e);
+//			var textid = jQuery(this).attr("id");
+//			if (textid)
+//			{
+//				var btnid = textid.replace('name', 'button');
+//				jQuery('#' + btnid).click();
+//			}
+			return false;
 		}
 	});
 //	jQuery('#u3a_upload_image-post-button').on('click', function (e)
@@ -268,7 +312,7 @@ jQuery(document).ready(function (jQuery)
 								  else
 								  {
 									  var members_id = jQuery("#u3a-member-id").val();
-									  var formdata = {
+									  var form_data = {
 										  action: "u3a_renew_membership",
 										  amount: rate,
 										  member: members_id
@@ -311,9 +355,9 @@ jQuery(document).ready(function (jQuery)
 		}, 20000);
 	}
 // do not allow enter on single line text forms
-	jQuery('input[type="text"]').on('keypress', function (e)
+	jQuery('input[type="text"]:not(.find-member-input-class)').on('keypress', function (e)
 	{
-		console.debug("key", e.which);
+//		console.debug("key", e.which);
 		return e.which !== 13;
 	});
 	// is this the profile page
@@ -870,7 +914,7 @@ function u3a_after_select_group(op)
 					jQuery("#u3a-group-name-edit").val(ret.name);
 					jQuery("#u3a-group-when-edit").val(ret.meets_when);
 					jQuery("#u3a-group-when-json-edit").val(ret.meets_when_json);
-					jQuery("#u3a-group-venue-edit").val(ret.venue);
+					jQuery("#u3a-group-venue-edit").val(ret.venue).trigger("chosen:updated");
 					jQuery("#u3a-group-max-edit").val(ret.max);
 					jQuery("#u3a-group-notes-edit").val(ret.info);
 					console.debug(ret);
@@ -893,6 +937,7 @@ function u3a_meeting_times_dialog_close(op)
 	if (meet["every"] === "week")
 	{
 		meet["onmonth"] = [];
+		meet["onfortnight"] = [];
 		var onw = [];
 		var n = 0;
 		jQuery(".u3a-week-div-class" + idsuffix + " .u3a-weekday-select").each(function ()
@@ -914,9 +959,35 @@ function u3a_meeting_times_dialog_close(op)
 		});
 		meet["onweek"] = onw;
 	}
+	else if (meet["every"] === "fortnight")
+	{
+		meet["onweek"] = [];
+		meet["onmonth"] = [];
+		var onf = [];
+		var n = 0;
+		jQuery(".u3a-fortnight-div-class" + idsuffix + " .u3a-weekday-select").each(function ()
+		{
+			if (n < meet["ntimes"])
+			{
+				var thisid = jQuery(this).attr("id");
+				var dash = thisid.lastIndexOf('-');
+				var idx = thisid.substr(dash + 1);
+				var f = {};
+				f["ord"] = 0;
+				f["day"] = jQuery(this).val();
+				f["from"] = jQuery("#u3a-group-from-time-fortnight-" + op + '-' + idx).val();
+				f["to"] = jQuery("#u3a-group-to-time-fortnight-" + op + '-' + idx).val();
+				console.debug(thisid, f);
+				onf.push(f);
+				n++;
+			}
+		});
+		meet["onfortnight"] = onf;
+	}
 	else
 	{
 		meet["onweek"] = [];
+		meet["onfortnight"] = [];
 		var onm = [];
 		for (var n = 0; n < meet["ntimes"]; n++)
 		{
@@ -1049,20 +1120,20 @@ function u3a_meet_ntimes_change(op)
 	}
 }
 
-function u3a_meet_week_build(idsuffix)
-{
-	var every = jQuery("#u3a-every-" + idsuffix).val();
-	var idx = 0;
-	jQuery(".u3a-month-div-class .u3a-weekday-select").each(function ()
-	{
-
-	});
-	var sel = jQuery(".u3a-weekday-select")[0];
-	var selhtml = sel.outerHTML; //jQuery(sel).html();
-//	console.debug(selhtml);
-	var html = '<span id="u3a-week-text-' + idsuffix + '" class="u3a-text u3a-inline-block">on</span>' +
-			  '';
-}
+//function u3a_meet_week_build(idsuffix)
+//{
+//	var every = jQuery("#u3a-every-" + idsuffix).val();
+//	var idx = 0;
+//	jQuery(".u3a-month-div-class .u3a-weekday-select").each(function ()
+//	{
+//
+//	});
+//	var sel = jQuery(".u3a-weekday-select")[0];
+//	var selhtml = sel.outerHTML; //jQuery(sel).html();
+////	console.debug(selhtml);
+//	var html = '<span id="u3a-week-text-' + idsuffix + '" class="u3a-text u3a-inline-block">on</span>' +
+//			  '';
+//}
 
 function number_to_string(ord)
 {
@@ -1199,12 +1270,17 @@ function meeting_time_to_string(meet)
 //				]
 //			]
 //		];
+	console.debug(meet);
 	var nt = meet["ntimes"];
 	var every = meet["every"];
 	var ret = number_to_adverb(nt) + " every " + every + " on ";
 	if (every === "week")
 	{
 		ret += days_to_string(meet["onweek"], nt);
+	}
+	else if (every === "fortnight")
+	{
+		ret += days_to_string(meet["onfortnight"], nt);
 	}
 	else if (every === "month")
 	{
@@ -1402,7 +1478,7 @@ function u3a_add_coordinator_block()
 	console.debug("u3a_add_coordinator_block");
 }
 
-function u3a_create_new_category(memgrp, typ)
+function u3a_create_new_category(memgrp, typ, rld)
 {
 	var id = "u3a-category-name-" + memgrp + "-" + typ;
 	var nm = jQuery('#' + id).val().trim();
@@ -1414,18 +1490,19 @@ function u3a_create_new_category(memgrp, typ)
 			"type": typ,
 			"name": nm
 		};
+		console.debug("create category", form_data, rld);
 //		u3a_ajax(form_data, "create category", u3a_clear_value, id);
-		if (memgrp > 0)
+		if (rld === "group")
 		{
 			u3a_ajax(form_data, "create category", u3a_reload_group_page);
 		}
-		else if (memgrp < 0)
+		else if (rld === "committee")
 		{
-			u3a_ajax(form_data, "create category", u3a_reload_page);
+			u3a_ajax(form_data, "create category", u3a_reload_committee_manage_page);
 		}
 		else
 		{
-			u3a_ajax(form_data, "create category", u3a_reload_committee_manage_page);
+			u3a_ajax(form_data, "create category", u3a_reload_page);
 		}
 	}
 }
@@ -2099,16 +2176,13 @@ function u3a_upload_document_from_form(groups_id, type, is_group)
 					  .then(
 								 function ()
 								 {
-									 if (is_group)
+									 if (is_group === "group")
 									 {
-										 if (groups_id > 0)
-										 {
-											 u3a_reload_group_page();
-										 }
-										 else
-										 {
-											 u3a_reload_committee_manage_page();
-										 }
+										 u3a_reload_group_page();
+									 }
+									 else if (is_group === "committee")
+									 {
+										 u3a_reload_committee_manage_page();
 									 }
 									 else
 									 {
@@ -2347,20 +2421,28 @@ function u3a_use_cc_changed(id)
 	}
 }
 
-function on_group_button_click(thisid)
+function on_group_button_click(thisid, op)
 {
 //	e.preventDefault();
 //	var thisid = jQuery(this).attr("id");
 	var idsuffix = thisid.substr("u3a-group-btn".length);
-	console.debug("u3a-group-btn", thisid, idsuffix);
+	console.debug("u3a-group-btn", thisid, idsuffix, op);
 	var ngname = jQuery("#u3a-group-name" + idsuffix).val();
 	var source = jQuery("#u3a-edit-group-source" + idsuffix).val();
-	var coorda = [];
-	jQuery('.u3a-group-coordinator-outer-div-class.u3a-visible .u3a-group-coordinator-id-class').each(function ()
+	var ngcoord = "";
+	if (op === 'add')
 	{
-		coorda.push(jQuery(this).val());
-	});
-	ngcoord = coorda.join(",");
+		ngcoord = jQuery("#u3a-group-coordinator-mnum-add").val();
+	}
+	else
+	{
+		var coorda = [];
+		jQuery('.u3a-group-coordinator-outer-div-class.u3a-visible .u3a-group-coordinator-id-class').each(function ()
+		{
+			coorda.push(jQuery(this).val());
+		});
+		ngcoord = coorda.join(",");
+	}
 //	var coordid = "#u3a-group-coordinator-mnum" + idsuffix;
 //	var ngcoord = "0";
 //	if (jQuery(coordid).length > 0)
@@ -2383,6 +2465,7 @@ function on_group_button_click(thisid)
 //	}
 	var ngvenue = jQuery("#u3a-group-venue" + idsuffix).val();
 	var ngwhn = jQuery("#u3a-group-when-json" + idsuffix).val();
+	console.debug("ngwhn", ngwhn);
 	var ngmax = jQuery("#u3a-group-max" + idsuffix).val();
 //		var ngfrom = jQuery("#u3a-group-from-time" + idsuffix).val();
 //		var ngto = jQuery("#u3a-group-to-time" + idsuffix).val();
@@ -2510,7 +2593,7 @@ function u3a_remove_member_from_group_clicked(e)
 {
 	Swal.fire({
 		title: 'Are you sure?',
-		text: "Member will be permanently removed from group!",
+		text: "Member(s) will be permanently removed from group!",
 		icon: 'warning',
 		showCancelButton: true,
 		confirmButtonColor: '#3085d6',
@@ -2520,10 +2603,55 @@ function u3a_remove_member_from_group_clicked(e)
 	{
 		if (result.value)
 		{
-			var form_data = {
-				action: "u3a-remove-member-from-group-action",
-				members_id: jQuery('#u3a-member-select-remove').val(),
-				groups_id: jQuery('#u3a-member-select-group-remove').val()
+			var groups_id;
+			var members_id;
+			var form_data;
+			var mbr;
+			var grp;
+			if (jQuery("#u3a-group-page-group-id").length > 0)
+			{
+				var gid = jQuery("#u3a-group-page-group-id").val();
+				console.debug("group id", gid);
+				var tab = jQuery("span.su-tabs-current").text();
+				if (gid && tab === 'Members')
+				{
+					grp = jQuery("#u3a-group-page-group-name").val();
+					var members = jQuery("#u3a-group-members-list-div input:checkbox:checked").map(function ()
+					{
+						return $(this).val();
+					}).get();
+					var mnames = jQuery("#u3a-group-members-list-div input:checkbox:checked").map(function ()
+					{
+						return $(this).siblings('label').text();
+					}).get();
+					mbr = mnames.join(", ");
+					console.debug("remove_members", members, mnames);
+					form_data = {
+						action: "u3a-remove-member-from-group-action",
+						members_id: members.join(","),
+						groups_id: gid
+					};
+				}
+				else
+				{
+					mbr = jQuery("#u3a-member-select-remove option:selected").text();
+					grp = jQuery('#u3a-member-select-groupname-remove').val();
+					form_data = {
+						action: "u3a-remove-member-from-group-action",
+						members_id: jQuery('#u3a-member-select-remove').val(),
+						groups_id: jQuery('#u3a-member-select-group-remove').val()
+					};
+				}
+			}
+			else
+			{
+				mbr = jQuery("#u3a-member-select-remove option:selected").text();
+				grp = jQuery('#u3a-member-select-groupname-remove').val();
+				form_data = {
+					action: "u3a-remove-member-from-group-action",
+					members_id: jQuery('#u3a-member-select-remove').val(),
+					groups_id: jQuery('#u3a-member-select-group-remove').val()
+				};
 			}
 //		console.debug("remove from group", form_data);
 			jQuery.ajax({
@@ -2537,8 +2665,6 @@ function u3a_remove_member_from_group_clicked(e)
 				success: function (html)
 				{
 					console.log("success", html);
-					var mbr = jQuery("#u3a-member-select-remove option:selected").text();
-					var grp = jQuery('#u3a-member-select-groupname-remove').val();
 					swal.fire("Remove Member", "member " + mbr + " removed from " + grp, "success").then(function ()
 					{
 						var groups_id = jQuery('#u3a-group-page-group-id').val();
@@ -3757,4 +3883,132 @@ function u3a_get_card(memberid)
 		member: memberid
 	};
 	u3a_ajax(form_data, "membership card", u3a_open);
+}
+
+function u3a_edit_venue(op, venues_id)
+{
+	var form_data = {
+		action: "u3a_edit_venue",
+		op: op,
+		venue: venues_id
+	};
+	var divid = "u3a-" + op + "-venue";
+	var prefixlen = divid.length + 1;
+	jQuery("#" + divid + " .u3a-venue-input").each(function ()
+	{
+		var nm = jQuery(this).attr("id").substr(prefixlen);
+		if (nm === "is_accessible" || nm === "private")
+		{
+			form_data['field_' + nm] = jQuery(this).prop('checked') ? "1" : "0";
+		}
+		else
+		{
+			form_data['field_' + nm] = jQuery(this).val();
+		}
+	});
+	console.debug(form_data);
+	var str = venues_id == 0 ? "new venue" : "edit venue";
+	u3a_ajax(form_data, str, u3a_reload_page);
+}
+
+function u3a_remove_venue()
+{
+	var venues_id = jQuery('#u3a-remove-venue-select').val();
+	var txt = jQuery('#u3a-remove-venue-select :selected').text();
+	swal.fire({title: txt + " will be removed!",
+		text: "Are you sure you wish to proceed?",
+		icon: "warning",
+		showCancelButton: true,
+		confirmButtonColor: '#d33',
+		confirmButtonText: 'confirm remove'})
+//			buttons: true,
+//			dangerMode: true})
+			  .then(
+						 function (result)
+						 {
+							 if (result.value)
+							 {
+								 var form_data = {
+									 action: "u3a_remove_venue",
+									 venue: venues_id
+								 };
+								 u3a_ajax(form_data, "Remove venue");
+							 }
+						 });
+}
+
+function u3a_select_venue_change()
+{
+	var venues_id = jQuery('#u3a-edit-venue-select').val();
+	console.debug(venues_id);
+	var form_data = {
+		action: "u3a_get_venue",
+		venue: venues_id
+	};
+//		console.debug(form_data);
+	jQuery.ajax({
+		type: 'POST',
+		url: settings.ajaxurl,
+		data: form_data,
+		error: function (jqXHR, textStatus, errorThrown)
+		{
+			console.log(jqXHR + ' :: ' + textStatus + ' :: ' + errorThrown);
+		},
+		success: function (data)
+		{
+			console.log("success", data);
+			var returned = JSON.parse(data);
+			if (returned["success"])
+			{
+				jQuery("#u3a-edit-venue-div").html(returned["message"]);
+			}
+			else
+			{
+				swal.fire("Edit Venue Details", returned["message"], "error");
+			}
+		}
+	});
+}
+
+function u3a_renewals_needed()
+{
+	var form_data = {
+		action: "u3a_renewal_needed"
+	};
+	u3a_ajax(form_data, "Renewals Needed");
+}
+
+function u3a_lapse_members()
+{
+	var form_data = {
+		action: "u3a_lapse_members"
+	};
+	u3a_ajax(form_data, "Lapse Members", u3a_reload_page);
+}
+
+function u3a_unlapse_member(id)
+{
+	var form_data = {
+		action: "u3a_unlapse_member",
+		member: id
+	};
+	u3a_ajax(form_data, "Unlapse Member", u3a_reload_page);
+}
+
+function u3a_delete_lapsed(id)
+{
+
+	var form_data = {
+		action: "u3a_delete_member",
+		member: id
+	};
+	u3a_ajax(form_data, "Delete Lapsed Member", u3a_reload_page);
+}
+
+function u3a_check_wpid()
+{
+	var form_data = {
+		action: "u3a_check_wpid"
+	};
+	u3a_ajax(form_data, "Check wpid");
 }

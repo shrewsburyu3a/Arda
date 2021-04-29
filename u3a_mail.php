@@ -22,7 +22,8 @@ class U3A_Mail
 	private static $the_mailer = null;
 
 	const MAX_ATTACHMENTS = 20;
-	const MAX_CC = 200;
+	const MAX_CC = 100;
+	const SLEEP_COUNT = 60;
 
 	private static function get_public_api_key()
 	{
@@ -145,7 +146,8 @@ class U3A_Mail
 			}
 			$nextpage = $response->getNextUrl();
 			write_log($nextpage);
-			$results = wp_remote_get($nextpage, [ "headers" => [ "Authorization" => "Basic " . base64_encode("api:" . self::get_private_api_key())]]);
+			$results = wp_remote_get($nextpage,
+			  [ "headers" => [ "Authorization" => "Basic " . base64_encode("api:" . self::get_private_api_key())]]);
 			$body = json_decode($results["body"]);
 			write_log(count($body->items));
 			$count = 0;
@@ -166,7 +168,8 @@ class U3A_Mail
 				}
 				// do something with items
 				$nextpage = $body->paging->next;
-				$results = wp_remote_get($nextpage, [ "headers" => [ "Authorization" => "Basic " . base64_encode("api:" . self::get_private_api_key())]]);
+				$results = wp_remote_get($nextpage,
+				  [ "headers" => [ "Authorization" => "Basic " . base64_encode("api:" . self::get_private_api_key())]]);
 				$body = json_decode($results["body"]);
 //				write_log($nextpage);
 				$count++;
@@ -197,7 +200,7 @@ class U3A_Mail
 			$members = [];
 			foreach ($listmembers as $email => $lm)
 			{
-				$members[] = ['address' => $lm->email(), 'name' => $lm->name(), $vars => ["id" => $lm->membership_number()]];
+				$members[] = ['address' => U3A_Utilities::strip_all_slashes($lm->email()), 'name' => $lm->name(), $vars => ["id" => $lm->membership_number()]];
 				$result2 = $this->_mailgun->mailingList()->member()->createMultiple($address, $members);
 			}
 			$this->update_reply_preference($address);
@@ -255,16 +258,18 @@ class U3A_Mail
 	{
 		if ($mailing_list->add_member($member))
 		{
-			$this->_mailgun->mailingList()->member()->create($mailing_list->email(), $member->email(), $member->name(), ["id" => $member->membership_number()]);
+			$this->_mailgun->mailingList()->member()->create(U3A_Utilities::strip_all_slashes($mailing_list->email()),
+			  U3A_Utilities::strip_all_slashes($member->email()), $member->name(), ["id" => $member->membership_number()]);
 		}
 //create(string $list, string $address, string $name = null, array $vars = [], bool $subscribed = true, bool $upsert = false)
 	}
 
 	public function update_member_on_list($member, $email, $mailing_list)
 	{
-		$mbremail = is_string($member) ? $member : $member->email();
-		$mlemail = is_string($mailing_list) ? $mailing_list : $mailing_list->email();
-		$this->_mailgun->mailingList()->member()->update($mlemail, $email, ["name" => $member->name(), "address" => $mbremail, "vars" => ["id" => $member->membership_number()]]);
+		$mbremail = is_string($member) ? $member : U3A_Utilities::strip_all_slashes($member->email());
+		$mlemail = is_string($mailing_list) ? $mailing_list : U3A_Utilities::strip_all_slashes($mailing_list->email());
+		$this->_mailgun->mailingList()->member()->update($mlemail, $email,
+		  ["name" => $member->name(), "address" => $mbremail, "vars" => ["id" => $member->membership_number()]]);
 	}
 
 	public function update_reply_preference($mailing_list)
@@ -275,7 +280,8 @@ class U3A_Mail
 		}
 		else
 		{
-			$this->_mailgun->mailingList()->update($mailing_list->email(), ["reply_preference" => "sender"]);
+			$this->_mailgun->mailingList()->update(U3A_Utilities::strip_all_slashes($mailing_list->email()),
+			  ["reply_preference" => "sender"]);
 		}
 	}
 
@@ -292,8 +298,8 @@ class U3A_Mail
 
 	public function remove_member_from_list($member, $mailing_list)
 	{
-		$mbremail = is_string($member) ? $member : $member->email();
-		$mlemail = is_string($mailing_list) ? $mailing_list : $mailing_list->email();
+		$mbremail = is_string($member) ? $member : U3A_Utilities::strip_all_slashes($member->email());
+		$mlemail = is_string($mailing_list) ? $mailing_list : U3A_Utilities::strip_all_slashes($mailing_list->email());
 		$this->_mailgun->mailingList()->member()->delete($mlemail, $mbremail);
 	}
 
@@ -315,9 +321,11 @@ class U3A_Mail
 		}
 	}
 
-	public function sendmail($to, $subject, $contents, $cc = null, $bcc = null, $from = null, $reply_to = null, $attachments = null, $html = true)
+	public function sendmail($to, $subject, $contents, $cc = null, $bcc = null, $from = null, $reply_to = null,
+	  $attachments = null, $html = true)
 	{
 		$ret = 0;
+		$notsent = 0;
 		if (is_array($cc) && count($cc) > self::MAX_CC)
 		{
 			$ccs = U3A_Utilities::chop_array($cc, self::MAX_CC);
@@ -327,13 +335,14 @@ class U3A_Mail
 				if ($this->sendmail1($to, $subject, $contents, $ccc, $bcc, $from, $reply_to, $attachments, $html))
 				{
 					$ret += count($ccc);
-					sleep(1);
 				}
 				else
 				{
+					$notsent += count($ccc);
 					write_log("not sent");
 					write_log($ccc);
 				}
+				sleep(intval(self::SLEEP_COUNT));
 			}
 		}
 		elseif ((is_array($bcc) && count($bcc) > self::MAX_CC))
@@ -345,13 +354,14 @@ class U3A_Mail
 				if ($this->sendmail1($to, $subject, $contents, $cc, $bccc, $from, $reply_to, $attachments, $html))
 				{
 					$ret += count($bccc);
-					sleep(1);
 				}
 				else
 				{
+					$notsent += count($bccc);
 					write_log("not sent");
 					write_log($bccc);
 				}
+				sleep(intval(self::SLEEP_COUNT));
 			}
 		}
 		else
@@ -378,10 +388,12 @@ class U3A_Mail
 				}
 			}
 		}
+		write_log("$ret sent, $notsent not sent");
 		return $ret;
 	}
 
-	private function sendmail1($to, $subject, $contents, $cc = null, $bcc = null, $from = null, $reply_to = null, $attachments = null, $html = true)
+	private function sendmail1($to, $subject, $contents, $cc = null, $bcc = null, $from = null, $reply_to = null,
+	  $attachments = null, $html = true)
 	{
 		if ($html)
 		{

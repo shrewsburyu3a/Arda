@@ -1,8 +1,20 @@
 <?php
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+/* Arda v1.0
+ * Copyright 2021 Mike Curtis (mike@computermike.biz)
+ *
+ * This file is part of Arda.
+ *   Arda is free software: you can redistribute it and/or modify
+ *   it under the terms of the GNU Affero General Public License version 3
+ *   as published by the Free Software Foundation
+ *
+ *   Ardais distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU Affero General Public License for more details.
+ *
+ *   You can get a copy The GNU Affero General Public license from
+ *   http://www.gnu.org/licenses/agpl-3.0.html
+ *
  */
 
 require_once(ABSPATH . 'wp-config.php');
@@ -29,7 +41,8 @@ function u3a_enqueued_scripts()
 	wp_enqueue_script('u3a-dropdown-script', plugin_dir_url(__FILE__) . 'js/jquery.dropdown.min.js', ['jquery'], null, true);
 	wp_enqueue_script('u3a-chosen-script', plugin_dir_url(__FILE__) . 'chosen/chosen.jquery.min.js', ['jquery'], null, true);
 	wp_enqueue_script('u3a-timepicker-script', plugin_dir_url(__FILE__) . 'js/timepicker.min.js', null, null, true);
-	wp_enqueue_script('u3a-uploads', plugin_dir_url(__FILE__) . 'js/u3a-website.js', ['jquery', 'u3a-chosen-script'], null, true);
+	wp_enqueue_script('u3a-uploads', plugin_dir_url(__FILE__) . 'js/u3a-website.js', ['jquery', 'u3a-chosen-script'], null,
+	  true);
 //	if (is_home())
 //	{EBaCxw_3yOSbGTY0NtVfoqOMImS3jDlPmiGk7Gj6Cjf1h6t6KuXMWqcSNvV9dPnRLNf9WRgq5Xms3hRg
 //	wp_enqueue_script('u3a-paypal', "https://www.paypal.com/sdk/js?currency=GBP&client-id=ATpHQmey4eyA0ZNC7HdvVNHQ6DM7nPNufyDmYO1kHniGjE3692Km1nHVuHEfzzbdJk4bsVIyGO3ygDb8", null, null, true);
@@ -40,7 +53,8 @@ function u3a_enqueued_scripts()
 //	}
 	wp_enqueue_script("u3a-alerts", "https://cdn.jsdelivr.net/npm/sweetalert2@9");
 //	wp_enqueue_script("u3a-alerts", "https://unpkg.com/sweetalert/dist/sweetalert.min.js");
-	wp_localize_script('u3a-uploads', 'settings', ['ajaxurl' => admin_url('admin-ajax.php'), "slideshow" => plugin_dir_url(__FILE__) . 'u3a_slideshow.php']);
+	wp_localize_script('u3a-uploads', 'settings',
+	  ['ajaxurl' => admin_url('admin-ajax.php'), "slideshow" => plugin_dir_url(__FILE__) . 'u3a_slideshow.php']);
 }
 
 add_action("wp_head", "u3a_wp_head");
@@ -272,16 +286,16 @@ function u3a_member_edited_action($mbr, $changed)
 		if ($gift_aid_changed)
 		{
 			$contents .= "<p>Gift Aid has changed from " . $mbr->get_gift_aid_text($gift_aid_changed["oldval"]) . " to " . $mbr->get_gift_aid_text() . "</p>";
-			$to = $tr->email;
+			$to = U3A_Utilities::strip_all_slashes($tr->email);
 			$cc = null;
 		}
 		if ($payment_type_changed)
 		{
 			$contents .= "<p>Payment Type has changed from " . $payment_type_changed["oldval"] . " to " . $payment_type_changed["newval"] . "</p>";
-			$to = $mb->email;
-			$cc = [$tr->email];
+			$to = U3A_Utilities::strip_all_slashes($mb->email);
+			$cc = [U3A_Utilities::strip_all_slashes($tr->email)];
 		}
-		$to = $wm->email;
+		$to = U3A_Utilities::strip_all_slashes($wm->email);
 		$sent = U3A_Sent_Mail::send($wm->id, $to, "Member edit", $contents, $cc);
 	}
 }

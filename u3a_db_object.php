@@ -1,5 +1,23 @@
 <?php
 
+/* Arda v1.0
+ * Copyright 2021 Mike Curtis (mike@computermike.biz)
+ *
+ * This file is part of Arda.
+ *   Arda is free software: you can redistribute it and/or modify
+ *   it under the terms of the GNU Affero General Public License version 3
+ *   as published by the Free Software Foundation
+ *
+ *   Ardais distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU Affero General Public License for more details.
+ *
+ *   You can get a copy The GNU Affero General Public license from
+ *   http://www.gnu.org/licenses/agpl-3.0.html
+ *
+ */
+
 define('__ROOT__', dirname(__FILE__));
 
 class U3ADatabaseObject
@@ -82,6 +100,7 @@ class U3ADatabaseObject
 	 */
 	public function insertArray($table, &$hash)
 	{
+//		write_log("insert $table", $hash);
 		$this->thedb->insert($table, $hash);
 		return $this->thedb->insert_id;
 	}
@@ -95,6 +114,7 @@ class U3ADatabaseObject
 	 */
 	public function updateArray($table, &$hash, $keyName)
 	{
+//		write_log("update $table $keyname", $hash);
 		$hash1 = [];
 		$where = [];
 		$tabformat = [];

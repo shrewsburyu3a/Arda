@@ -1,5 +1,23 @@
 <?php
 
+/* Arda v1.0
+ * Copyright 2021 Mike Curtis (mike@computermike.biz)
+ *
+ * This file is part of Arda.
+ *   Arda is free software: you can redistribute it and/or modify
+ *   it under the terms of the GNU Affero General Public License version 3
+ *   as published by the Free Software Foundation
+ *
+ *   Ardais distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU Affero General Public License for more details.
+ *
+ *   You can get a copy The GNU Affero General Public license from
+ *   http://www.gnu.org/licenses/agpl-3.0.html
+ *
+ */
+
 require_once('u3a_db_object.php');
 require_once('project.php');
 require_once('u3a_utility_classes.php');
@@ -421,7 +439,8 @@ class U3A_HTML_Utilities
 		return new U3A_SELECT($opts, $name, $id, $cssclass);
 	}
 
-	public static function get_select_list_from_hash_array($hash_array, $name, $text_key, $value_key, $selected_value = null, $tooltip_key = null, $id = null, $cssclass = null)
+	public static function get_select_list_from_hash_array($hash_array, $name, $text_key, $value_key,
+	  $selected_value = null, $tooltip_key = null, $id = null, $cssclass = null)
 	{
 		$opts = array();
 		foreach ($hash_array as $hash)
@@ -458,7 +477,8 @@ class U3A_HTML_Utilities
 		return $ret;
 	}
 
-	public static function get_option_from_object($obj, $text_key, $value_key, $selected_value = null, $tooltip_key = null, $usetext = null)
+	public static function get_option_from_object($obj, $text_key, $value_key, $selected_value = null, $tooltip_key = null,
+	  $usetext = null)
 	{
 		$hash = $obj->get_as_hash();
 		$val = stripslashes($hash[$value_key]);
@@ -476,7 +496,8 @@ class U3A_HTML_Utilities
 		return $opt;
 	}
 
-	public static function get_options_array_from_object_array($object_array, $text_key, $value_key, $selected_value = null, $tooltip_key = null)
+	public static function get_options_array_from_object_array($object_array, $text_key, $value_key,
+	  $selected_value = null, $tooltip_key = null)
 	{
 		$opts = [];
 		if (U3A_Utilities::has_string_keys($object_array))
@@ -508,7 +529,8 @@ class U3A_HTML_Utilities
 		return $opts;
 	}
 
-	public static function get_list_from_object_array($object_array, $text_key, $value_key = null, $ordered = false, $id = null, $cssclass = null, $itemcssclass = null)
+	public static function get_list_from_object_array($object_array, $text_key, $value_key = null, $ordered = false,
+	  $id = null, $cssclass = null, $itemcssclass = null)
 	{
 		$li = [];
 		$n = 0;
@@ -517,7 +539,8 @@ class U3A_HTML_Utilities
 			$span = new U3A_SPAN($obj->$text_key, $id ? "$id-span-$n" : null, $itemcssclass ? "$itemcssclass-span" : null);
 			if ($value_key)
 			{
-				$inp = new U3A_INPUT("hidden", null, $id ? "$id-value-$n" : null, $itemcssclass ? "$itemcssclass-value" : null, $obj->$value_key);
+				$inp = new U3A_INPUT("hidden", null, $id ? "$id-value-$n" : null, $itemcssclass ? "$itemcssclass-value" : null,
+				  $obj->$value_key);
 			}
 			else
 			{
@@ -528,26 +551,32 @@ class U3A_HTML_Utilities
 		return new U3A_LIST($li, $ordered, $id, $cssclass);
 	}
 
-	public static function get_select_list_from_object_array($object_array, $name, $text_key, $value_key, $selected_value = null, $tooltip_key = null, $id = null, $cssclass = null)
+	public static function get_select_list_from_object_array($object_array, $name, $text_key, $value_key,
+	  $selected_value = null, $tooltip_key = null, $id = null, $cssclass = null)
 	{
 		$opts = self::get_options_array_from_object_array($object_array, $text_key, $value_key, $selected_value, $tooltip_key);
 		return new U3A_SELECT($opts, $name, $id, $cssclass);
 	}
 
-	public static function get_select_list_of_all($classname, $name, $text_key, $value_key, $selected_value = null, $tooltip_key = null, $id = null, $cssclass = null)
+	public static function get_select_list_of_all($classname, $name, $text_key, $value_key, $selected_value = null,
+	  $tooltip_key = null, $id = null, $cssclass = null)
 	{
 		$object_array = U3A_Row::load_array_of_objects($classname);
-		return self::get_select_list_from_object_array($object_array['result'], $name, $text_key, $value_key, $selected_value, $tooltip_key, $id, $cssclass);
+		return self::get_select_list_from_object_array($object_array['result'], $name, $text_key, $value_key, $selected_value,
+			 $tooltip_key, $id, $cssclass);
 	}
 
-	public static function get_select_list_of_some($classname, $where, $name, $text_key, $value_key, $selected_value = null, $tooltip_key = null, $id = null, $cssclass = null)
+	public static function get_select_list_of_some($classname, $where, $name, $text_key, $value_key,
+	  $selected_value = null, $tooltip_key = null, $id = null, $cssclass = null)
 	{
 		$object_array = U3A_Row::load_array_of_objects($classname, $where);
 //        U3A_Utilities::var_dump_pre($object_array);
-		return self::get_select_list_from_object_array($object_array['result'], $name, $text_key, $value_key, $selected_value, $tooltip_key, $id, $cssclass);
+		return self::get_select_list_from_object_array($object_array['result'], $name, $text_key, $value_key, $selected_value,
+			 $tooltip_key, $id, $cssclass);
 	}
 
-	public static function get_define_row_form($tablename, $classname, $action = null, $instance = null, $omit_columns = null)
+	public static function get_define_row_form($tablename, $classname, $action = null, $instance = null,
+	  $omit_columns = null)
 	{
 		$fid = U3A_Form_Input_Detail::get_form_details_for_table($tablename, $classname, $omit_columns);
 //        U3A_Utilities::var_dump_pre($fid);echo $fid->tablename."<br/>";
@@ -580,32 +609,48 @@ class U3A_HTML_Utilities
 		$nameUc1 = ucwords($namelc);
 		$catlc = strtolower($catname);
 		$catuc1 = ucwords($catname);
-		$h0 = new U3A_DIV("enter new $catlc name then press 'create'", "u3a-category-create-header-" . $groups_id . "-" . $doctype, "u3a-margin-bottom-2");
+		$h0 = new U3A_DIV("enter new $catlc name then press 'create'",
+		  "u3a-category-create-header-" . $groups_id . "-" . $doctype, "u3a-margin-bottom-2");
 		$h1 = null;
 		$h2 = null;
 		$span0 = new U3A_SPAN("New $nameUc1 $catuc1 ", null, "u3a-document-category-span-class");
-		$txt0 = new U3A_INPUT("text", "document-category-name", "u3a-category-name-" . $groups_id . "-" . $doctype, "u3a-document-name-class u3a-name-input-class u3a-category-name-class");
-		$btn0 = new U3A_BUTTON("button", "create", "u3a-category-button-" . $groups_id . "-" . $doctype, "u3a-document-button-class u3a-button", "u3a_create_new_category('" . $groups_id . "', '" . $doctype . "')");
+		$txt0 = new U3A_INPUT("text", "document-category-name", "u3a-category-name-" . $groups_id . "-" . $doctype,
+		  "u3a-document-name-class u3a-name-input-class u3a-category-name-class");
+		$btn0 = new U3A_BUTTON("button", "create", "u3a-category-button-" . $groups_id . "-" . $doctype,
+		  "u3a-document-button-class u3a-button",
+		  "u3a_create_new_category('" . $groups_id . "', '" . $doctype . "', '" . U3A_Documents::get_reload($doctype) . "')");
 		$div0 = new U3A_DIV([$span0, $txt0, $btn0], "u3a-category-div-" . $groups_id . "-" . $doctype, "u3a-category-div");
-		$sel1 = U3A_Document_Categories::get_select_list($groups_id, $mbrgrp, $doctype, "rename-$catlc", null, null, false, null);
+		$sel1 = U3A_Document_Categories::get_select_list($groups_id, $mbrgrp, $doctype, "rename-$catlc", null, null, false,
+			 null);
 		if ($sel1["select"])
 		{
-			$h1 = new U3A_DIV("select $catlc, enter new $catlc name then press 'rename'", "u3a-category-rename-header-" . $groups_id . "-" . $doctype, "u3a-margin-bottom-2");
+			$h1 = new U3A_DIV("select $catlc, enter new $catlc name then press 'rename'",
+			  "u3a-category-rename-header-" . $groups_id . "-" . $doctype, "u3a-margin-bottom-2");
 			$span1a = new U3A_SPAN("Rename $nameUc1 $catuc1 ");
 			$span1b = new U3A_SPAN(" to ");
 			$lbl1a = new U3A_LABEL($sel1["id"], $span1a, null, "u3a-document-category-span-class");
-			$txt1 = new U3A_INPUT("text", "document-category-rename", "u3a-category-rename-" . $groups_id . "-" . $doctype, "u3a-document-name-class u3a-name-input-class");
-			$lbl1b = new U3A_LABEL("u3a-category-rename-" . $groups_id . "-" . $doctype, $span1b, null, "u3a-inline-block u3a-margin-left-5 u3a-margin-right-5");
-			$btn1 = new U3A_BUTTON("button", "rename", "u3a-category-button-" . $groups_id . "-" . $doctype, "u3a-document-button-class u3a-button", "u3a_rename_category('" . $groups_id . "', '" . $doctype . "', '" . $sel1["id"] . "')");
-			$div1 = new U3A_DIV([$lbl1a, $sel1["select"], $lbl1b, $txt1, $btn1], "u3a-rename-category-div-" . $groups_id . "-" . $doctype, "u3a-category-div");
-			$sel2 = U3A_Document_Categories::get_empty_select_list($groups_id, $mbrgrp, $doctype, "delete-empty-$catlc", null, null, false, null);
+			$txt1 = new U3A_INPUT("text", "document-category-rename", "u3a-category-rename-" . $groups_id . "-" . $doctype,
+			  "u3a-document-name-class u3a-name-input-class");
+			$lbl1b = new U3A_LABEL("u3a-category-rename-" . $groups_id . "-" . $doctype, $span1b, null,
+			  "u3a-inline-block u3a-margin-left-5 u3a-margin-right-5");
+			$btn1 = new U3A_BUTTON("button", "rename", "u3a-category-button-" . $groups_id . "-" . $doctype,
+			  "u3a-document-button-class u3a-button",
+			  "u3a_rename_category('" . $groups_id . "', '" . $doctype . "', '" . $sel1["id"] . "')");
+			$div1 = new U3A_DIV([$lbl1a, $sel1["select"], $lbl1b, $txt1, $btn1],
+			  "u3a-rename-category-div-" . $groups_id . "-" . $doctype, "u3a-category-div");
+			$sel2 = U3A_Document_Categories::get_empty_select_list($groups_id, $mbrgrp, $doctype, "delete-empty-$catlc", null,
+				 null, false, null);
 			if ($sel2["select"])
 			{
-				$h2 = new U3A_DIV("select empty $catlc to delete then press 'delete'", "u3a-category-delete-header-" . $groups_id . "-" . $doctype, "u3a-margin-bottom-2");
+				$h2 = new U3A_DIV("select empty $catlc to delete then press 'delete'",
+				  "u3a-category-delete-header-" . $groups_id . "-" . $doctype, "u3a-margin-bottom-2");
 				$span2 = new U3A_SPAN("Delete $nameUc1 $catuc1 ");
 				$lbl2 = new U3A_LABEL($sel2["id"], $span2, null, "u3a-document-category-span-class");
-				$btn2 = new U3A_BUTTON("button", "delete", "u3a-category-delete-button-" . $groups_id . "-" . $doctype, "u3a-document-button-class u3a-button u3a-margin-left-5", "u3a_delete_category('" . $groups_id . "', '" . $doctype . "', '" . $sel2["id"] . "')");
-				$div2 = new U3A_DIV([$lbl2, $sel2["select"], $btn2], "u3a-delete-category-div-" . $groups_id . "-" . $doctype, "u3a-category-div u3a-border-bottom u3a-margin-bottom-5");
+				$btn2 = new U3A_BUTTON("button", "delete", "u3a-category-delete-button-" . $groups_id . "-" . $doctype,
+				  "u3a-document-button-class u3a-button u3a-margin-left-5",
+				  "u3a_delete_category('" . $groups_id . "', '" . $doctype . "', '" . $sel2["id"] . "')");
+				$div2 = new U3A_DIV([$lbl2, $sel2["select"], $btn2], "u3a-delete-category-div-" . $groups_id . "-" . $doctype,
+				  "u3a-category-div u3a-border-bottom u3a-margin-bottom-5");
 			}
 			else
 			{
@@ -637,7 +682,8 @@ class U3A_HTML_Utilities
 				$item = [];
 				if ($n->title)
 				{
-					$inp = new U3A_INPUT("text", "news-title", "news-title-" . $n->id, "u3a-news-title u3a-inline-block u3a-margin-bottom-5", $n->title);
+					$inp = new U3A_INPUT("text", "news-title", "news-title-" . $n->id,
+					  "u3a-news-title u3a-inline-block u3a-margin-bottom-5", $n->title);
 					$inp->add_attribute("readonly", "readonly");
 					$item[] = $inp;
 //				$item[] = new U3A_H(6, $n->title . " (" . date("d M Y", strtotime($n->created)) . ")");
@@ -647,7 +693,8 @@ class U3A_HTML_Utilities
 				$item[] = $txtarea;
 				if ($mbr && (($n->members_id == $mbr->id) || U3A_Information::u3a_has_permission($mbr, "edit news")))
 				{
-					$editbtn = new U3A_BUTTON("button", "Edit", "news-edit-" . $n->id, "u3a-button u3a-edit-news-button", "edit_news(" . $n->id . ")");
+					$editbtn = new U3A_BUTTON("button", "Edit", "news-edit-" . $n->id, "u3a-button u3a-edit-news-button",
+					  "edit_news(" . $n->id . ")");
 					$editdiv = new U3A_DIV($editbtn, "news-edit-div-" . $n->id, "news-edit-div");
 					$item[] = $editdiv;
 				}
@@ -677,7 +724,9 @@ class U3A_HTML_Utilities
 					foreach ($documents["documents"] as $doc)
 					{
 //						$options[] = new U3A_OPTION(new U3A_BUTTON("button", $doc->get_title(), null, null, "attach_document1('" . $doc->get_title() . "', '" . $doc->attachment_id . "')"), $doc->attachment_id, false);
-						$options[] = new U3A_LI(new U3A_BUTTON("button", $doc->get_title(), null, "u3a-mail-document-select-button-class", "attach_document1('" . $mailtype . "', '" . $grp . "', '" . $n . "', '" . $doc->get_title() . "', '" . $doc->attachment_id . "')"), null, null);
+						$options[] = new U3A_LI(new U3A_BUTTON("button", $doc->get_title(), null, "u3a-mail-document-select-button-class",
+						  "attach_document1('" . $mailtype . "', '" . $grp . "', '" . $n . "', '" . $doc->get_title() . "', '" . $doc->attachment_id . "')"),
+						  null, null);
 					}
 					$optgroups[] = new U3A_LI([
 						$catname,
@@ -692,7 +741,8 @@ class U3A_HTML_Utilities
 		return $ret;
 	}
 
-	public static function get_mail_contents_div($sender_id, $mailtype, $id, $cssclass = "", $ndocs = null, $nimgs = null, $subject = null, $rel = null)
+	public static function get_mail_contents_div($sender_id, $mailtype, $id, $cssclass = "", $ndocs = null, $nimgs = null,
+	  $subject = null, $rel = null)
 	{
 		// from the contact form, the sender_id is an email address and id is a role name - the recipient
 		$rcptval = "";
@@ -722,12 +772,12 @@ class U3A_HTML_Utilities
 			$cm = U3A_Committee::get_committee($id);
 			if ($cm)
 			{
-				$rcptval = $cm->email;
+				$rcptval = U3A_Utilities::strip_all_slashes($cm->email);
 			}
 			else
 			{
 				$wm = U3A_Committee::get_webmanager();
-				$rcptval = $wm->email;
+				$rcptval = U3A_Utilities::strip_all_slashes($wm->email);
 			}
 		}
 		if (U3A_Utilities::is_email($sender_id))
@@ -771,23 +821,36 @@ class U3A_HTML_Utilities
 		$actioninp = new U3A_INPUT("hidden", "action", null, NULL, "u3a_send_" . $mailtype . "_mail");
 		if (!$sender_id)
 		{
-			$frominp = new U3A_INPUT("email", "from", "u3a-mail-from-" . $mailtype . "-" . $id, "u3a-inline-block u3a-mail-input-class u3a-va-top u3a-width-40-pc");
-			$fromlbl = new U3A_LABEL("u3a-mail-from-" . $mailtype . "-" . $id, "Your email:", "u3a-mail-from-label-" . $mailtype . "-" . $id, "u3a-inline-block u3a-margin-left-5 u3a-margin-right-5 u3a-width-10-em u3a-va-top");
+			$frominp = new U3A_INPUT("email", "from", "u3a-mail-from-" . $mailtype . "-" . $id,
+			  "u3a-inline-block u3a-mail-input-class u3a-va-top u3a-width-40-pc");
+			$fromlbl = new U3A_LABEL("u3a-mail-from-" . $mailtype . "-" . $id, "Your email:",
+			  "u3a-mail-from-label-" . $mailtype . "-" . $id,
+			  "u3a-inline-block u3a-margin-left-5 u3a-margin-right-5 u3a-width-10-em u3a-va-top");
 			$fromdiv = new U3A_DIV([$fromlbl, $frominp], "u3a-mail-from-div-" . $mailtype . "-" . $id, "u3a-margin-bottom-5");
 		}
 		else
 		{
 			$fromdiv = null;
 		}
-		$subjectinp = new U3A_INPUT("text", "subject", "u3a-mail-subject-" . $mailtype . "-" . $id, "u3a-inline-block u3a-mail-input-class u3a-va-top u3a-width-40-pc", $subject);
-		$subjectlbl = new U3A_LABEL("u3a-mail-subject-" . $mailtype . "-" . $id, "Subject:", "u3a-mail-subject-label-" . $mailtype . "-" . $id, "u3a-inline-block u3a-margin-left-5 u3a-margin-right-5 u3a-width-10-em u3a-va-top");
-		$subjectdiv = new U3A_DIV([$subjectlbl, $subjectinp], "u3a-mail-subject-div-" . $mailtype . "-" . $id, "u3a-margin-bottom-5");
-		$contentsinp = new U3A_TEXTAREA("contents", "u3a-mail-contents-" . $mailtype . "-" . $id, "u3a-inline-block u3a-width-80-pc u3a-height-10-em u3a-va-top");
-		$contentslbl = new U3A_LABEL("u3a-mail-contents", "Contents:", "u3a-mail-contents-label-" . $mailtype . "-" . $id, "u3a-inline-block u3a-margin-left-5 u3a-margin-right-5 u3a-width-10-em u3a-va-top");
-		$contentsdiv = new U3A_DIV([$contentslbl, $contentsinp], "u3a-mail-contents-div-" . $mailtype . "-" . $id, "u3a-margin-bottom-5");
-		$attachinp = new U3A_DIV(null, "u3a-mail-attach-" . $mailtype . "-" . $id, "u3a-inline-block u3a-width-80-pc u3a-height-5-em u3a-va-top");
+		$subjectinp = new U3A_INPUT("text", "subject", "u3a-mail-subject-" . $mailtype . "-" . $id,
+		  "u3a-inline-block u3a-mail-input-class u3a-va-top u3a-width-40-pc", $subject);
+		$subjectlbl = new U3A_LABEL("u3a-mail-subject-" . $mailtype . "-" . $id, "Subject:",
+		  "u3a-mail-subject-label-" . $mailtype . "-" . $id,
+		  "u3a-inline-block u3a-margin-left-5 u3a-margin-right-5 u3a-width-10-em u3a-va-top");
+		$subjectdiv = new U3A_DIV([$subjectlbl, $subjectinp], "u3a-mail-subject-div-" . $mailtype . "-" . $id,
+		  "u3a-margin-bottom-5");
+		$contentsinp = new U3A_TEXTAREA("contents", "u3a-mail-contents-" . $mailtype . "-" . $id,
+		  "u3a-inline-block u3a-width-80-pc u3a-height-10-em u3a-va-top");
+		$contentslbl = new U3A_LABEL("u3a-mail-contents", "Contents:", "u3a-mail-contents-label-" . $mailtype . "-" . $id,
+		  "u3a-inline-block u3a-margin-left-5 u3a-margin-right-5 u3a-width-10-em u3a-va-top");
+		$contentsdiv = new U3A_DIV([$contentslbl, $contentsinp], "u3a-mail-contents-div-" . $mailtype . "-" . $id,
+		  "u3a-margin-bottom-5");
+		$attachinp = new U3A_DIV(null, "u3a-mail-attach-" . $mailtype . "-" . $id,
+		  "u3a-inline-block u3a-width-80-pc u3a-height-5-em u3a-va-top");
 		$attachinp->add_attribute("readonly", "readonly");
-		$attachlbl = new U3A_LABEL("u3a-mail-attach-" . $mailtype . "-" . $id, "Attachments:", "u3a-mail-attach-label-" . $mailtype . "-" . $id, "u3a-inline-block u3a-margin-left-5 u3a-margin-right-5 u3a-width-10-em u3a-va-top");
+		$attachlbl = new U3A_LABEL("u3a-mail-attach-" . $mailtype . "-" . $id, "Attachments:",
+		  "u3a-mail-attach-label-" . $mailtype . "-" . $id,
+		  "u3a-inline-block u3a-margin-left-5 u3a-margin-right-5 u3a-width-10-em u3a-va-top");
 		$attachfile = [];
 		$attachdoc = [];
 		$attachimg = [];
@@ -797,21 +860,27 @@ class U3A_HTML_Utilities
 		{
 			$attachfileinp = new U3A_INPUT("file", "attachment-$n", "u3a-mail-attachment-$mailtype-$id-$n", "u3a-invisible");
 			$attachfileinp->add_attribute("onchange", "attach_file_changed('" . $mailtype . "', '" . $id . "', '" . $n . "')");
-			$attachfilelbl = new U3A_LABEL("u3a-mail-attachment-$mailtype-$id-$n", "attach file", null, "u3a-file-input-label-class");
-			$attachfile[] = new U3A_DIV([$attachfileinp, $attachfilelbl], "u3a-attachment-div-$mailtype-$id-$n", $n === 0 ? "u3a-va-top u3a-padding-left-5 u3a-margin-right-5 u3a-inline-block" : "u3a-va-top u3a-padding-left-5 u3a-margin-right-5 u3a-invisible");
+			$attachfilelbl = new U3A_LABEL("u3a-mail-attachment-$mailtype-$id-$n", "attach file", null,
+			  "u3a-file-input-label-class");
+			$attachfile[] = new U3A_DIV([$attachfileinp, $attachfilelbl], "u3a-attachment-div-$mailtype-$id-$n",
+			  $n === 0 ? "u3a-va-top u3a-padding-left-5 u3a-margin-right-5 u3a-inline-block" : "u3a-va-top u3a-padding-left-5 u3a-margin-right-5 u3a-invisible");
 			if ($ndocs)
 			{
 				$attachdocinp = self::get_mail_document_select_lists($mailtype, $id, $dtype, $n);
-				$attachdoc[] = new U3A_DIV($attachdocinp, "u3a-mail-document-div-$mailtype-$id-$n", $n === 0 ? "u3a-select-dropdown-class u3a-va-top u3a-margin-right-5 u3a-inline-block" : "u3a-select-dropdown-class u3a-va-top u3a-margin-right-5 u3a-invisible");
+				$attachdoc[] = new U3A_DIV($attachdocinp, "u3a-mail-document-div-$mailtype-$id-$n",
+				  $n === 0 ? "u3a-select-dropdown-class u3a-va-top u3a-margin-right-5 u3a-inline-block" : "u3a-select-dropdown-class u3a-va-top u3a-margin-right-5 u3a-invisible");
 			}
 			if ($nimgs)
 			{
 				$attachimginp = self::get_mail_document_select_lists($mailtype, $id, $mtype, $n);
-				$attachimg[] = new U3A_DIV($attachimginp, "u3a-mail-image-div-$mailtype-$id-$n", $n === 0 ? "u3a-select-dropdown-class u3a-va-top u3a-margin-right-5 u3a-inline-block" : "u3a-select-dropdown-class u3a-va-top u3a-margin-right-5 u3a-invisible");
+				$attachimg[] = new U3A_DIV($attachimginp, "u3a-mail-image-div-$mailtype-$id-$n",
+				  $n === 0 ? "u3a-select-dropdown-class u3a-va-top u3a-margin-right-5 u3a-inline-block" : "u3a-select-dropdown-class u3a-va-top u3a-margin-right-5 u3a-invisible");
 			}
 		}
-		$attachfiles = new U3A_DIV([$attachfile, $attachdoc, $attachimg], "u3a-mail-attachments-div-" . $mailtype . "-" . $id, "u3a-mail-attachment-divs-class");
-		$attachdiv = new U3A_DIV([$attachlbl, $attachinp, $attachfiles], "u3a-mail-attach-div-" . $mailtype . "-" . $id, "u3a-margin-bottom-5");
+		$attachfiles = new U3A_DIV([$attachfile, $attachdoc, $attachimg], "u3a-mail-attachments-div-" . $mailtype . "-" . $id,
+		  "u3a-mail-attachment-divs-class");
+		$attachdiv = new U3A_DIV([$attachlbl, $attachinp, $attachfiles], "u3a-mail-attach-div-" . $mailtype . "-" . $id,
+		  "u3a-margin-bottom-5");
 //		$send = new U3A_BUTTON("button", "send", "u3a-send-$mailtype-mail-button", "u3a-button", "u3a_send_mail('" . $mailtype . "')");
 		$send = new U3A_A("#", "send", "u3a-send-$mailtype-mail-button", "u3a-button", "u3a_send_mail('" . $mailtype . "')");
 		$send->add_attribute("disabled", "disabled");
@@ -819,7 +888,8 @@ class U3A_HTML_Utilities
 		{
 			$send->add_attribute("rel", $rel);
 		}
-		$clear = new U3A_A("#", "clear", "u3a-clear-$mailtype-mail-button", "u3a-button u3a-margin-left-10", "u3a_clear_mail('" . $mailtype . "', '" . $id . "')");
+		$clear = new U3A_A("#", "clear", "u3a-clear-$mailtype-mail-button", "u3a-button u3a-margin-left-10",
+		  "u3a_clear_mail('" . $mailtype . "', '" . $id . "')");
 //		write_log("sender $sender_id wm $iswm mailtype $mailtype");
 		$extradiv = null;
 		$extras = [];
@@ -841,36 +911,47 @@ class U3A_HTML_Utilities
 //		}
 		if (($mailtype === "committee") && $sender_committee_id)
 		{
-			$useprivate = new U3A_INPUT("checkbox", "sendmailprivate", "u3a-sendmail-private-checkbox", "u3a-sendmail-extra-checkbox", null);
-			$uplbl = new U3A_LABEL("u3a-sendmail-private-checkbox", "use private email", "u3a-sendmail-private-label", "u3a-sendmail-extra-checkbox-label");
+			$useprivate = new U3A_INPUT("checkbox", "sendmailprivate", "u3a-sendmail-private-checkbox",
+			  "u3a-sendmail-extra-checkbox", null);
+			$uplbl = new U3A_LABEL("u3a-sendmail-private-checkbox", "use private email", "u3a-sendmail-private-label",
+			  "u3a-sendmail-extra-checkbox-label");
 			$updiv = new U3A_DIV([$uplbl, $useprivate], "u3a-sendmail-private-div", "u3a-inline-block u3a-margin-right-5");
-			$updiv->add_attribute("title", "use committee members private email addresses, rather than the official ones for their role.");
+			$updiv->add_attribute("title",
+			  "use committee members private email addresses, rather than the official ones for their role.");
 			$extras[] = $updiv;
 			$usecc = new U3A_INPUT("checkbox", "sendmailcc", "u3a-sendmail-cc-checkbox", "u3a-sendmail-extra-checkbox", null);
 			$usecc->add_attribute("onchange", "u3a_use_cc_changed('u3a-sendmail-cc-checkbox')");
-			$uclbl = new U3A_LABEL("u3a-sendmail-cc-checkbox", "use cc instead of bcc", "u3a-sendmail-cc-label", "u3a-sendmail-extra-checkbox-label");
+			$uclbl = new U3A_LABEL("u3a-sendmail-cc-checkbox", "use cc instead of bcc", "u3a-sendmail-cc-label",
+			  "u3a-sendmail-extra-checkbox-label");
 			$ucdiv = new U3A_DIV([$uclbl, $usecc], "u3a-sendmail-cc-div", "u3a-inline-block u3a-margin-right-5");
-			$ucdiv->add_attribute("title", "Use 'cc' for the recipients instead of 'bcc'. WARNING - this should not be done without the consent of ALL addressees; their address will be visible to others");
+			$ucdiv->add_attribute("title",
+			  "Use 'cc' for the recipients instead of 'bcc'. WARNING - this should not be done without the consent of ALL addressees; their address will be visible to others");
 			$extras[] = $ucdiv;
 		}
 		if (($mailtype === "group") && $id)
 		{
 			$usecc = new U3A_INPUT("checkbox", "sendmailcc", "u3a-sendmail-cc-checkbox", "u3a-sendmail-extra-checkbox", null);
 			$usecc->add_attribute("onchange", "u3a_use_cc_changed('u3a-sendmail-cc-checkbox')");
-			$uclbl = new U3A_LABEL("u3a-sendmail-cc-checkbox", "use cc instead of bcc", "u3a-sendmail-cc-label", "u3a-sendmail-extra-checkbox-label");
+			$uclbl = new U3A_LABEL("u3a-sendmail-cc-checkbox", "use cc instead of bcc", "u3a-sendmail-cc-label",
+			  "u3a-sendmail-extra-checkbox-label");
 			$ucdiv = new U3A_DIV([$uclbl, $usecc], "u3a-sendmail-cc-div", "u3a-inline-block u3a-margin-right-5");
-			$ucdiv->add_attribute("title", "Use 'cc' for the recipients instead of 'bcc'. WARNING - this should not be done without the consent of ALL addressees; their address will be visible to others");
+			$ucdiv->add_attribute("title",
+			  "Use 'cc' for the recipients instead of 'bcc'. WARNING - this should not be done without the consent of ALL addressees; their address will be visible to others");
 			$extras[] = $ucdiv;
 		}
 		if ($iswm)
 		{
-			$testcb = new U3A_INPUT("checkbox", "sendmailtest", "u3a-sendmail-test-checkbox-" . $mailtype . "-" . $id, "u3a-sendmail-extra-checkbox", null);
-			$testlbl = new U3A_LABEL("u3a-sendmail-test-checkbox-" . $mailtype . "-" . $id, "test, do not send", "u3a-sendmail-test-label", "u3a-sendmail-extra-checkbox-label");
+			$testcb = new U3A_INPUT("checkbox", "sendmailtest", "u3a-sendmail-test-checkbox-" . $mailtype . "-" . $id,
+			  "u3a-sendmail-extra-checkbox", null);
+			$testlbl = new U3A_LABEL("u3a-sendmail-test-checkbox-" . $mailtype . "-" . $id, "test, do not send",
+			  "u3a-sendmail-test-label", "u3a-sendmail-extra-checkbox-label");
 			$extras[] = new U3A_DIV([$testlbl, $testcb], "u3a-sendmail-test-div", "u3a-inline-block u3a-margin-right-5");
 		}
 		$extradiv = new U3A_DIV($extras, "u3a-extras-div", "u3a-margin-bottom-5");
-		$sendiv = new U3A_DIV([$send, $clear], "u3a-send-mail-button-div-" . $mailtype . "-" . $id, "u3a-button-div-class u3a-margin-top-5");
-		$form = new U3A_FORM([$rcptinp, $senderinp, $mtypeidinp, $mtypeinp, $actioninp, $mbrsinp, $fromdiv, $subjectdiv, $contentsdiv, $attachdiv, $extradiv], "/wp-admin/admin-ajax.php", "POST", "u3a-send-mail-form-" . $mailtype, "u3a-send-mail-form-class");
+		$sendiv = new U3A_DIV([$send, $clear], "u3a-send-mail-button-div-" . $mailtype . "-" . $id,
+		  "u3a-button-div-class u3a-margin-top-5");
+		$form = new U3A_FORM([$rcptinp, $senderinp, $mtypeidinp, $mtypeinp, $actioninp, $mbrsinp, $fromdiv, $subjectdiv, $contentsdiv, $attachdiv, $extradiv],
+		  "/wp-admin/admin-ajax.php", "POST", "u3a-send-mail-form-" . $mailtype, "u3a-send-mail-form-class");
 		$divs = [$form, $sendiv];
 		return new U3A_DIV($divs, "u3a-send-mail-" . $mailtype . "-" . $id, "u3a-mail-div-class $cssclass");
 	}
@@ -885,23 +966,32 @@ class U3A_HTML_Utilities
 		$mbrs = U3A_Group_Members::get_members_in_group($grp, true);
 		foreach ($mbrs as $mbr)
 		{
-			$coordfname1 = new U3A_INPUT("text", "group-coordinator-forename", "u3a-group-coordinator-forename" . $idsuffix . "-" . $n, "u3a-input-class u3a-name-input-class", $mbr->forename);
+			$coordfname1 = new U3A_INPUT("text", "group-coordinator-forename",
+			  "u3a-group-coordinator-forename" . $idsuffix . "-" . $n, "u3a-input-class u3a-name-input-class", $mbr->forename);
 			$coordfname1->add_attribute("readonly", "readonly");
-			$coordsname1 = new U3A_INPUT("text", "group-coordinator-surname", "u3a-group-coordinator-surname" . $idsuffix . "-" . $n, "u3a-input-class u3a-name-input-class", $mbr->surname);
+			$coordsname1 = new U3A_INPUT("text", "group-coordinator-surname",
+			  "u3a-group-coordinator-surname" . $idsuffix . "-" . $n, "u3a-input-class u3a-name-input-class", $mbr->surname);
 			$coordsname1->add_attribute("readonly", "readonly");
-			$coordmnum = new U3A_INPUT("hidden", "group-coordinator-mnum", "u3a-group-coordinator-mnum" . $idsuffix . "-" . $n, "u3a-group-coordinator-mnum-class", $mbr->membership_number);
-			$coordid = new U3A_INPUT("hidden", "group-coordinator-id", "u3a-group-coordinator-id" . $idsuffix . "-" . $n, "u3a-group-coordinator-id-class", $mbr->id);
+			$coordmnum = new U3A_INPUT("hidden", "group-coordinator-mnum", "u3a-group-coordinator-mnum" . $idsuffix . "-" . $n,
+			  "u3a-group-coordinator-mnum-class", $mbr->membership_number);
+			$coordid = new U3A_INPUT("hidden", "group-coordinator-id", "u3a-group-coordinator-id" . $idsuffix . "-" . $n,
+			  "u3a-group-coordinator-id-class", $mbr->id);
 //			$coorddel = new U3A_A('#u3a-group-coordinator-a-' . $n, '<span class="dashicons dashicons-no"></span>', "u3a-group-del-coord" . $idsuffix . "-" . $n, "u3a-group-del-coord-class", "u3a_remove_div('u3a-group-coordinator-outer-div-class', " . $n . ", 1)");
-			$coorddel = new U3A_BUTTON("button", '<span class="dashicons dashicons-no"></span>', "u3a-group-del-coord" . $idsuffix . "-" . $n, "u3a-group-del-coord-button-class u3a-button u3a-inline-block", "u3a_remove_coordinator($n)");
+			$coorddel = new U3A_BUTTON("button", '<span class="dashicons dashicons-no"></span>',
+			  "u3a-group-del-coord" . $idsuffix . "-" . $n, "u3a-group-del-coord-button-class u3a-button u3a-inline-block",
+			  "u3a_remove_coordinator($n)");
 			if (count($coords) === 1)
 			{
 				$coorddel->add_attribute("disabled", "disabled");
 			}
 			$coorddel->add_attribute("title", "remove as coordinator");
-			$coord = new U3A_DIV([ $coordfname1, $coordsname1, $coordmnum, $coordid, $coorddel], "u3a-group-coordinator-div" . $idsuffix . "-" . $n, "u3a-group-coordinator-div-class u3a-inline-block");
-			$coordlab = U3A_HTML :: labelled_html_object("coordinator:", $coord, "u3a-group-coord-label" . $idsuffix . "-" . $n, "u3a-group-coord-label-class", false, false);
+			$coord = new U3A_DIV([ $coordfname1, $coordsname1, $coordmnum, $coordid, $coorddel],
+			  "u3a-group-coordinator-div" . $idsuffix . "-" . $n, "u3a-group-coordinator-div-class u3a-inline-block");
+			$coordlab = U3A_HTML :: labelled_html_object("coordinator:", $coord, "u3a-group-coord-label" . $idsuffix . "-" . $n,
+				 "u3a-group-coord-label-class", false, false);
 			$vis = U3A_Group_Members::is_coordinator($mbr, $group_id) ? "u3a-visible" : "u3a-invisible";
-			$coordnames[] = new U3A_DIV($coordlab, "u3a-group-coordinator-outer-div" . $idsuffix . "-" . $n, "u3a-group-coordinator-outer-div-class $vis");
+			$coordnames[] = new U3A_DIV($coordlab, "u3a-group-coordinator-outer-div" . $idsuffix . "-" . $n,
+			  "u3a-group-coordinator-outer-div-class $vis");
 			$n++;
 		}
 //		$coordplusa = new U3A_A('#u3a-group-plus-div', '<span id="u3a-group-plus" class="dashicons dashicons-plus"></span>', "u3a-group-add-coord-be-coordinator-edit" . $idsuffix, "u3a-group-add-coord-class", "u3a_show_hide_plus_minus('u3a-group-cordinator', 'u3a-group-plus')");
@@ -1324,6 +1414,7 @@ abstract class U3A_Row extends U3A_Object
 		}
 		$sel = $distinct ? "SELECT DISTINCT " : "SELECT ";
 		$sql = $sel . $colname . " FROM " . $tablename . $whereclause . ($ordered ? (" ORDER BY " . $colname) : "");
+//		write_log("load_column sql " . $sql);
 //		U3A_Logger::get_logger()->ojdebug1("load_column sql ".$sql);
 //		echo $sql."<br/>";
 		$ret = Project_Details::get_db()->loadColumn($sql);
@@ -1386,6 +1477,7 @@ abstract class U3A_Row extends U3A_Object
 		if ($obj instanceof U3A_Row)
 		{
 			$sql = "SELECT * FROM " . $obj->_tablename . ($whereclause == null ? "" : $whereclause);
+			write_log($sql);
 			$ret1 = Project_Details::get_db()->loadList($sql);
 //			var_dump($ret1);
 			$ret = $ret1 ? count($ret1) : 0;
@@ -1393,7 +1485,8 @@ abstract class U3A_Row extends U3A_Object
 		return $ret;
 	}
 
-	public static function load_array_of_objects($objclass, $where = null, $orderby = null, $from = 0, $to = -1, $groupby = null, $distinct = false)
+	public static function load_array_of_objects($objclass, $where = null, $orderby = null, $from = 0, $to = -1,
+	  $groupby = null, $distinct = false)
 	{
 		$obj = new $objclass();
 		$ret = array();
@@ -1447,7 +1540,8 @@ abstract class U3A_Row extends U3A_Object
 		return $ret;
 	}
 
-	public static function load_hash_of_all_objects($objclass, $where = null, $key = "id", $orderby = null, $saveall = false)
+	public static function load_hash_of_all_objects($objclass, $where = null, $key = "id", $orderby = null,
+	  $saveall = false)
 	{
 		$obj = new $objclass();
 		$ret = array();
@@ -1511,7 +1605,8 @@ abstract class U3A_Row extends U3A_Object
 	 * hash will be single objects. If it is anything else it will be an array of objects all of which have
 	 * the same value for that key
 	 */
-	public static function load_paged_hash_of_unique_objects($objclass, $where = null, $key = "id", $orderby = null, $pageno = 0, $pagesize = 30)
+	public static function load_paged_hash_of_unique_objects($objclass, $where = null, $key = "id", $orderby = null,
+	  $pageno = 0, $pagesize = 30)
 	{
 		$obj = new $objclass();
 		$tablename = $obj->_tablename;
@@ -1689,7 +1784,8 @@ abstract class U3A_Row extends U3A_Object
 	protected $_column_names = null;
 	protected $_column_name_set = null;
 
-	public function __construct($tablename, $keyname, $param = null, $checkval = 'name', $where = null, $nameval = null, $autoincrement = true)
+	public function __construct($tablename, $keyname, $param = null, $checkval = 'name', $where = null, $nameval = null,
+	  $autoincrement = true)
 	{
 		parent::__construct();
 		$this->_keyname = $keyname;
@@ -1717,7 +1813,8 @@ abstract class U3A_Row extends U3A_Object
 					{
 						$pk = "'" . $pk . "'";
 					}
-					$loaded = Project_Details::get_db()->loadHash("SELECT * FROM " . $tablename . " WHERE " . $keyname . " = " . $pk . " LIMIT 1", $hash1);
+					$loaded = Project_Details::get_db()->loadHash("SELECT * FROM " . $tablename . " WHERE " . $keyname . " = " . $pk . " LIMIT 1",
+					  $hash1);
 					if ($loaded)
 					{
 						$hash = array_merge($hash1, $param);
@@ -2139,7 +2236,8 @@ class U3A_HTML
 		return $ret;
 	}
 
-	public static function labelled_html_object($text, $htmlobj, $lblid = null, $lblcssclass = null, $inpara = true, $indiv = false, $description = null, $small = false)
+	public static function labelled_html_object($text, $htmlobj, $lblid = null, $lblcssclass = null, $inpara = true,
+	  $indiv = false, $description = null, $small = false)
 	{
 		$id = $htmlobj->id;
 		if ($id == null)
@@ -2205,7 +2303,8 @@ interface U3A_HTMLizable
 class U3A_Form_Select_Detail
 {
 
-	public function __construct($form_input_detail, $class_name, $where = null, $text_key = null, $value_key = null, $tooltip_key = null)
+	public function __construct($form_input_detail, $class_name, $where = null, $text_key = null, $value_key = null,
+	  $tooltip_key = null)
 	{
 		$tabinfo = $form_input_detail->get_table_information();
 		$tablename = $tabinfo->get_tablename_from_classname($class_name);
@@ -2220,7 +2319,8 @@ class U3A_Form_Select_Detail
 
 	public function get_input_name()
 	{
-		return U3A_Utilities::get_input_name_from_column_name($this->_data['form_input_detail']->tablename, $this->_data['form_input_detail']->columnname);
+		return U3A_Utilities::get_input_name_from_column_name($this->_data['form_input_detail']->tablename,
+			 $this->_data['form_input_detail']->columnname);
 	}
 
 	public function get_select_object($instance = null)
@@ -2239,11 +2339,14 @@ class U3A_Form_Select_Detail
 				$col = $fid->columnname;
 				$initial_value = $instance->$col;
 			}
-			$ret = U3A_HTML_Utilities::get_select_list_from_array($fid->contents, $this->classname, $initial_value, $id, $cssclass);
+			$ret = U3A_HTML_Utilities::get_select_list_from_array($fid->contents, $this->classname, $initial_value, $id,
+				 $cssclass);
 		}
 		else
 		{
-			$ret = U3A_HTML_Utilities::get_select_list_of_some($this->_data['classname'], $this->_data['where'], $this->get_input_name(), $this->_data['text_key'], $this->_data['value_key'], $this->_data['value_key'], $this->_data['tooltip_key'], $id, $cssclass);
+			$ret = U3A_HTML_Utilities::get_select_list_of_some($this->_data['classname'], $this->_data['where'],
+				 $this->get_input_name(), $this->_data['text_key'], $this->_data['value_key'], $this->_data['value_key'],
+				 $this->_data['tooltip_key'], $id, $cssclass);
 		}
 		$ret->add_attribute("name", $fid->get_input_name());
 		return $ret;
@@ -2343,7 +2446,8 @@ class U3A_Form_Input_Detail extends U3A_Object
 		return $ret;
 	}
 
-	public static function get_form($form_input_detail, $action = null, $method = null, $id = null, $cssclass = null, $instance = null)
+	public static function get_form($form_input_detail, $action = null, $method = null, $id = null, $cssclass = null,
+	  $instance = null)
 	{
 		$contents_id = $id == null ? null : $id . "-contents";
 		$contents_cssclass = $cssclass == null ? "u3a-form-input" : ($cssclass . "-contents");
@@ -2375,7 +2479,8 @@ class U3A_Form_Input_Detail extends U3A_Object
 		return new U3A_FORM($form_contents, $action, $method, $id, $cssclass);
 	}
 
-	public static function get_form_with_submit_button($form_input_detail, $action = null, $method = null, $id = null, $cssclass = null, $module = "sysadmin")
+	public static function get_form_with_submit_button($form_input_detail, $action = null, $method = null, $id = null,
+	  $cssclass = null, $module = "sysadmin")
 	{
 		$querystring = "m = " . $module . "&a = " . $action;
 		$encodedhref = '?' . encodeQueryString($querystring);
@@ -2523,7 +2628,8 @@ class U3A_Form_Input_Detail extends U3A_Object
 								}
 							}
 						}
-						$ret1 = new U3A_INPUT($form_input_detail->type, $form_input_detail->get_input_name(), $form_input_detail->get_input_name(), $form_input_detail->cssclass, $form_input_detail->initial_value);
+						$ret1 = new U3A_INPUT($form_input_detail->type, $form_input_detail->get_input_name(),
+						  $form_input_detail->get_input_name(), $form_input_detail->cssclass, $form_input_detail->initial_value);
 						break;
 					case 'user':
 //                    echo "in case user<br/>";
@@ -2557,7 +2663,8 @@ class U3A_Form_Input_Detail extends U3A_Object
 					case 'sub':
 						if (($contents != null) && ($contents instanceof U3A_Form_Input_Detail))
 						{
-							$ret1 = new U3A_DIV(get_input_object($contents), $form_input_detail->get_input_name(), $form_input_detail->cssclass);
+							$ret1 = new U3A_DIV(get_input_object($contents), $form_input_detail->get_input_name(),
+							  $form_input_detail->cssclass);
 						}
 						elseif (is_array($contents))
 						{
@@ -2573,10 +2680,12 @@ class U3A_Form_Input_Detail extends U3A_Object
 						}
 						break;
 					case 'textarea':
-						$ret1 = new U3A_TEXTAREA($form_input_detail->get_input_name(), $form_input_detail->get_input_name(), $form_input_detail->cssclass, $form_input_detail->initial_value);
+						$ret1 = new U3A_TEXTAREA($form_input_detail->get_input_name(), $form_input_detail->get_input_name(),
+						  $form_input_detail->cssclass, $form_input_detail->initial_value);
 						break;
 					default:
-						$ret1 = new U3A_INPUT($form_input_detail->type, $form_input_detail->get_input_name(), $form_input_detail->get_input_name(), $form_input_detail->cssclass, $form_input_detail->initial_value);
+						$ret1 = new U3A_INPUT($form_input_detail->type, $form_input_detail->get_input_name(),
+						  $form_input_detail->get_input_name(), $form_input_detail->cssclass, $form_input_detail->initial_value);
 						break;
 				}
 				$atts = $form_input_detail->get_attributes();
@@ -2851,7 +2960,8 @@ class U3A_IFRAME extends U3A_HTML_Object
 
 	public function __construct($src, $id = null, $cssclass = null, $alt = null)
 	{
-		parent::__construct('iframe', new U3A_P($alt == null ? "Your browser does not support iframes." : $alt), $id, $cssclass);
+		parent::__construct('iframe', new U3A_P($alt == null ? "Your browser does not support iframes." : $alt), $id,
+		  $cssclass);
 		if ($src != null)
 		{
 			$this->_data['src'] = $src;
@@ -3030,7 +3140,8 @@ class U3A_INPUT extends U3A_HTML_Object
 
 	public static function yes_no_ignore_value_radio_array($name, $horizontal = true)
 	{
-		$rad = self::radio_array($name, ["yes" => 1, "no" => 0, "ignore" => -1], $horizontal, "ignore", "u3a_enable_if_checked('$name-yes', 'u3a-filter-$name-yes-value')");
+		$rad = self::radio_array($name, ["yes" => 1, "no" => 0, "ignore" => -1], $horizontal, "ignore",
+			 "u3a_enable_if_checked('$name-yes', 'u3a-filter-$name-yes-value')");
 		$div0 = new U3A_DIV($rad, null, "u3a-filter-ignore-div-class");
 		$val = new U3A_INPUT("text", "$name-value", "u3a-filter-$name-yes-value", "u3a-filter-ignore-value-class");
 		$val->add_attribute("disabled", "disabled");
@@ -3064,7 +3175,8 @@ class U3A_INPUT extends U3A_HTML_Object
 			}
 			if ($horizontal)
 			{
-				$ret[] = new U3A_DIV([new U3A_LABEL($inp, $label, "$name-$lab-div", "u3a-radio-array-div"), $inp], null, "u3a-inline-block");
+				$ret[] = new U3A_DIV([new U3A_LABEL($inp, $label, "$name-$lab-div", "u3a-radio-array-div"), $inp], null,
+				  "u3a-inline-block");
 			}
 			else
 			{
@@ -3087,11 +3199,13 @@ class U3A_INPUT extends U3A_HTML_Object
 //			}
 			if ($horizontal)
 			{
-				$ret[] = new U3A_DIV([new U3A_LABEL($inp, $label, "$id-$lab-div", "u3a-checkbox-array-label u3a-inline-block $label_cssclass"), $inp], null, "u3a-inline-block");
+				$ret[] = new U3A_DIV([new U3A_LABEL($inp, $label, "$id-$lab-div",
+					  "u3a-checkbox-array-label u3a-inline-block $label_cssclass"), $inp], null, "u3a-inline-block");
 			}
 			else
 			{
-				$ret[] = new U3A_DIV([new U3A_LABEL($inp, $label, "$id-$lab-div", "u3a-checkbox-array-label u3a-inline-block $label_cssclass"), $inp], null, "u3a-block");
+				$ret[] = new U3A_DIV([new U3A_LABEL($inp, $label, "$id-$lab-div",
+					  "u3a-checkbox-array-label u3a-inline-block $label_cssclass"), $inp], null, "u3a-block");
 			}
 		}
 		return $ret;
@@ -3522,7 +3636,8 @@ class U3A_Concertina extends U3A_DIV
 
 	public function __construct($text, $contents, $slug = null, $loadparam = null)
 	{
-		parent::__construct(self::make_contents($text, $contents, $slug, $loadparam), self::make_id($contents, $slug), "u3a-expandable-outer");
+		parent::__construct(self::make_contents($text, $contents, $slug, $loadparam), self::make_id($contents, $slug),
+		  "u3a-expandable-outer");
 	}
 
 }
@@ -3582,9 +3697,11 @@ class U3A_Collapse extends U3A_DIV
 		return array($hdgdiv, $panel);
 	}
 
-	public function __construct($contents, $id, $cssclass, $heading, $headingnum = 2, $open = false, $parentid = null, $selectable = false)
+	public function __construct($contents, $id, $cssclass, $heading, $headingnum = 2, $open = false, $parentid = null,
+	  $selectable = false)
 	{
-		parent::__construct(self::make_contents($contents, $id, $cssclass, $heading, $headingnum, $open, $parentid, $selectable), $id, $cssclass == null ? "panel panel-default" : ("panel panel-default " . $cssclass));
+		parent::__construct(self::make_contents($contents, $id, $cssclass, $heading, $headingnum, $open, $parentid,
+			 $selectable), $id, $cssclass == null ? "panel panel-default" : ("panel panel-default " . $cssclass));
 	}
 
 }
@@ -4042,7 +4159,8 @@ class U3A_Audio_Folder extends U3A_Folder
 
 	public function __construct($dirpath)
 	{
-		parent::__construct($dirpath, true, ["audio"	 => U3A_File_Utilities::$audio_extensions, "image"	 => U3A_File_Utilities::$image_extensions,
+		parent::__construct($dirpath, true,
+		  ["audio"	 => U3A_File_Utilities::$audio_extensions, "image"	 => U3A_File_Utilities::$image_extensions,
 			"m3u"		 => ["m3u", "m3u8"], "cue"		 => ["cue"], "txt"		 => ["txt"], "pdf"		 => ["pdf"]]);
 		$all_start_with_number = true;
 		foreach ($this->_data["label_audio"] as $f)
@@ -4263,7 +4381,8 @@ class U3A_Thread
 	private $_date;
 	private $_subthreads = [];
 
-	public function __construct($obj, $forum_id, $keyfield = "id", $titlefield = "title", $contentsfield = "contents", $datefield = "date_posted")
+	public function __construct($obj, $forum_id, $keyfield = "id", $titlefield = "title", $contentsfield = "contents",
+	  $datefield = "date_posted")
 	{
 		$this->_object = $obj;
 		$this->_forum_id = $forum_id;
@@ -4368,14 +4487,17 @@ class U3A_Thread
 //		$t = new U3A_INPUT("text", null, "u3a-thread-title-$k", "u3a-arrow-only u3a-thread-title", $this->_title . $ct);
 //		$t->add_attribute("readonly", "readonly");
 		$t = new U3A_SPAN($this->_title . $ct, "u3a-thread-title-$k", "u3a-arrow-only u3a-thread-title");
-		$btnup = new U3A_A('#', '<span class="dashicons dashicons-arrow-up-alt2"></span>', "u3a-thread-$k-up", "u3a-invisible", "u3a_toggle_up_down('u3a-thread-$k-', 'up', '$divid')");
+		$btnup = new U3A_A('#', '<span class="dashicons dashicons-arrow-up-alt2"></span>', "u3a-thread-$k-up",
+		  "u3a-invisible", "u3a_toggle_up_down('u3a-thread-$k-', 'up', '$divid')");
 		$btnup->add_tooltip("hide post");
-		$btndown = new U3A_A("#", '<span class="dashicons dashicons-arrow-down-alt2"></span>', "u3a-thread-$k-down", "", "u3a_toggle_up_down('u3a-thread-$k-', 'down', '$divid')");
+		$btndown = new U3A_A("#", '<span class="dashicons dashicons-arrow-down-alt2"></span>', "u3a-thread-$k-down", "",
+		  "u3a_toggle_up_down('u3a-thread-$k-', 'down', '$divid')");
 		$btndown->add_tooltip("show post");
 		$btnx = null;
 		if ($candelete)
 		{
-			$btnx = new U3A_A("#", '<span class="dashicons dashicons-no-alt"></span>', "u3a-thread-$k-del", "", "u3a_delete_thread('$id', '$k')");
+			$btnx = new U3A_A("#", '<span class="dashicons dashicons-no-alt"></span>', "u3a-thread-$k-del", "",
+			  "u3a_delete_thread('$id', '$k')");
 			$btnx->add_tooltip("delete post");
 		}
 		$titlediv = new U3A_DIV([$t, $btnup, $btndown, $btnx], "u3a-thread-title-div-$k", "u3a-thread-title-div");
@@ -4413,7 +4535,8 @@ class U3A_Forum
 	private $_datefield;
 	private $_replytofield;
 
-	public function __construct($name, $id, $keep_days, $keyfield = "id", $titlefield = "title", $contentsfield = "contents", $datefield = "date_posted", $replytofield = "reply_to")
+	public function __construct($name, $id, $keep_days, $keyfield = "id", $titlefield = "title",
+	  $contentsfield = "contents", $datefield = "date_posted", $replytofield = "reply_to")
 	{
 		$this->_keyfield = $keyfield;
 		$this->_titlefield = $titlefield;
@@ -4465,7 +4588,8 @@ class U3A_Forum
 		{
 			$rt = $post->$rtf;
 			$key = $post->$kf;
-			$th = new U3A_Thread($post, $this->_id, $this->_keyfield, $this->_titlefield, $this->_contentsfield, $this->_datefield);
+			$th = new U3A_Thread($post, $this->_id, $this->_keyfield, $this->_titlefield, $this->_contentsfield,
+			  $this->_datefield);
 			$nthreads = count($this->_threads);
 			$this->_keyarray[$key] = $nthreads;
 			$this->_threads[$nthreads] = $th;
@@ -4480,7 +4604,8 @@ class U3A_Forum
 	public function to_html($candelete = false)
 	{
 		$id = $this->_id;
-		$newthread = new U3A_A("#", 'say something', "u3a-forum-new-thread-$id", "u3a-forum-link", "u3a_get_forum_post('$id', 0)");
+		$newthread = new U3A_A("#", 'say something', "u3a-forum-new-thread-$id", "u3a-forum-link",
+		  "u3a_get_forum_post('$id', 0)");
 		$newthreaddiv = new U3A_DIV($newthread, "u3a-forum-new-thread-div-$id", "u3a-forum-new-thread-div");
 		$contents = $newthreaddiv->to_html();
 		$rtf = $this->_replytofield;

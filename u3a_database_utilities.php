@@ -30,11 +30,13 @@ class U3A_Document_Utilities
 		$options = [];
 		for ($n = 0; $n < count(self::$visibilities); $n++)
 		{
-			$options[$n] = new U3A_OPTION(self::$visibilities[$n][1], self::$visibilities[$n][0], self::$visibilities[$n][0] === $selected);
+			$options[$n] = new U3A_OPTION(self::$visibilities[$n][1], self::$visibilities[$n][0],
+			  self::$visibilities[$n][0] === $selected);
 		}
 //		$options[1] = new U3A_OPTION("u3a", self::VISIBILITY_U3A, false);
 //		$options[2] = new U3A_OPTION("public", self::VISIBILITY_PUBLIC, false);
-		$ret = new U3A_SELECT($options, "visibility", "u3a-visibility-$op-$groups_id-$type", "u3a-visibility-select-class u3a-width-5-em");
+		$ret = new U3A_SELECT($options, "visibility", "u3a-visibility-$op-$groups_id-$type",
+		  "u3a-visibility-select-class u3a-width-5-em");
 		return $ret;
 	}
 
@@ -70,7 +72,8 @@ class U3A_Document_Utilities
 		$file_input->add_attribute("accept", $params["accept"]);
 		$file_input->add_attribute("onchange", "upload_file_changed('" . $file_input_id . "')");
 // get_select_list($grp, $type = 0, $id = "", $onchange = null, $selected1 = null, $include_default = false, $include = null, $omit = null)
-		$select = U3A_Document_Categories::get_select_list($id, $mbrgrp, $type, "manage-documents", "u3a_document_category_change");
+		$select = U3A_Document_Categories::get_select_list($id, $mbrgrp, $type, "manage-documents",
+			 "u3a_document_category_change");
 		if ($selected_category_id)
 		{
 			if ($select)
@@ -86,14 +89,18 @@ class U3A_Document_Utilities
 		$selid = $select["id"];
 		if ($selid)
 		{
-			$sel = U3A_HTML::labelled_html_object("$category_label: ", $select["select"], null, "u3a-input-label-class", false, true, null);
+			$sel = U3A_HTML::labelled_html_object("$category_label: ", $select["select"], null, "u3a-input-label-class", false,
+				 true, null);
 		}
 		else
 		{
-			$sel = new U3A_INPUT("hidden", "category", "u3a-upload-category-" . $id . "-" . $type, "u3a-upload-category-class", "0");
+			$sel = new U3A_INPUT("hidden", "category", "u3a-upload-category-" . $id . "-" . $type, "u3a-upload-category-class",
+			  "0");
 		}
-		$div = new U3A_DIV($sel, "u3a-select-list-div-$id-$type", "u3a-select-list-div-class u3a-bottom-margin-5 u3a-top-margin-5");
-		$btn = new U3A_BUTTON("button", "upload", "upload-document-post-button-" . $id . "-" . $type, "u3a-upload-document-post-button-class u3a-button", "u3a_upload_document_from_form($id, '$type', $is_group)");
+		$div = new U3A_DIV($sel, "u3a-select-list-div-$id-$type",
+		  "u3a-select-list-div-class u3a-bottom-margin-5 u3a-top-margin-5");
+		$btn = new U3A_BUTTON("button", "upload", "upload-document-post-button-" . $id . "-" . $type,
+		  "u3a-upload-document-post-button-class u3a-button", "u3a_upload_document_from_form($id, '$type', $is_group)");
 		$visibility = null;
 		if ($type === U3A_Documents::NEWSLETTER_TYPE)
 		{
@@ -104,7 +111,8 @@ class U3A_Document_Utilities
 			}
 			$titlebit = [
 				new U3A_SPAN("number:", null, "u3a-inline-block u3a-margin-left-5 u3a-margin-right-5"),
-				U3A_HTML_Utilities::get_large_number_select("title1", "u3a-newsletter-number", "u3a-inline-block u3a-width-5-em", $num + 1, $num - 100, $num + 100),
+				U3A_HTML_Utilities::get_large_number_select("title1", "u3a-newsletter-number", "u3a-inline-block u3a-width-5-em",
+				  $num + 1, $num - 100, $num + 100),
 				new U3A_SPAN("year:", null, "u3a-inline-block u3a-margin-left-5 u3a-margin-right-5"),
 				U3A_HTML_Utilities::get_year_select("title2", "u3a-newsletter-year", "u3a-inline-block u3a-width-5-em", 8),
 				new U3A_SPAN("month:", null, "u3a-inline-block u3a-margin-left-5 u3a-margin-right-5"),
@@ -117,12 +125,15 @@ class U3A_Document_Utilities
 		else
 		{
 			$titlebit = [
-				U3A_HTML::labelled_html_object("title: ", new U3A_INPUT("string", "title", null, "u3a-input-title-class"), null, "u3a-input-label-class", false, true, "Give a title, default is file name"),
-				U3A_HTML::labelled_html_object($params["by"] . ": ", new U3A_INPUT("string", "by", null, "u3a-input-by-class"), null, "u3a-input-label-class", false, true)
+				U3A_HTML::labelled_html_object("title: ", new U3A_INPUT("string", "title", null, "u3a-input-title-class"), null,
+				  "u3a-input-label-class", false, true, "Give a title, default is file name"),
+				U3A_HTML::labelled_html_object($params["by"] . ": ", new U3A_INPUT("string", "by", null, "u3a-input-by-class"),
+				  null, "u3a-input-label-class", false, true)
 			];
 			if (($type === U3A_Documents::GROUP_DOCUMENT_TYPE) || ($type === U3A_Documents::GROUP_IMAGE_TYPE) || ($type === U3A_Documents::PERSONAL_DOCUMENT_TYPE) || ($type === U3A_Documents::PERSONAL_IMAGE_TYPE))
 			{
-				$visibility = U3A_HTML::labelled_html_object("visibility: ", self::get_visibility_select($id, $type, "add"), null, "u3a-input-label-class", false, true, null);
+				$visibility = U3A_HTML::labelled_html_object("visibility: ", self::get_visibility_select($id, $type, "add"), null,
+					 "u3a-input-label-class", false, true, null);
 			}
 		}
 		$contents = [
@@ -137,7 +148,8 @@ class U3A_Document_Utilities
 //			new U3A_INPUT("hidden", "category", "u3a-upload-category-" . $action . "-" . $memgrp . "-" . $type, "u3a-upload-category-class", "0"),
 			new U3A_DIV($btn, null, "u3a-upload-document-button-div-class u3a-button-div-class")
 		];
-		$uplf = new U3A_FORM($contents, "/wp-admin/admin-ajax.php", "POST", "upload-document-form-" . $id . "-" . $type, "u3a-upload-document-form-class");
+		$uplf = new U3A_FORM($contents, "/wp-admin/admin-ajax.php", "POST", "upload-document-form-" . $id . "-" . $type,
+		  "u3a-upload-document-form-class");
 		$uplf->add_attribute("enctype", "multipart/form-data");
 		$upldocs = new U3A_DIV($uplf, null, "u3a-upload-div-class");
 		$del = [];
@@ -157,15 +169,22 @@ class U3A_Document_Utilities
 					$editid = "u3a-copy-document-" . $id . "-" . $type . "-" . $catid;
 					$editsel = new U3A_SELECT($opts1, "u3a-" . $type_name . "-select", $editid, "u3a-" . $type_name . "-select-class");
 					$editsel->add_attribute("onchange", "u3a_edit_document_changed($id, '" . $type . "')");
-					$editseldiv = new U3A_DIV($editsel, "u3a-edit-select-list-div-$id-$type", "u3a-select-list-div-class u3a-bottom-margin-5 u3a-top-margin-5");
-					$editbtn = new U3A_BUTTON("button", "edit", "edit-document-post-button-" . $id . "-" . $type, "u3a-edit-document-post-button-class u3a-button", "u3a_edit_document($id, '$type', $is_group)");
+					$editseldiv = new U3A_DIV($editsel, "u3a-edit-select-list-div-$id-$type",
+					  "u3a-select-list-div-class u3a-bottom-margin-5 u3a-top-margin-5");
+					$editbtn = new U3A_BUTTON("button", "edit", "edit-document-post-button-" . $id . "-" . $type,
+					  "u3a-edit-document-post-button-class u3a-button", "u3a_edit_document($id, '$type', $is_group)");
 					$titlebit1 = [
-						U3A_HTML::labelled_html_object("title: ", new U3A_INPUT("string", "title", "u3a-edit-title-$id-$type", "u3a-input-title-class", $docs[0]->title), null, "u3a-input-label-class", false, true, "Give a new title"),
-						U3A_HTML::labelled_html_object($params["by"] . ": ", new U3A_INPUT("string", "by", "u3a-edit-by-$id-$type", "u3a-input-by-class", $docs[0]->author), null, "u3a-input-label-class", false, true)
+						U3A_HTML::labelled_html_object("title: ",
+						  new U3A_INPUT("string", "title", "u3a-edit-title-$id-$type", "u3a-input-title-class", $docs[0]->title), null,
+						  "u3a-input-label-class", false, true, "Give a new title"),
+						U3A_HTML::labelled_html_object($params["by"] . ": ",
+						  new U3A_INPUT("string", "by", "u3a-edit-by-$id-$type", "u3a-input-by-class", $docs[0]->author), null,
+						  "u3a-input-label-class", false, true)
 					];
 					if (($type === U3A_Documents::GROUP_DOCUMENT_TYPE) || ($type === U3A_Documents::GROUP_IMAGE_TYPE) || ($type === U3A_Documents::PERSONAL_DOCUMENT_TYPE) || ($type === U3A_Documents::PERSONAL_IMAGE_TYPE))
 					{
-						$titlebit1[] = U3A_HTML::labelled_html_object("visibility: ", self::get_visibility_select($id, $type, "edit"), null, "u3a-input-label-class", false, true, null);
+						$titlebit1[] = U3A_HTML::labelled_html_object("visibility: ", self::get_visibility_select($id, $type, "edit"),
+							 null, "u3a-input-label-class", false, true, null);
 					}
 					$edith = new U3A_H(4, "Edit " . $type_name1);
 					$editdiv = new U3A_DIV([$edith, $editseldiv, $titlebit1, $editbtn], null, "u3a-edit-document-div-class");
@@ -178,14 +197,19 @@ class U3A_Document_Utilities
 					$cpid = "u3a-copy-document-" . $id . "-" . $type . "-" . $catid;
 					$sel = new U3A_SELECT($opts, "u3a-" . $type_name . "-select", $delid, "u3a-" . $type_name . "-select-class");
 					$cpsel = new U3A_SELECT($opts, "u3a-" . $type_name . "-select", $cpid, "u3a-" . $type_name . "-select-class");
-					$sel1 = U3A_Document_Categories::get_select_list($id, $id, $type, "select-category-move-$catid", null, -1, true, "trash", $catid);
-					$cpsel1 = U3A_Document_Categories::get_select_list($id, $id, $type, "select-category-copy-$catid", null, -1, true, null, $catid);
+//					write_log("this one");
+					$sel1 = U3A_Document_Categories::get_select_list($id, $mbrgrp, $type, "select-category-move-$catid", null, -1,
+						 true, "trash", $catid);
+					$cpsel1 = U3A_Document_Categories::get_select_list($id, $mbrgrp, $type, "select-category-copy-$catid", null, -1,
+						 true, null, $catid);
 					if ($type === U3A_Documents::NEWSLETTER_TYPE)
 					{
 						$lbl = [
 							new U3A_SPAN("select " . $type_name . " to delete: ", null, "u3a-block u3a-margin-right-5"),
 							$sel,
-							new U3A_BUTTON("button", "delete", "u3a-" . $type_name . "-delete-button", "u3a-select-button-class u3a-button u3a-margin-left-5", "u3a_move_document('$delid', '$type_name', '" . $sel1["id"] . "', '$catid', '$id', $is_group)")
+							new U3A_BUTTON("button", "delete", "u3a-" . $type_name . "-delete-button",
+							  "u3a-select-button-class u3a-button u3a-margin-left-5",
+							  "u3a_move_document('$delid', '$type_name', '" . $sel1["id"] . "', '$catid', '$id', $is_group)")
 						];
 					}
 					else
@@ -195,23 +219,33 @@ class U3A_Document_Utilities
 							$sel,
 							new U3A_SPAN("to", null, "u3a-inline-block u3a-margin-right-5 u3a-margin-left-5"),
 							$sel1["select"],
-							new U3A_BUTTON("button", "move", "u3a-" . $type_name . "-move-button", "u3a-select-button-class u3a-button u3a-margin-left-5", "u3a_move_document('$delid', '$type_name', '" . $sel1["id"] . "', '$catid', '$id', $is_group)")
+							new U3A_BUTTON("button", "move", "u3a-" . $type_name . "-move-button",
+							  "u3a-select-button-class u3a-button u3a-margin-left-5",
+							  "u3a_move_document('$delid', '$type_name', '" . $sel1["id"] . "', '$catid', '$id', $is_group)")
 						];
-						$mvdiv = new U3A_DIV($mv, "u3a-move-document-div-" . $id . "-" . $type . "-" . $catid, "u3a-move-document-div-class-$type");
+						$mvdiv = new U3A_DIV($mv, "u3a-move-document-div-" . $id . "-" . $type . "-" . $catid,
+						  "u3a-move-document-div-class-$type");
 						$cp = [
 							new U3A_SPAN("select " . $type_name . " to copy: ", null, "u3a-block u3a-margin-right-5"),
 							$cpsel,
 							new U3A_SPAN("to", null, "u3a-inline-block u3a-margin-right-5 u3a-margin-left-5"),
 							$cpsel1["select"],
-							new U3A_BUTTON("button", "copy", "u3a-" . $type_name . "-copy-button", "u3a-select-button-class u3a-button u3a-margin-left-5", "u3a_copy_document('$cpid', '$type_name', '" . $cpsel1["id"] . "', '$catid', '$id', $is_group)")
+							new U3A_BUTTON("button", "copy", "u3a-" . $type_name . "-copy-button",
+							  "u3a-select-button-class u3a-button u3a-margin-left-5",
+							  "u3a_copy_document('$cpid', '$type_name', '" . $cpsel1["id"] . "', '$catid', '$id', $is_group)")
 						];
-						$cpdiv = new U3A_DIV($cp, "u3a-copy-document-div-" . $id . "-" . $type . "-" . $catid, "u3a-copy-document-div-class-$type");
-						$sortlist = U3A_HTML_Utilities::get_list_from_object_array($docs, "title", "id", false, "u3a-sort-list-$id-$type-$catid", "u3a-sort-list", "u3a-sort-list-item");
-						$instruct = new U3A_DIV("use mouse to move up and down", "u3a-instruction-$id-$type-$catid", "u3a-border-top u3a-margin-top-5");
+						$cpdiv = new U3A_DIV($cp, "u3a-copy-document-div-" . $id . "-" . $type . "-" . $catid,
+						  "u3a-copy-document-div-class-$type");
+						$sortlist = U3A_HTML_Utilities::get_list_from_object_array($docs, "title", "id", false,
+							 "u3a-sort-list-$id-$type-$catid", "u3a-sort-list", "u3a-sort-list-item");
+						$instruct = new U3A_DIV("use mouse to move up and down", "u3a-instruction-$id-$type-$catid",
+						  "u3a-border-top u3a-margin-top-5");
 						$cls = '<span class="dashicons dashicons-yes-alt"></span>';
-						$close = new U3A_A('#', $cls, "u3a-close-sort-list-$id-$type-$catid", null, "u3a_sort_list_close('$id', '$type', '$catid', $is_group);");
+						$close = new U3A_A('#', $cls, "u3a-close-sort-list-$id-$type-$catid", null,
+						  "u3a_sort_list_close('$id', '$type', '$catid', $is_group);");
 						$close->add_attribute("rel", "modal:close");
-						$sortdiv = new U3A_DIV([$sortlist, $instruct, $close], "u3a-sort-list-div-$id-$type-$catid", "modal u3a-sort-list-div");
+						$sortdiv = new U3A_DIV([$sortlist, $instruct, $close], "u3a-sort-list-div-$id-$type-$catid",
+						  "modal u3a-sort-list-div");
 						$open = new U3A_A("#u3a-sort-list-div-$id-$type-$catid", 'sort', null, "u3a-button u3a-block");
 						$open->add_attribute("role", "button");
 						$open->add_attribute("rel", "modal:open");
@@ -222,7 +256,8 @@ class U3A_Document_Utilities
 				{
 					$lbl = new U3A_SPAN("There are no " . $type_name . "s in this $category_label.", null, "u3a-inline-block");
 				}
-				$div = new U3A_DIV($lbl, "u3a-manage-document-div-" . $id . "-" . $type . "-" . $catid, "u3a-manage-document-div-class-$type u3a-border-top");
+				$div = new U3A_DIV($lbl, "u3a-manage-document-div-" . $id . "-" . $type . "-" . $catid,
+				  "u3a-manage-document-div-class-$type u3a-border-top");
 				if ($catid && $catid != $select["selected"])
 				{
 					$div->add_class("u3a-invisible");
@@ -232,7 +267,8 @@ class U3A_Document_Utilities
 		}
 		else
 		{
-			$del[] = new U3A_DIV("No " . $type_name . "s found", "u3a-manage-documents-div-" . $id . "-" . $type, "u3a-manage-document-div-class-$type u3a-border-top");
+			$del[] = new U3A_DIV("No " . $type_name . "s found", "u3a-manage-documents-div-" . $id . "-" . $type,
+			  "u3a-manage-document-div-class-$type u3a-border-top");
 		}
 		return [$upldocs, $del];
 	}
@@ -312,36 +348,44 @@ class U3A_Document_Utilities
 						$sel = "";
 						$vis = " u3a-invisible";
 					}
-					$div = new U3A_BUTTON("button", $catname, "u3a-category-name-$grp-$type-$m", "u3a-block u3a-category-name-class$sel", "u3a_category_name_clicked($grp, $type, $m)");
+					$div = new U3A_BUTTON("button", $catname, "u3a-category-name-$grp-$type-$m",
+					  "u3a-block u3a-category-name-class$sel", "u3a_category_name_clicked($grp, $type, $m)");
 					$cats[] = $div;
 					$catdocs = [];
 					$n = 0;
 					foreach ($documents["documents"] as $doc)
 					{
-						$cb = new U3A_INPUT("checkbox", null, "u3a-document-checkbox-$grp-$type-$m-$n", "u3a-document-checkbox-class", $doc->attachment_id);
-						$lbl = new U3A_LABEL("u3a-document-checkbox-$grp-$type-$m-$n", $doc->get_title(), "u3a-document-checkbox-label-$grp-$type-$m-$n", "u3a-inline-block u3a-margin-left-5");
+						$cb = new U3A_INPUT("checkbox", null, "u3a-document-checkbox-$grp-$type-$m-$n", "u3a-document-checkbox-class",
+						  $doc->attachment_id);
+						$lbl = new U3A_LABEL("u3a-document-checkbox-$grp-$type-$m-$n", $doc->get_title(),
+						  "u3a-document-checkbox-label-$grp-$type-$m-$n", "u3a-inline-block u3a-margin-left-5");
 						$catdocs[] = new U3A_DIV([$cb, $lbl], null, "u3a-document-name-class");
 						$n++;
 					}
-					$docs[] = new U3A_DIV($catdocs, "u3a-category-documents-$grp-$type-$m", "u3a-va-top u3a-category-documents-class$vis");
+					$docs[] = new U3A_DIV($catdocs, "u3a-category-documents-$grp-$type-$m",
+					  "u3a-va-top u3a-category-documents-class$vis");
 					$m++;
 				}
 			}
 			$catlist = new U3A_DIV($cats, "u3a-category-list-$grp-$type", "u3a-inline-block u3a-va-top");
-			$div1 = new U3A_DIV([$catlist, $docs], "u3a-document-select-lists-div-$grp-$type", "u3a-document-select-lists-div-class");
-			$okbtn = new U3A_BUTTON("button", "OK", "u3a-document-select-button-$grp-$type", "u3a-button", "u3a_document_selected($grp, $type)");
+			$div1 = new U3A_DIV([$catlist, $docs], "u3a-document-select-lists-div-$grp-$type",
+			  "u3a-document-select-lists-div-class");
+			$okbtn = new U3A_BUTTON("button", "OK", "u3a-document-select-button-$grp-$type", "u3a-button",
+			  "u3a_document_selected($grp, $type)");
 			$okdiv = new U3A_DIV($okbtn, "u3a-document-select-button-div-$grp-$type", "u3a-document-select-button-class");
 			$ret = new U3A_DIV([$div1, $okdiv], "u3a-document-select-group-$grp-$type", "u3a-document-select-class u3a-invisible");
 		}
 		return $ret;
 	}
 
-	public static function get_category_list_item($cat, $list_idprefix, $list_cssclass, $item_cssclass, $text_cssclass, $strict = false)
+	public static function get_category_list_item($cat, $list_idprefix, $list_cssclass, $item_cssclass, $text_cssclass,
+	  $strict = false)
 	{
 		$contents = null;
 		if ($strict)
 		{
-			$contents = [new U3A_SPAN($cat->name, null, $text_cssclass), new U3A_INPUT("hidden", null, null, $item_cssclass . "-id", $cat->id)];
+			$contents = [new U3A_SPAN($cat->name, null, $text_cssclass), new U3A_INPUT("hidden", null, null,
+				  $item_cssclass . "-id", $cat->id)];
 		}
 		else
 		{
@@ -355,27 +399,32 @@ class U3A_Document_Utilities
 					array_unshift($subcats, $cat);
 					$strict1 = true;
 				}
-				$contents = get_category_list($subcats, $strict1, $list_idprefix . $cat->id . "-", $list_cssclass . "-sub", $item_cssclass, $text_cssclass);
+				$contents = get_category_list($subcats, $strict1, $list_idprefix . $cat->id . "-", $list_cssclass . "-sub",
+				  $item_cssclass, $text_cssclass);
 			}
 			else
 			{
-				$contents = [new U3A_SPAN($cat->name, null, $text_cssclass), new U3A_INPUT("hidden", null, null, $item_cssclass . "-id", $cat->id)];
+				$contents = [new U3A_SPAN($cat->name, null, $text_cssclass), new U3A_INPUT("hidden", null, null,
+					  $item_cssclass . "-id", $cat->id)];
 			}
 		}
 		return new U3A_LI($contents, null, $item_cssclass);
 	}
 
-	public static function get_category_list($cats, $strict1, $list_idprefix, $list_cssclass, $item_cssclass, $text_cssclass)
+	public static function get_category_list($cats, $strict1, $list_idprefix, $list_cssclass, $item_cssclass,
+	  $text_cssclass)
 	{
 		$li = [];
 		if ($cats)
 		{
-			$li[0] = self::get_category_list_item($cats[0], $list_idprefix, $list_cssclass, $item_cssclass, $text_cssclass, $strict1);
+			$li[0] = self::get_category_list_item($cats[0], $list_idprefix, $list_cssclass, $item_cssclass, $text_cssclass,
+				 $strict1);
 			if (count($cats) > 1)
 			{
 				for ($n = 1; $n < count($cats); $n++)
 				{
-					$li[$n] = self::get_category_list_item($cats[$n], $list_idprefix, $list_cssclass, $item_cssclass, $text_cssclass, false);
+					$li[$n] = self::get_category_list_item($cats[$n], $list_idprefix, $list_cssclass, $item_cssclass, $text_cssclass,
+						 false);
 				}
 			}
 		}
@@ -383,22 +432,30 @@ class U3A_Document_Utilities
 		return new U3A_LIST($li, false, $list_idprefix . "list", $list_cssclass);
 	}
 
-	public static function get_category_list_group($groups_id, $type, $list_idprefix = "u3a-category-list-", $list_cssclass = "u3a-category-list", $item_cssclass = "u3a-category-listitem", $text_cssclass = "u3a-category-list-text")
+	public static function get_category_list_group($groups_id, $type, $list_idprefix = "u3a-category-list-",
+	  $list_cssclass = "u3a-category-list", $item_cssclass = "u3a-category-listitem",
+	  $text_cssclass = "u3a-category-list-text")
 	{
 		$cats = U3A_Document_Categories::get_categories_for_group($groups_id, $type, false);
 		$list = self::get_category_list($cats, false, $list_idprefix, $list_cssclass, $item_cssclass, $text_cssclass);
-		$id = new U3A_INPUT("hidden", "listid", $list_idprefix . "id-value-$groups_id-$type", "u3a-category-list-id-input", $groups_id);
-		$typ = new U3A_INPUT("hidden", "listtype", $list_idprefix . "type-value-$groups_id-$type", "u3a-category-list-type-input", $type);
+		$id = new U3A_INPUT("hidden", "listid", $list_idprefix . "id-value-$groups_id-$type", "u3a-category-list-id-input",
+		  $groups_id);
+		$typ = new U3A_INPUT("hidden", "listtype", $list_idprefix . "type-value-$groups_id-$type",
+		  "u3a-category-list-type-input", $type);
 		return [$id, $typ, $list];
 	}
 
-	public static function get_category_list_member($members_id, $type, $list_idprefix = "u3a-category-list-", $list_cssclass = "u3a-category-list", $item_cssclass = "u3a-category-listitem", $text_cssclass = "u3a-category-list-text")
+	public static function get_category_list_member($members_id, $type, $list_idprefix = "u3a-category-list-",
+	  $list_cssclass = "u3a-category-list", $item_cssclass = "u3a-category-listitem",
+	  $text_cssclass = "u3a-category-list-text")
 	{
 		$cats = U3A_Document_Categories::get_categories_for_member($members_id, $type, false);
 //		write_log("cats", $cats);
 		$list = self::get_category_list($cats, false, $list_idprefix, $list_cssclass, $item_cssclass, $text_cssclass);
-		$id = new U3A_INPUT("hidden", "listid", $list_idprefix . "id-value-$members_id-$type", "u3a-category-list-id-input", $members_id);
-		$typ = new U3A_INPUT("hidden", "listtype", $list_idprefix . "type-value-$members_id-$type", "u3a-category-list-type-input", $type);
+		$id = new U3A_INPUT("hidden", "listid", $list_idprefix . "id-value-$members_id-$type", "u3a-category-list-id-input",
+		  $members_id);
+		$typ = new U3A_INPUT("hidden", "listtype", $list_idprefix . "type-value-$members_id-$type",
+		  "u3a-category-list-type-input", $type);
 		return [$id, $typ, $list];
 	}
 
@@ -447,7 +504,8 @@ class U3A_Link_Utilities
 					$divs[] = new U3A_DIV($a, "u3a-link-div-" . $link->id, "u3a-link-div u3a-margin-left-10");
 				}
 			}
-			$ret = new U3A_DIV([$h, $divs], "u3a-section-div-" . $section->id, "u3a-section-div u3a-border-bottom u3a-padding-bottom-5");
+			$ret = new U3A_DIV([$h, $divs], "u3a-section-div-" . $section->id,
+			  "u3a-section-div u3a-border-bottom u3a-padding-bottom-5");
 		}
 		return $ret;
 	}
@@ -471,7 +529,8 @@ class U3A_Link_Utilities
 		{
 			$opts[] = new U3A_OPTION($section->name, $section->id);
 		}
-		$ret = new U3A_SELECT($opts, "link_section_select", "u3a-link-section-select-$groups_id-$members_id", "u3a-link-section-select u3a-width-30-em");
+		$ret = new U3A_SELECT($opts, "link_section_select", "u3a-link-section-select-$groups_id-$members_id",
+		  "u3a-link-section-select u3a-width-30-em");
 		$ret->add_attribute("onchange", "u3a_link_section_select_changed($groups_id, $members_id)");
 		return $ret;
 	}
@@ -510,14 +569,20 @@ class U3A_Option_Utilities
 			$valinp = self::get_option_input($opt, $memgrp_id, $optval);
 			$valinp->add_attribute("disabled", "disabled");
 			$opts[] = new U3A_OPTION($dname, $id);
-			$vals[] = new U3A_DIV([$valinp, $cssinp, $nameinp], "u3a-option-value-$memgrp_id-$id", "u3a-option-select-value-div u3a-invisible u3a-width-100-pc");
+			$vals[] = new U3A_DIV([$valinp, $cssinp, $nameinp], "u3a-option-value-$memgrp_id-$id",
+			  "u3a-option-select-value-div u3a-invisible u3a-width-100-pc");
 		}
-		$sel = new U3A_SELECT($opts, "option_select", "u3a-option-select-$category-$memgrp_id", "u3a-option-select u3a-width-20-em");
+		$sel = new U3A_SELECT($opts, "option_select", "u3a-option-select-$category-$memgrp_id",
+		  "u3a-option-select u3a-width-20-em");
 		$sel->add_attribute("onchange", "u3a_option_select_changed($category, $memgrp_id)");
-		$div = new U3A_DIV($vals, "u3a-value-div-$category-$memgrp_id", "u3a-inline-block u3a-width-50-pc u3a-margin-left-10 u3a-margin-right-5");
-		$btn = new U3A_BUTTON("button", "edit", "u3a-option-edit-$category-$memgrp_id", "u3a-button u3a-option-button-edit u3a-margin-right-5", "u3a_edit_option_button_clicked($category, $memgrp_id)");
-		$cbtn = new U3A_BUTTON("button", "cancel", "u3a-option-cancel-$category-$memgrp_id", "u3a-button u3a-margin-right-5", "u3a_cancel_option_button_clicked($category, $memgrp_id)");
-		$rbtn = new U3A_BUTTON("button", "reset", "u3a-option-reset-$category-$memgrp_id", "u3a-button", "u3a_reset_option_button_clicked($category, $memgrp_id)");
+		$div = new U3A_DIV($vals, "u3a-value-div-$category-$memgrp_id",
+		  "u3a-inline-block u3a-width-50-pc u3a-margin-left-10 u3a-margin-right-5");
+		$btn = new U3A_BUTTON("button", "edit", "u3a-option-edit-$category-$memgrp_id",
+		  "u3a-button u3a-option-button-edit u3a-margin-right-5", "u3a_edit_option_button_clicked($category, $memgrp_id)");
+		$cbtn = new U3A_BUTTON("button", "cancel", "u3a-option-cancel-$category-$memgrp_id", "u3a-button u3a-margin-right-5",
+		  "u3a_cancel_option_button_clicked($category, $memgrp_id)");
+		$rbtn = new U3A_BUTTON("button", "reset", "u3a-option-reset-$category-$memgrp_id", "u3a-button",
+		  "u3a_reset_option_button_clicked($category, $memgrp_id)");
 		$cbtn->add_attribute("disabled", "disabled");
 		return new U3A_DIV([$sel, $div, $btn, $cbtn, $rbtn], "u3a-select-option-div-$category-$memgrp_id", "");
 	}
@@ -528,7 +593,8 @@ class U3A_Option_Utilities
 		$type = $option->option_type;
 		if (!$optval)
 		{
-			$optval = U3A_Row::get_single_value("U3A_Options_Values", "value", ["options_id" => $option->id, "memgrp_id" => $memgrp_id]);
+			$optval = U3A_Row::get_single_value("U3A_Options_Values", "value",
+				 ["options_id" => $option->id, "memgrp_id" => $memgrp_id]);
 			if ($optval === null)
 			{
 				$optval = $option->default_value;
@@ -544,25 +610,29 @@ class U3A_Option_Utilities
 			{
 				$opts[] = new U3A_OPTION($name, $val, $val == $optval, null, "u3a-option-values");
 			}
-			$ret = new U3A_SELECT($opts, "u3a-option-value", "u3a-option-value-" . $option->id . '-' . $memgrp_id, "u3a-option-value u3a-option-value-enumeration");
+			$ret = new U3A_SELECT($opts, "u3a-option-value", "u3a-option-value-" . $option->id . '-' . $memgrp_id,
+			  "u3a-option-value u3a-option-value-enumeration");
 		}
 		else
 		{
 			switch ($type) {
 				case U3A_Options::OPTION_TYPE_INT:
 					{
-						$ret = new U3A_INPUT("number", "u3a-option-value", "u3a-option-value-" . $option->id . '-' . $memgrp_id, "u3a-option-value u3a-option-value-number", $optval);
+						$ret = new U3A_INPUT("number", "u3a-option-value", "u3a-option-value-" . $option->id . '-' . $memgrp_id,
+						  "u3a-option-value u3a-option-value-number", $optval);
 						break;
 					}
 				case U3A_Options::OPTION_TYPE_COLOUR:
 					{
-						$ret = new U3A_INPUT("color", "u3a-option-value", "u3a-option-value-" . $option->id . '-' . $memgrp_id, "u3a-option-value u3a-option-value-number", $optval);
+						$ret = new U3A_INPUT("color", "u3a-option-value", "u3a-option-value-" . $option->id . '-' . $memgrp_id,
+						  "u3a-option-value u3a-option-value-number", $optval);
 						break;
 					}
 				case U3A_Options::OPTION_TYPE_BOOLEAN:
 					{
 						$optvall = strtolower($optval);
-						$ret = new U3A_INPUT("checkbox", "u3a-option-value", "u3a-option-value-" . $option->id . '-' . $memgrp_id, "u3a-option-value u3a-option-value-boolean", $optval);
+						$ret = new U3A_INPUT("checkbox", "u3a-option-value", "u3a-option-value-" . $option->id . '-' . $memgrp_id,
+						  "u3a-option-value u3a-option-value-boolean", $optval);
 						if (($optvall === "true") || ($optvall = "yes"))
 						{
 							$ret->add_attribute("checked", "checked");
@@ -571,12 +641,82 @@ class U3A_Option_Utilities
 					}
 				default:
 					{
-						$ret = new U3A_INPUT("text", "u3a-option-value", "u3a-option-value-" . $option->id . '-' . $memgrp_id, "u3a-option-value u3a-option-value-text", $optval);
+						$ret = new U3A_INPUT("text", "u3a-option-value", "u3a-option-value-" . $option->id . '-' . $memgrp_id,
+						  "u3a-option-value u3a-option-value-text", $optval);
 						break;
 					}
 			}
 		}
 		return $ret;
+	}
+
+}
+
+class U3A_Venue_Utilities
+{
+
+	public static function get_venue_select_list($select_id, $selected = 0)
+	{
+		$vn = U3A_Row::load_array_of_objects("U3A_Venues", null, "venue");
+		$opts = [];
+		$opts[] = new U3A_OPTION("please select a venue", 0, $selected === 0);
+		foreach ($vn["result"] as $venue)
+		{
+			$opts[] = new U3A_OPTION($venue->venue, $venue->id, $venue->id == $selected);
+		}
+		return new U3A_SELECT($opts, "selected_venue", $select_id, "u3a-venue-select");
+	}
+
+	public static function get_venue_editor($op, $venue = null)
+	{
+		$id = "u3a-$op-venue";
+		if ($venue)
+		{
+			$venue = U3A_Venues::get_venue_object($venue);
+		}
+		$editor = [];
+		$input0 = new U3A_INPUT("text", "venue", "$id-venue", "u3a-venue-input u3a-name-input-class",
+		  $venue ? $venue->venue : "");
+		$editor[] = U3A_HTML::labelled_html_object("name:", $input0, "$id-venue-label",
+			 "u3a-venue-input-label u3a-input-label-class", false, true);
+		$input1 = new U3A_INPUT("text", "contact", "$id-contact", "u3a-venue-input u3a-name-input-class",
+		  $venue ? $venue->contact : "");
+		$editor[] = U3A_HTML::labelled_html_object("contact:", $input1, "$id-contact-label",
+			 "u3a-venue-input-label u3a-input-label-class", false, true);
+		$input2 = new U3A_TEXTAREA("address", "$id-address", "u3a-venue-input u3a-name-input-class",
+		  $venue ? $venue->address : "");
+		$editor[] = U3A_HTML::labelled_html_object("address:", $input2, "$id-address-label",
+			 "u3a-venue-input-label u3a-input-label-class", false, true);
+		$input3 = new U3A_INPUT("text", "postcode", "$id-postcode", "u3a-venue-input u3a-name-input-class",
+		  $venue ? $venue->postcode : "");
+		$editor[] = U3A_HTML::labelled_html_object("postcode:", $input3, "$id-postcode-label",
+			 "u3a-venue-input-label u3a-input-label-class", false, true);
+		$input4 = new U3A_INPUT("text", "telephone", "$id-telephone", "u3a-venue-input u3a-name-input-class",
+		  $venue ? $venue->telephone : "");
+		$editor[] = U3A_HTML::labelled_html_object("telephone:", $input4, "$id-telephone-label",
+			 "u3a-venue-input-label u3a-input-label-class", false, true);
+		$input5 = new U3A_INPUT("email", "email", "$id-email", "u3a-venue-input u3a-name-input-class",
+		  $venue ? U3A_Utilities::strip_all_slashes($venue->email) : "");
+		$editor[] = U3A_HTML::labelled_html_object("email:", $input5, "$id-email-label",
+			 "u3a-venue-input-label u3a-input-label-class", false, true);
+		$input6 = new U3A_INPUT("url", "website", "$id-website", "u3a-venue-input u3a-name-input-class",
+		  $venue ? $venue->website : "");
+		$editor[] = U3A_HTML::labelled_html_object("website:", $input6, "$id-website-label",
+			 "u3a-venue-input-label u3a-input-label-class", false, true);
+		$input7 = new U3A_INPUT("checkbox", "is_accessible", "$id-is_accessible", "u3a-venue-input u3a-name-input-class",
+		  $venue ? $venue->is_accessible : false);
+		$editor[] = U3A_HTML::labelled_html_object("accessible:", $input7, "$id-is_accessible-label",
+			 "u3a-venue-input-label u3a-input-label-class", false, true);
+		$input8 = new U3A_INPUT("checkbox", "private", "$id-private", "u3a-venue-input u3a-name-input-class",
+		  $venue ? $venue->private : false);
+		$editor[] = U3A_HTML::labelled_html_object("private:", $input8, "$id-private-label",
+			 "u3a-venue-input-label u3a-input-label-class", false, true);
+		$input9 = new U3A_TEXTAREA("notes", "$id-notes", "u3a-venue-input u3a-name-input-class", $venue ? $venue->notes : "");
+		$editor[] = U3A_HTML::labelled_html_object("notes:", $input9, "$id-notes-label",
+			 "u3a-venue-input-label u3a-input-label-class", false, true);
+		$editor[] = new U3A_BUTTON("button", "OK", "$id-ok-button", "u3a-button",
+		  "u3a_edit_venue('$op', " . ($venue ? $venue->id : 0) . ")");
+		return new U3A_DIV($editor, $id, "u3a-venue-editor");
 	}
 
 }

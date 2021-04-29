@@ -53,6 +53,7 @@
 			<?php do_action('spacious_before_header'); ?>
 
 			<?php
+			$header_class = "";
 			$spacious_header_display_type = spacious_options('spacious_header_display_type', 'one');
 			if ($spacious_header_display_type === 'one')
 			{
@@ -92,10 +93,11 @@
 				<?php } ?>
 
 				<?php
-				if ('above' === spacious_options('spacious_header_image_position', 'above'))
-				{
-					spacious_render_header_image();
-				}
+				u3a_render_header_logo();
+//				if ('above' === spacious_options('spacious_header_image_position', 'above'))
+//				{
+//					spacious_render_header_image();
+//				}
 				?>
 
 				<div id="header-text-nav-container" class="<?php echo ( spacious_options('spacious_one_line_menu_setting', 0) == 1 ) ? 'menu-one-line' : ''; ?>">
@@ -124,7 +126,8 @@
 								}
 
 								$screen_reader = '';
-								if (( 'logo_only' === spacious_options('spacious_show_header_logo_text', 'text_only') || 'none' === spacious_options('spacious_show_header_logo_text', 'text_only')))
+								if (( 'logo_only' === spacious_options('spacious_show_header_logo_text', 'text_only') || 'none' === spacious_options('spacious_show_header_logo_text',
+									 'text_only')))
 								{
 									$screen_reader = 'screen-reader-text';
 								}
@@ -135,13 +138,13 @@
 										<h1 id="site-title">
 											<a href="<?php echo esc_url(home_url('/')); ?>"
 												title="The Age of Arda, the Third Age of Middle Earth"
-												rel="home">Arda</a>
+												rel="home"><span class="u3a-inline-block u3a-margin-top-5">Arda</span><!--<img src="https://shrewsburyu3a.org.uk/wp-content/uploads/2021/03/u3alogo1.png" alt="u3a"/> --></a>
 										</h1>
 									<?php else : ?>
 										<h3 id="site-title">
 											<a href="<?php echo esc_url(home_url('/')); ?>"
 												title="The Age of Arda, the Third Age of Middle Earth"
-												rel="home">Arda</a>
+												rel="home"><span class="u3a-inline-block u3a-margin-top-5">Arda</span><!--<img src="https://shrewsburyu3a.org.uk/wp-content/uploads/2021/03/u3alogo1.png" alt="u3a"/> --></a>
 										</h3>
 									<?php
 									endif;

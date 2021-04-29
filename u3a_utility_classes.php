@@ -867,6 +867,11 @@ class U3A_Utilities
 		return filter_var($str, FILTER_VALIDATE_EMAIL);
 	}
 
+	public static function strip_all_slashes($str)
+	{
+		return (str_replace("\\", "", $str));
+	}
+
 	public static function reverse_name($nm)
 	{
 		$lastsp = strrpos($nm, ' ');
@@ -908,6 +913,7 @@ class U3A_Utilities
 
 	public static function get_where_clause($hash, $connective = 'AND')
 	{
+//		write_log("get where clause", $hash);
 		if (is_string($hash))
 		{
 			$ret = $hash;
@@ -961,7 +967,7 @@ class U3A_Utilities
 				elseif (U3A_Utilities::ends_with($key, "~%"))
 				{
 					$key = substr($key, 0, -2);
-					$eq = " LIKE ";
+					$eq = " LIKE  ";
 					$pc = "R";
 				}
 				elseif (U3A_Utilities::ends_with($key, "~~"))
@@ -975,6 +981,7 @@ class U3A_Utilities
 					$eq = " LIKE ";
 					$pc = "";
 				}
+//				write_log($key, $eq, $pc);
 				if (!$first1)
 				{
 					$ret .= " " . $connective . " ";
@@ -1046,7 +1053,23 @@ class U3A_Utilities
 								default:
 									break;
 							}
-							$ret1.= ' (UPPER(' . $key . ")" . $eq . 'UPPER("' . $v . '") OR UPPER(' . $key . ")" . $eq . 'UPPER("' . addslashes($v) . '") OR UPPER(' . $key . ")" . $eq . 'UPPER("' . addslashes(addslashes($v)) . '"))';
+							$v1 = addslashes($v);
+							if ($v === $v1)
+							{
+								$ret1 = ' UPPER(' . $key . ")" . $eq . 'UPPER("' . $v . '")';
+							}
+							else
+							{
+								$v2 = addslashes($v1);
+								if ($v1 === $v2)
+								{
+									$ret1.= ' (UPPER(' . $key . ")" . $eq . 'UPPER("' . $v . '") OR UPPER(' . $key . ")" . $eq . 'UPPER("' . $v1 . '"))';
+								}
+								else
+								{
+									$ret1.= ' (UPPER(' . $key . ")" . $eq . 'UPPER("' . $v . '") OR UPPER(' . $key . ")" . $eq . 'UPPER("' . $v1 . '") OR UPPER(' . $key . ")" . $eq . 'UPPER("' . $v2 . '"))';
+								}
+							}
 						}
 					}
 					$ret .= " (" . $ret1 . ") ";
@@ -1076,7 +1099,23 @@ class U3A_Utilities
 							default:
 								break;
 						}
-						$ret.= ' (UPPER(' . $key . ")" . $eq . 'UPPER("' . $val . '") OR UPPER(' . $key . ")" . $eq . 'UPPER("' . addslashes($val) . '") OR UPPER(' . $key . ")" . $eq . 'UPPER("' . addslashes(addslashes($val)) . '"))';
+						$v1 = addslashes($val);
+						if ($val === $v1)
+						{
+							$ret .= ' UPPER(' . $key . ")" . $eq . 'UPPER("' . $val . '")';
+						}
+						else
+						{
+							$v2 = addslashes($v1);
+							if ($v1 === $v2)
+							{
+								$ret.= ' (UPPER(' . $key . ")" . $eq . 'UPPER("' . $val . '") OR UPPER(' . $key . ")" . $eq . 'UPPER("' . $v1 . '"))';
+							}
+							else
+							{
+								$ret.= ' (UPPER(' . $key . ")" . $eq . 'UPPER("' . $val . '") OR UPPER(' . $key . ")" . $eq . 'UPPER("' . $v1 . '") OR UPPER(' . $key . ")" . $eq . 'UPPER("' . $v2 . '"))';
+							}
+						}
 					}
 				}
 			}

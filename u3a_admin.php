@@ -16,41 +16,69 @@ require('fpdf.php');
 require_once 'U3ADatabase.php';
 require_once 'u3a_database_utilities.php';
 
-if (!function_exists('write_log'))
-{
-
-	function write_log($log, ...$rest)
-	{
-		if (true === WP_DEBUG)
-		{
-			$t = "[" . gettype($log) . "] ";
-			if (is_array($log) || is_object($log))
-			{
-				error_log($t . print_r($log, true));
-			}
-			else
-			{
-				error_log($t . $log);
-			}
-			if ($rest)
-			{
-				foreach ($rest as $r)
-				{
-					$t = "[" . gettype($r) . "] ";
-					if (is_array($r) || is_object($r))
-					{
-						error_log($t . print_r($r, true));
-					}
-					else
-					{
-						error_log($t . $r);
-					}
-				}
-			}
-		}
-	}
-
-}
+//if (!function_exists('write_log'))
+//{
+//
+//	function write_log($log, ...$rest)
+//	{
+//		if (true === WP_DEBUG)
+//		{
+//			$t = "[" . gettype($log) . "] ";
+//			if (is_array($log) || is_object($log))
+//			{
+//				error_log($t . print_r($log, true));
+//			}
+//			else
+//			{
+//				error_log($t . $log);
+//			}
+//			if ($rest)
+//			{
+//				foreach ($rest as $r)
+//				{
+//					$t = "[" . gettype($r) . "] ";
+//					if (is_array($r) || is_object($r))
+//					{
+//						error_log($t . print_r($r, true));
+//					}
+//					else
+//					{
+//						error_log($t . $r);
+//					}
+//				}
+//			}
+//		}
+//	}
+//
+//}
+//if (!function_exists('write_log'))
+//{
+//
+//	function write_log($log, ...$rest)
+//	{
+//		$debug_path = debug_log_path();
+//		$debug_file = fopen($debug_path, "a");
+////		write_log("attempting writing to " . $audit_path);
+//		if ($debug_file)
+//		{
+//			$prefix = "";
+//			$current_wp_user = wp_get_current_user();
+//			if ($current_wp_user && $current_wp_user->ID)
+//			{
+//				$lg = $current_wp_user->user_login;
+//				$prefix .= "\n" . $lg . date("Y-m-d H:i:s") . " :- ";
+//			}
+////			write_log("writing to " . $audit_path . ": " . U3A_Utilities::as_string($log));
+//			fwrite($debug_file, $prefix . U3A_Utilities::as_string($log));
+//			foreach ($rest as $r)
+//			{
+//				fwrite($debug_file, $prefix . U3A_Utilities::as_string($r));
+//			}
+//			fclose($debug_file);
+//		}
+//	}
+//
+//}
 
 class U3A_Update
 {

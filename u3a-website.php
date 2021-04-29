@@ -14,11 +14,29 @@
  * License: GNU General Public License v3.0
  * License URI: http://www.gnu.org/licenses/gpl-3.0.html
  *
- * @author    MullSoft Ltd.
- * @copyright Copyright (c) 2019, MullSoft Ltd.
+ * @author    Mike Curtis.
+ * @copyright Copyright (c) 2019, Mike Curtis.
  * @license   http://www.gnu.org/licenses/gpl-3.0.html GNU General Public License v3.0
  *
  */
+/* Arda v1.0
+ * Copyright 2021 Mike Curtis (mike@computermike.biz)
+ *
+ * This file is part of Arda.
+ *   Arda is free software: you can redistribute it and/or modify
+ *   it under the terms of the GNU Affero General Public License version 3
+ *   as published by the Free Software Foundation
+ *
+ *   Ardais distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU Affero General Public License for more details.
+ *
+ *   You can get a copy The GNU Affero General Public license from
+ *   http://www.gnu.org/licenses/agpl-3.0.html
+ *
+ */
+
 defined('ABSPATH') or exit;
 require_once(ABSPATH . 'wp-config.php');
 require_once 'U3ADatabase.php';
@@ -181,6 +199,8 @@ function u3a_on_activation()
 	$join_page = U3A_Information::u3a_committee_page();
 	$mg_page = U3A_Information::u3a_manage_groups_page();
 	$mm_page = U3A_Information::u3a_manage_members_page();
+	$vn_page = U3A_Information::u3a_manage_venues_page();
+	$ln_page = U3A_Information::u3a_manage_links_page();
 	$vid_page = U3A_Information::u3a_videos_page();
 	$coord_page = U3A_Information::u3a_coordinators_page();
 	$admin_page = U3A_Information::u3a_administration_page();
@@ -294,6 +314,7 @@ function u3a_check_roles($user_id)
 {
 //	global $ultimatemember;
 // your code here
+	write_log("u3a_check_roles");
 	$mbr = U3A_Information::u3a_user_from_id($user_id);
 //	write_log(current_theme_supports('title-tag'));
 	if ($mbr)
@@ -313,7 +334,7 @@ function u3a_check_roles($user_id)
 		$wpusr->remove_role("author");
 		if (U3A_Group_Members::is_a_coordinator($mbr) || U3A_Committee::is_committee_member($mbr))
 		{
-//			write_log("special");
+			write_log("special");
 			$wpusr->remove_role("um_member-only");
 			if (U3A_Group_Members::is_a_coordinator($mbr))
 			{
@@ -327,21 +348,22 @@ function u3a_check_roles($user_id)
 				$wpusr->add_role("um_committee-member");
 //				$ultimatemember->user->set_role('um_committee-member');
 			}
-			if (U3A_Committee::is_webmanager($mbr) || U3A_Permissions::has_permission("site administration", $mbr))
+			if (U3A_Committee::is_webmanager($mbr) || U3A_Permissions::has_permission("site administrator", $mbr))
 			{
-//				write_log("administrator");
+				write_log("administrator");
 				$wpusr->add_role("um_site-administrator");
 //				$ultimatemember->user->set_role('um_site-administrator');
 				$wpusr->add_role("administrator");
 			}
 			else
 			{
+				write_log("administrator");
 				$wpusr->remove_role("administrator");
 			}
 		}
 		else
 		{
-//			write_log("just a member");
+			write_log("just a member");
 			$wpusr->remove_role("um_group-coordinator");
 			$wpusr->remove_role("um_committee-member");
 			$wpusr->remove_role("um_site-administrator");
@@ -394,7 +416,7 @@ function u3a_set_user_meta($user_id, $args)
 			{
 				$wpusr->add_role("um_committee-member");
 			}
-			if (U3A_Committee::is_webmanager($mbr) || U3A_Permissions::has_permission("site administration", $mbr))
+			if (U3A_Committee::is_webmanager($mbr) || U3A_Permissions::has_permission("site administrator", $mbr))
 			{
 				$wpusr->add_role("um_site-administrator");
 				$wpusr->add_role("administrator");
@@ -456,7 +478,7 @@ function u3a_is_member($args)
 
 	if ($mbr)
 	{
-		$mbremail = strtolower($mbr->email);
+		$mbremail = U3A_Utilities::strip_all_slashes(strtolower($mbr->email));
 		if (($mbremail != strtolower($user_email)) && ($mbremail != strtolower($real_email)))
 		{
 			exit(wp_redirect(add_query_arg('err', 'wrong_email')));
@@ -562,7 +584,7 @@ function u3a_menu_item_visibility($visible, $item)
 			{
 //				write_log("admin");
 //				write_log($item);
-				$ret = ($mbr != null) && U3A_Information::u3a_has_permission($mbr->get_real_member(), "site administration");
+				$ret = ($mbr != null) && U3A_Information::u3a_has_permission($mbr->get_real_member(), "site administrator");
 				if ($ret)
 				{
 					$ret = U3A_Utilities::u3a_check_menu_item($item);
@@ -690,7 +712,7 @@ function u3a_header_title($ttl)
 		}
 		if ($mbr)
 		{
-			$wpid = $mbr->get_wpid();
+			$wpid = $mbr->wpid;
 			$avatar = "";
 			if ($wpid)
 			{

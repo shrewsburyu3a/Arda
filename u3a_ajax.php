@@ -1,9 +1,21 @@
 <?php
 
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+/* Arda v1.0
+ * Copyright 2021 Mike Curtis (mike@computermike.biz)
+ *
+ * This file is part of Arda.
+ *   Arda is free software: you can redistribute it and/or modify
+ *   it under the terms of the GNU Affero General Public License version 3
+ *   as published by the Free Software Foundation
+ *
+ *   Ardais distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU Affero General Public License for more details.
+ *
+ *   You can get a copy The GNU Affero General Public license from
+ *   http://www.gnu.org/licenses/agpl-3.0.html
+ *
  */
 require_once 'u3a_admin.php';
 require_once 'u3a_mail.php';
@@ -62,7 +74,8 @@ function u3a_find_members_search_action()
 		$options = [];
 		foreach ($found["result"] as $mbr)
 		{
-			$opt = new U3A_OPTION($mbr->membership_number . ": " . $mbr->surname . ", " . $mbr->forename . " (" . $mbr->email . ")", $mbr->id);
+			$opt = new U3A_OPTION($mbr->membership_number . ": " . $mbr->surname . ", " . $mbr->forename . " (" . U3A_Utilities::strip_all_slashes($mbr->email) . ")",
+			  $mbr->id);
 //				$opt->add_tooltip("member " . $mbr->membership_number . " " . $mbr->email);
 			$options[] = $opt;
 		}
@@ -71,53 +84,64 @@ function u3a_find_members_search_action()
 		{
 //				write_log("adding to group");
 //			$add_btn = new U3A_BUTTON("button", "add", "u3a-found-members-button" . $idsuffix, "u3a-found-members-button-class", "u3a_add_member_to_group('" . $next_action . "', '" . $op . "', " . $groups_id . ")");
-			$add_member_action = new U3A_INPUT("hidden", "action", "u3a-found-members-action" . $idsuffix, null, "add_member_to_group");
+			$add_member_action = new U3A_INPUT("hidden", "action", "u3a-found-members-action" . $idsuffix, null,
+			  "add_member_to_group");
 			$add_member_group = new U3A_INPUT("hidden", "group", "u3a-found-members-search-group" . $idsuffix, null, $groups_id);
-			$form = new U3A_FORM([$sel, $add_member_action, $add_member_group], "/wp-admin/admin-ajax.php", "POST", "u3a-add-member-form" . $idsuffix, "u3a-add-member-form-class");
+			$form = new U3A_FORM([$sel, $add_member_action, $add_member_group], "/wp-admin/admin-ajax.php", "POST",
+			  "u3a-add-member-form" . $idsuffix, "u3a-add-member-form-class");
 		}
 		elseif ($next_action === "be_coordinator")
 		{
 //				$add_btn = new U3A_BUTTON("button", "select", "u3a-found-members-button", "u3a-found-members-button-class");
 
-			$be_coordinator_action = new U3A_INPUT("hidden", "action", "u3a-found-members-action" . $idsuffix, null, "be_coordinator_of_new_group");
-			$be_coordinator_group = new U3A_INPUT("hidden", "group", "u3a-found-members-search-group" . $idsuffix, null, $groups_id);
-			$form = new U3A_FORM([$sel, $be_coordinator_action, $be_coordinator_group], "/wp-admin/admin-ajax.php", "POST", "u3a-be-coordinator-form" . $idsuffix, "u3a-be-coordinator-form-class");
+			$be_coordinator_action = new U3A_INPUT("hidden", "action", "u3a-found-members-action" . $idsuffix, null,
+			  "be_coordinator_of_new_group");
+			$be_coordinator_group = new U3A_INPUT("hidden", "group", "u3a-found-members-search-group" . $idsuffix, null,
+			  $groups_id);
+			$form = new U3A_FORM([$sel, $be_coordinator_action, $be_coordinator_group], "/wp-admin/admin-ajax.php", "POST",
+			  "u3a-be-coordinator-form" . $idsuffix, "u3a-be-coordinator-form-class");
 		}
 		elseif ($next_action === "edit_details")
 		{
 //				$add_btn = new U3A_BUTTON("button", "select", "u3a-found-members-button", "u3a-found-members-button-class");
 //				$member_details_action = new U3A_INPUT("hidden", "action", "u3a-found-members-action" . $idsuffix, null, "be_coordinator_of_new_group");
-			$form = new U3A_FORM([$sel], "/wp-admin/admin-ajax.php", "POST", "u3a-member-details-form" . $idsuffix, "u3a-member-details-form-class");
+			$form = new U3A_FORM([$sel], "/wp-admin/admin-ajax.php", "POST", "u3a-member-details-form" . $idsuffix,
+			  "u3a-member-details-form-class");
 		}
 		elseif ($next_action === "view_details")
 		{
 //				$add_btn = new U3A_BUTTON("button", "select", "u3a-found-members-button", "u3a-found-members-button-class");
 //				$member_details_action = new U3A_INPUT("hidden", "action", "u3a-found-members-action" . $idsuffix, null, "be_coordinator_of_new_group");
-			$form = new U3A_FORM([$sel], "/wp-admin/admin-ajax.php", "POST", "u3a-member-details-form" . $idsuffix, "u3a-member-details-form-class");
+			$form = new U3A_FORM([$sel], "/wp-admin/admin-ajax.php", "POST", "u3a-member-details-form" . $idsuffix,
+			  "u3a-member-details-form-class");
 		}
 		elseif ($next_action === "goto_member")
 		{
 //				$add_btn = new U3A_BUTTON("button", "select", "u3a-found-members-button", "u3a-found-members-button-class");
 //				$member_details_action = new U3A_INPUT("hidden", "action", "u3a-found-members-action" . $idsuffix, null, "be_coordinator_of_new_group");
-			$form = new U3A_FORM([$sel], "/wp-admin/admin-ajax.php", "POST", "u3a-member-details-form" . $idsuffix, "u3a-member-details-form-class");
+			$form = new U3A_FORM([$sel], "/wp-admin/admin-ajax.php", "POST", "u3a-member-details-form" . $idsuffix,
+			  "u3a-member-details-form-class");
 		}
 		elseif ($next_action === "change_status")
 		{
 //				$add_btn = new U3A_BUTTON("button", "select", "u3a-found-members-button", "u3a-found-members-button-class");
 //				$member_details_action = new U3A_INPUT("hidden", "action", "u3a-found-members-action" . $idsuffix, null, "be_coordinator_of_new_group");
-			$form = new U3A_FORM([$sel], "/wp-admin/admin-ajax.php", "POST", "u3a-member-status-form" . $idsuffix, "u3a-member-details-form-class");
+			$form = new U3A_FORM([$sel], "/wp-admin/admin-ajax.php", "POST", "u3a-member-status-form" . $idsuffix,
+			  "u3a-member-details-form-class");
 		}
 		elseif ($next_action === "renew_member")
 		{
 //				$add_btn = new U3A_BUTTON("button", "select", "u3a-found-members-button", "u3a-found-members-button-class");
 //				$member_details_action = new U3A_INPUT("hidden", "action", "u3a-found-members-action" . $idsuffix, null, "be_coordinator_of_new_group");
-			$form = new U3A_FORM([$sel], "/wp-admin/admin-ajax.php", "POST", "u3a-member-status-form" . $idsuffix, "u3a-member-details-form-class");
+			$form = new U3A_FORM([$sel], "/wp-admin/admin-ajax.php", "POST", "u3a-member-status-form" . $idsuffix,
+			  "u3a-member-details-form-class");
 		}
 		elseif ($next_action === "delete")
 		{
 //				$add_btn = new U3A_BUTTON("button", "select", "u3a-found-members-button", "u3a-found-members-button-class");
 //				$member_details_action = new U3A_INPUT("hidden", "action", "u3a-found-members-action" . $idsuffix, null, "be_coordinator_of_new_group");
-			$form = new U3A_FORM([$sel], "/wp-admin/admin-ajax.php", "POST", "u3a-member-delete-form" . $idsuffix, "u3a-member-delete-form-class");
+			$form = new U3A_FORM([$sel], "/wp-admin/admin-ajax.php", "POST", "u3a-member-delete-form" . $idsuffix,
+			  "u3a-member-delete-form-class");
 		}
 		else
 		{
@@ -292,7 +316,8 @@ function u3a_move_document()
 				if ($dest < 0)
 				{
 					$doc = U3A_Row::load_single_object("U3A_Documents", ["id" => $dcrel->documents_id]);
-					$cdrels1 = U3A_Row::load_array_of_objects("U3A_Document_Category_Relationship", ["documents_id" => $dcrel->documents_id]);
+					$cdrels1 = U3A_Row::load_array_of_objects("U3A_Document_Category_Relationship",
+						 ["documents_id" => $dcrel->documents_id]);
 					$attachment_id = $doc->attachment_id;
 					$others = 0;
 					foreach ($cdrels1["result"] as $cdrel1)
@@ -358,7 +383,8 @@ function u3a_copy_document()
 			{
 				$title = $doc->title;
 				$docid = $doc->id;
-				$dcrel = U3A_Row::load_single_object("U3A_Document_Category_Relationship", ["documents_id" => $docid, "document_categories_id" => $dest]);
+				$dcrel = U3A_Row::load_single_object("U3A_Document_Category_Relationship",
+					 ["documents_id" => $docid, "document_categories_id" => $dest]);
 				if (!$dcrel)
 				{
 					// not already there
@@ -389,7 +415,8 @@ function u3a_copy_document()
 				if ($dcrelsrc)
 				{
 					$docid = $dcrelsrc->documents_id;
-					$dcrel = U3A_Row::load_single_object("U3A_Document_Category_Relationship", ["documents_id" => $docid, "document_categories_id" => $dest]);
+					$dcrel = U3A_Row::load_single_object("U3A_Document_Category_Relationship",
+						 ["documents_id" => $docid, "document_categories_id" => $dest]);
 					if (!$dcrel)
 					{
 						// not already there
@@ -594,13 +621,17 @@ add_action("wp_ajax_u3a-remove-member-from-group-action", "u3a_remove_member_fro
 
 function u3a_remove_member_from_group_action()
 {
-	$members_id = $_POST["members_id"];
+	$members_ids = $_POST["members_id"];
 	$groups_id = $_POST["groups_id"];
+	$mbrs = explode(",", $members_ids);
+	foreach ($mbrs as $members_id)
+	{
 //	write_log("remove_from_group", $members_id, $members_id);
-	$grpmem = U3A_Row::load_single_object("U3A_Group_Members", ["members_id" => $members_id, "groups_id" => $groups_id]);
-	audit_log("group membership deleted", $grpmem);
-	$grpmem->delete();
-	do_action("u3a_member_removed_from_group", $groups_id, $members_id);
+		$grpmem = U3A_Row::load_single_object("U3A_Group_Members", ["members_id" => $members_id, "groups_id" => $groups_id]);
+		audit_log("group membership deleted", $grpmem);
+		$grpmem->delete();
+		do_action("u3a_member_removed_from_group", $groups_id, $members_id);
+	}
 	wp_die();
 //	write_log($grpmem);
 //	U3A_Group_Members::remove_from_group($members_id, $groups_id);
@@ -610,10 +641,10 @@ add_action("wp_ajax_u3a-new-group-action", "u3a_new_group_action");
 
 function u3a_new_group_action()
 {
-//	write_log($_POST);
+	write_log($_POST);
 	$ngname = isset($_POST["name"]) ? $_POST["name"] : "";
 	$ngcoord = isset($_POST["coord"]) ? $_POST["coord"] : "";
-	$ngvenue = isset($_POST["venue"]) ? $_POST["venue"] : "";
+	$ngvenue = isset($_POST["venue"]) ? $_POST["venue"] : 0;
 	$ngwhen = isset($_POST["meets_when"]) ? $_POST["meets_when"] : "";
 	$ngmax = isset($_POST["max_members"]) ? $_POST["max_members"] : "";
 //	$ngfrom = isset($_POST["from"]) ? $_POST["from"] : "";
@@ -791,10 +822,26 @@ function u3a_edit_group_action()
 		$changed1 = false;
 		foreach ($groups_columns as $column)
 		{
-			if (isset($params[$column]) && $params[$column] !== $grp->$column)
+			if (isset($params[$column]) && $params[$column])
 			{
-				$grp->$column = $params[$column];
-				$changed = true;
+
+				// trouble with lots of backslashes appearing
+				if ($column === "meets_when")
+				{
+//				write_log("2. meets when old", $grp->$column, "new", $params[$column]);
+					$pc = U3A_Utilities::strip_all_slashes($params[$column]);
+					$gc = U3A_Utilities::strip_all_slashes($grp->$column);
+				}
+				else
+				{
+					$pc = $params[$column];
+					$gc = $grp->$column;
+				}
+				If ($pc !== $gc)
+				{
+					$grp->$column = $params[$column];
+					$changed = true;
+				}
 			}
 		}
 		if ($changed || $coordchanged)
@@ -1006,7 +1053,8 @@ function u3a_member_action()
 	}
 	elseif ($op == "edit" || $op == "selfedit")
 	{
-		$mbr = U3A_Row::load_single_object("U3A_Members", ["membership_number" => $params["membership_number"], "status" => "Current"]);
+		$mbr = U3A_Row::load_single_object("U3A_Members",
+			 ["membership_number" => $params["membership_number"], "status" => "Current"]);
 //		write_log($mbr);
 		if ($mbr)
 		{
@@ -1082,49 +1130,94 @@ function send_mailing_list_email($name)
 	$config = U3A_CONFIG::get_the_config();
 	$wm = U3A_Committee::get_webmanager();
 	$contents = "<p>Mailing list $name@" . $config->MAILING_LIST_DOMAIN . " has been created, please create a mail forwarder for $name@" . $config->DOMAIN_NAME . ".";
-	$sent = U3A_Sent_Mail::send($wm->id, $wm->email, "Mailing list forwarder requirement", $contents);
+	$sent = U3A_Sent_Mail::send($wm->id, U3A_Utilities::strip_all_slashes($wm->email),
+		 "Mailing list forwarder requirement", $contents);
 	return $sent;
 }
 
 function send_new_member_email($mbr)
 {
 	$wm = U3A_Committee::get_webmanager();
-	$tr = U3A_Committee::get_treasurer();
 	$ms = U3A_Committee::get_membership_secretary();
-	$cc = [$wm->email, $tr->email, $ms->email];
-	$contents = "<p>An application form has been submitted <b>fully paid</b>:</p>" . do_shortcode('[u3a_member_details_form member="' . $mbr->id . '" op="mail" button="no"]');
-	$sent = U3A_Sent_Mail::send($wm->id, $wm->email, "New Member Form", $contents, $cc);
-	$p0 = new U3A_DIV("Hi " . $mbr->get_first_name());
-	$p1 = new U3A_P("Welcome to the " . U3A_Information::u3a_get_u3a_name() . " U3A, your membership number is " . $mbr->membership_number .
-	  '. You will need this number and your email address to register and login to <a href="' . get_site_url() . '">our website</a>, if you have not already done so.' .
-	  " On the website you will find details of our monthly meetings and all the study groups.");
-	$p2 = new U3A_P("We are very pleased that you have joined us.");
-	$p3 = new U3A_DIV("regards");
-	$p4 = new U3A_DIV($wm->get_name() . " (webmanager)");
-	$contents1 = U3A_HTML::to_html([$p0, $p1, $p2, $p3, $p4]);
-	$card = U3A_PDF::get_membership_card($mbr);
-	$sent1 = U3A_Sent_Mail::send($wm->id, $mbr->email, "Welcome to " . U3A_Information::u3a_get_u3a_name() . " U3A", $contents1, $cc, null, null, null, [$card["path"]]);
+	if (!U3A_Information::u3a_is_live_server())
+	{
+		$sent = true;
+		$cc = [U3A_Utilities::strip_all_slashes($wm->email), "mike@computermike.biz"];
+		$p0 = new U3A_DIV("Hi " . $mbr->get_first_name());
+		$p1 = new U3A_P("Welcome to the " . U3A_Information::u3a_get_u3a_name() . " U3A, your membership number is " . $mbr->membership_number .
+		  '. You will need this number and your email address to register and login to <a href="' . get_site_url() . '">our website</a>, if you have not already done so.' .
+		  " On the website you will find details of our monthly meetings and all the study groups.");
+		$p2 = new U3A_P("We are very pleased that you have joined us.");
+		$p3 = new U3A_DIV("regards");
+		$p4 = new U3A_DIV($ms->get_name() . " (membership secretary)");
+		$contents1 = U3A_HTML::to_html([$p0, $p1, $p2, $p3, $p4]);
+		$card = U3A_PDF::get_membership_card($mbr);
+		$sent1 = U3A_Sent_Mail::send($ms->id, U3A_Utilities::strip_all_slashes($mbr->email),
+			 "Welcome to " . U3A_Information::u3a_get_u3a_name() . " U3A", $contents1, $cc, null, null,
+			 U3A_Utilities::strip_all_slashes($ms->email), [$card["path"]]);
+	}
+	else
+	{
+		$tr = U3A_Committee::get_treasurer();
+		$cc = [U3A_Utilities::strip_all_slashes($wm->email), U3A_Utilities::strip_all_slashes($tr->email), U3A_Utilities::strip_all_slashes($ms->email)];
+		$contents = "<p>An application form has been submitted <b>fully paid</b>:</p>" . do_shortcode('[u3a_member_details_form member="' . $mbr->id . '" op="mail" button="no"]');
+		$sent = U3A_Sent_Mail::send($wm->id, U3A_Utilities::strip_all_slashes($wm->email), "New Member Form", $contents, $cc);
+		$p0 = new U3A_DIV("Hi " . $mbr->get_first_name());
+		$p1 = new U3A_P("Welcome to the " . U3A_Information::u3a_get_u3a_name() . " U3A, your membership number is " . $mbr->membership_number .
+		  '. You will need this number and your email address to register and login to <a href="' . get_site_url() . '">our website</a>, if you have not already done so.' .
+		  " On the website you will find details of our monthly meetings and all the study groups.");
+		$p2 = new U3A_P("We are very pleased that you have joined us.");
+		$p3 = new U3A_DIV("regards");
+		$p4 = new U3A_DIV($ms->get_name() . " (membership secretary)");
+		$contents1 = U3A_HTML::to_html([$p0, $p1, $p2, $p3, $p4]);
+		$card = U3A_PDF::get_membership_card($mbr);
+		$sent1 = U3A_Sent_Mail::send($ms->id, U3A_Utilities::strip_all_slashes($mbr->email),
+			 "Welcome to " . U3A_Information::u3a_get_u3a_name() . " U3A", $contents1, $cc, null, null,
+			 U3A_Utilities::strip_all_slashes($ms->email), [$card["path"]]);
+	}
 	return $sent && $sent1;
 }
 
 function send_renewal_email($mbr)
 {
 	$wm = U3A_Committee::get_webmanager();
-	$tr = U3A_Committee::get_treasurer();
 	$ms = U3A_Committee::get_membership_secretary();
-	$cc = [$wm->email, /* $tr->email, $ms->email */];
-	$who = $mbr->get_name() . " (" . $mbr->membership_number . ")";
-	$contents = "<p>$who has renewed his membership</p>";
-	$sent = U3A_Sent_Mail::send($wm->id, $wm->email, "Membership Renewal", $contents, $cc);
-	$p0 = new U3A_DIV("Hi " . $mbr->get_first_name());
-	$p1 = new U3A_P("Thank you for renewing your membership of " . U3A_Information::u3a_get_u3a_name() . " U3A, your membership number remains " . $mbr->membership_number .
-	  '. You will need this number and your email address to register and login to <a href="' . get_site_url() . '">our website</a>, if you have not already done so.');
-	$p2 = "Your new membership card is attached to this email.";
-	$p3 = new U3A_DIV("regards");
-	$p4 = new U3A_DIV($wm->get_name() . " (webmanager)");
-	$contents1 = U3A_HTML::to_html([$p0, $p1, $p2, $p3, $p4]);
-	$card = U3A_PDF::get_membership_card($mbr);
-	$sent1 = U3A_Sent_Mail::send($wm->id, $mbr->email, "Welcome back to " . U3A_Information::u3a_get_u3a_name() . " U3A", $contents1, $cc, null, null, null, [$card["path"]]);
+	if (!U3A_Information::u3a_is_live_server())
+	{
+		$sent = true;
+		$cc = [U3A_Utilities::strip_all_slashes($wm->email), "mike@computermike.biz"];
+		$p0 = new U3A_DIV("Hi " . $mbr->get_first_name());
+		$p1 = new U3A_P("Thank you for renewing your membership of " . U3A_Information::u3a_get_u3a_name() . " U3A, your membership number remains " . $mbr->membership_number .
+		  '. You will need this number and your email address to register and login to <a href="' . get_site_url() . '">our website</a>, if you have not already done so.');
+		$p2 = "Your new membership card is attached to this email.";
+		$p3 = new U3A_DIV("regards");
+		$p4 = new U3A_DIV($ms->get_name() . " (membership secretary)");
+		$contents1 = U3A_HTML::to_html([$p0, $p1, $p2, $p3, $p4]);
+		$card = U3A_PDF::get_membership_card($mbr);
+		$sent1 = U3A_Sent_Mail::send($ms->id, U3A_Utilities::strip_all_slashes($mbr->email),
+			 "Welcome to " . U3A_Information::u3a_get_u3a_name() . " U3A", $contents1, $cc, null, null,
+			 U3A_Utilities::strip_all_slashes($ms->email), [$card["path"]]);
+	}
+	else
+	{
+		$tr = U3A_Committee::get_treasurer();
+		$cc = [U3A_Utilities::strip_all_slashes($wm->email), U3A_Utilities::strip_all_slashes($tr->email), U3A_Utilities::strip_all_slashes($ms->email)];
+		$who = $mbr->get_name() . " (" . $mbr->membership_number . ")";
+		$contents = "<p>$who has renewed his/her membership</p>";
+		$sent = U3A_Sent_Mail::send($wm->id, U3A_Utilities::strip_all_slashes($wm->email), "Membership Renewal", $contents,
+			 $cc);
+		$p0 = new U3A_DIV("Hi " . $mbr->get_first_name());
+		$p1 = new U3A_P("Thank you for renewing your membership of " . U3A_Information::u3a_get_u3a_name() . " U3A, your membership number remains " . $mbr->membership_number .
+		  '. You will need this number and your email address to register and login to <a href="' . get_site_url() . '">our website</a>, if you have not already done so.');
+		$p2 = "Your new membership card is attached to this email.";
+		$p3 = new U3A_DIV("regards");
+		$p4 = new U3A_DIV($ms->get_name() . " (membership secretary)");
+		$contents1 = U3A_HTML::to_html([$p0, $p1, $p2, $p3, $p4]);
+		$card = U3A_PDF::get_membership_card($mbr);
+		$sent1 = U3A_Sent_Mail::send($ms->id, U3A_Utilities::strip_all_slashes($mbr->email),
+			 "Welcome back to " . U3A_Information::u3a_get_u3a_name() . " U3A", $contents1, $cc, null, null,
+			 U3A_Utilities::strip_all_slashes($ms->email), [$card["path"]]);
+	}
 	return $sent && $sent1;
 }
 
@@ -1133,9 +1226,9 @@ function send_add_member_email($mbr)
 	$wm = U3A_Committee::get_webmanager();
 //	$tr = U3A_Committee::get_treasurer();
 //	$ms = U3A_Committee::get_membership_secretary();
-	$cc = [$wm->email/* , $tr->email, $ms->email */];
+	$cc = [U3A_Utilities::strip_all_slashes($wm->email)/* , U3A_Utilities::strip_all_slashes($tr->email), U3A_Utilities::strip_all_slashes($ms->email) */];
 	$contents = "<p>An application form has been submitted <b>fully paid</b>:</p>" . do_shortcode('[u3a_member_details_form member="' . $mbr->id . '" op="mail" button="no"]');
-	$sent = U3A_Sent_Mail::send($wm->id, $wm->email, "New Member Form", $contents, $cc);
+	$sent = U3A_Sent_Mail::send($wm->id, U3A_Utilities::strip_all_slashes($wm->email), "New Member Form", $contents, $cc);
 	$p0 = new U3A_DIV("Hi " . $mbr->get_first_name());
 	$p1 = new U3A_P("Welcome to the " . U3A_Information::u3a_get_u3a_name() . " U3A, your membership number is " . $mbr->membership_number .
 	  '. You will need this number and your email address to register and login to <a href="' . get_site_url() . '">our website</a>, if you have not already done so.' .
@@ -1145,7 +1238,9 @@ function send_add_member_email($mbr)
 	$p4 = new U3A_DIV($wm->get_name() . " (webmanager)");
 	$contents1 = U3A_HTML::to_html([$p0, $p1, $p2, $p3, $p4]);
 	$card = U3A_PDF::get_membership_card($mbr);
-	$sent1 = U3A_Sent_Mail::send($wm->id, $mbr->email, "Welcome to " . U3A_Information::u3a_get_u3a_name() . " U3A", $contents1, $cc, null, null, null, [$card["path"]]);
+	$sent1 = U3A_Sent_Mail::send($wm->id, U3A_Utilities::strip_all_slashes($mbr->email),
+		 "Welcome to " . U3A_Information::u3a_get_u3a_name() . " U3A", $contents1, $cc, null, null,
+		 U3A_Utilities::strip_all_slashes($ms->email), [$card["path"]]);
 	return $sent && $sent1;
 }
 
@@ -1154,19 +1249,21 @@ function send_provisional_member_email($mbr)
 	$wm = U3A_Committee::get_webmanager();
 	$tr = U3A_Committee::get_treasurer();
 	$ms = U3A_Committee::get_membership_secretary();
-	$cc = [$tr->email, $ms->email];
+	$cc = [U3A_Utilities::strip_all_slashes($tr->email), U3A_Utilities::strip_all_slashes($ms->email)];
 	$contents = "<p>An application form has been submitted <b>without payment</b>:</p>" . do_shortcode('[u3a_member_details_form member="' . $mbr->id . '" op="mail" button="no"]');
-	$sent = U3A_Sent_Mail::send($wm->id, $wm->email, "Provisional Member Form", $contents, $cc);
+	$sent = U3A_Sent_Mail::send($wm->id, U3A_Utilities::strip_all_slashes($wm->email), "Provisional Member Form",
+		 $contents, $cc);
 	$p0 = new U3A_DIV("Hi " . $mbr->get_first_name());
 	$p1 = new U3A_P("Welcome to the " . U3A_Information::u3a_get_u3a_name() . " U3A, your provisional membership number is " . $mbr->membership_number .
 	  ". You still need to pay your membership subscription. This can be done in person at one of our monthly meetings. If you cannot attend one of these meetings, please contact " .
-	  "the Membership Secretary at " . $ms->email . " to make alternative arrangements to pay. When you have completed your membership you will be able " .
+	  "the Membership Secretary at " . U3A_Utilities::strip_all_slashes($ms->email) . " to make alternative arrangements to pay. When you have completed your membership you will be able " .
 	  'to register and login to <a href="' . get_site_url() . '">our website</a> where you will find details of our monthly meetings and all the study groups.');
 	$p2 = new U3A_P("We are very pleased that you have joined us.");
 	$p3 = new U3A_DIV("regards");
 	$p4 = new U3A_DIV($wm->get_name() . " (webmanager)");
 	$contents1 = U3A_HTML::to_html([$p0, $p1, $p2, $p3, $p4]);
-	$sent1 = U3A_Sent_Mail::send($wm->id, $mbr->email, "Welcome to " . U3A_Information::u3a_get_u3a_name() . " U3A", $contents1);
+	$sent1 = U3A_Sent_Mail::send($wm->id, U3A_Utilities::strip_all_slashes($mbr->email),
+		 "Welcome to " . U3A_Information::u3a_get_u3a_name() . " U3A", $contents1);
 	return $sent && $sent1;
 }
 
@@ -1225,9 +1322,12 @@ function u3a_get_member_status()
 		$span1 = new U3A_SPAN($mnum, "u3a-member-number-$op");
 		$span2 = new U3A_SPAN($mbr->get_name(), "u3a-member-name-$op");
 		$div = new U3A_DIV([$span1, ": ", $span2], null, "u3a-member-name-class");
-		$sel = U3A_HTML_Utilities::get_select_list_from_array(U3A_Members::$status_values, "status", $status, "member-status-select-$op", "member-status-select-class");
-		$lbl = U3A_HTML::labelled_html_object("change status to:", $sel, "member-status-select-label-$op", "member-status-select-label-class");
-		$btn = new U3A_BUTTON("button", "set", "member-status-change-button-$op", "member-status-change-button u3a-button", "change_member_status('$op')");
+		$sel = U3A_HTML_Utilities::get_select_list_from_array(U3A_Members::$status_values, "status", $status,
+			 "member-status-select-$op", "member-status-select-class");
+		$lbl = U3A_HTML::labelled_html_object("change status to:", $sel, "member-status-select-label-$op",
+			 "member-status-select-label-class");
+		$btn = new U3A_BUTTON("button", "set", "member-status-change-button-$op", "member-status-change-button u3a-button",
+		  "change_member_status('$op')");
 		$result = ["success" => 1, "message" => U3A_HTML::to_html([$div, $lbl, $btn])];
 	}
 	else
@@ -1270,42 +1370,65 @@ function u3a_delete_member()
 {
 	$mnum = isset($_POST["membership_number"]) ? $_POST["membership_number"] : 0;
 	$result = ["success" => 0, "message" => "member with number $mnum has not been deleted!"];
+	$member_to_delete = null;
 	if ($mnum)
 	{
 		$member_to_delete = U3A_Row::load_single_object("U3A_Members", ["membership_number" => $mnum]);
-		if ($member_to_delete)
+	}
+	else
+	{
+		$id = isset($_POST["member"]) ? $_POST["member"] : 0;
+		if ($id)
 		{
-			$member_hash = $member_to_delete->get_as_hash();
-			$perms = U3A_Row::load_array_of_objects("U3A_Permissions", ["members_id" => $member_to_delete->id]);
-			if ($perms["total_number_of_rows"])
-			{
-				$pm = [];
-				foreach ($perms["results"] as $perm)
-				{
-					$pm[] = $perm->groups_id . "+" . $perm->committee_id . "+" . $perm->permission_types_id;
-					audit_log("permission deleted", $perm);
-					$perm->delete();
-				}
-				$member_hash["permissions"] = implode(",", $pm);
-			}
-			$mbrships = U3A_Row::load_array_of_objects("U3A_Group_Members", ["members_id" => $member_to_delete->id]);
-			if ($mbrships["total_number_of_rows"])
-			{
-				$gm = [];
-				foreach ($mbrships["results"] as $mbrship)
-				{
-					$gm[] = $mbrship->groups_id . "+" . $mbrship->status . "+" . $mbrship->added;
-					audit_log("group membership deleted", $mbrship);
-					$mbrship->delete();
-				}
-				$member_hash["groups"] = implode(",", $gm);
-			}
-			$xmbr = new U3A_Members_Deleted($member_hash);
-			$xmbr->save();
-			audit_log("member deleted", $member_to_delete);
-			$member_to_delete->delete();
-			$result = ["success" => 1, "message" => "member with number $mnum has been deleted!"];
+			$member_to_delete = U3A_Row::load_single_object("U3A_Members", ["id" => $id]);
 		}
+	}
+	if ($member_to_delete)
+	{
+		$mnum = $member_to_delete->membership_number;
+		$xmbr = new U3A_Members_Deleted();
+//		write_log("xmbr1", $xmbr);
+		$members_deleted_columns = U3A_Row::get_the_column_names("u3a_members_deleted");
+		$member_hash = $member_to_delete->get_as_hash();
+		foreach ($members_deleted_columns as $colname)
+		{
+			if ($colname !== "id" && array_key_exists($colname, $member_hash))
+			{
+				$xmbr->$colname = $member_hash[$colname];
+			}
+		}
+		$xmbr->oldid = $member_to_delete->id;
+//		write_log("xmbr2", $xmbr);
+		$perms = U3A_Row::load_array_of_objects("U3A_Permissions", ["members_id" => $member_to_delete->id]);
+		if ($perms["total_number_of_rows"])
+		{
+			$pm = [];
+			foreach ($perms["results"] as $perm)
+			{
+				$pm[] = $perm->groups_id . "+" . $perm->committee_id . "+" . $perm->permission_types_id;
+				audit_log("permission deleted", $perm);
+				$perm->delete();
+			}
+			$xmbr->permissions = implode(",", $pm);
+		}
+		$mbrships = U3A_Row::load_array_of_objects("U3A_Group_Members", ["members_id" => $member_to_delete->id]);
+		if ($mbrships["total_number_of_rows"])
+		{
+			$gm = [];
+			foreach ($mbrships["result"] as $mbrship)
+			{
+				$gm[] = $mbrship->groups_id . "+" . $mbrship->status . "+" . $mbrship->added;
+				audit_log("group membership deleted", $mbrship);
+				$mbrship->delete();
+			}
+			$xmbr->groups = implode(",", $gm);
+		}
+//		write_log("xmbr3", $xmbr);
+//			$xmbr = new U3A_Members_Deleted($member_hash);
+		$xmbr->save();
+		audit_log("member deleted", $member_to_delete);
+		$member_to_delete->delete();
+		$result = ["success" => 1, "message" => "member with number $mnum has been deleted!"];
 	}
 	echo json_encode($result);
 	wp_die();
@@ -1343,11 +1466,13 @@ function u3a_create_document_category()
 //	$groups_id = U3A_Groups::get_group_id($grp);
 	if (($typ === U3A_Documents::PERSONAL_DOCUMENT_TYPE) || ($typ === U3A_Documents::PERSONAL_IMAGE_TYPE))
 	{
-		$category = U3A_Row::load_single_object("U3A_Document_Categories", ["name" => $cat, "groups_id" => -1, "members_id" => $memgrp, "document_type" => $typ]);
+		$category = U3A_Row::load_single_object("U3A_Document_Categories",
+			 ["name" => $cat, "groups_id" => -1, "members_id" => $memgrp, "document_type" => $typ]);
 	}
 	else
 	{
-		$category = U3A_Row::load_single_object("U3A_Document_Categories", ["name" => $cat, "groups_id" => $memgrp, "document_type" => $typ]);
+		$category = U3A_Row::load_single_object("U3A_Document_Categories",
+			 ["name" => $cat, "groups_id" => $memgrp, "document_type" => $typ]);
 	}
 	if ($category)
 	{
@@ -1379,7 +1504,8 @@ function u3a_rename_category()
 	$typ = $_POST["type"];
 	$catid = $_POST["category"];
 	$groups_id = U3A_Groups::get_group_id($grp);
-	$category = U3A_Row::load_single_object("U3A_Document_Categories", ["id" => $catid, "groups_id" => $groups_id, "document_type" => $typ]);
+	$category = U3A_Row::load_single_object("U3A_Document_Categories",
+		 ["id" => $catid, "groups_id" => $groups_id, "document_type" => $typ]);
 	if ($cat)
 	{
 		if ($category)
@@ -1419,7 +1545,8 @@ function u3a_delete_category()
 		else
 		{
 			$groups_id = U3A_Groups::get_group_id($grp);
-			$category = U3A_Row::load_single_object("U3A_Document_Categories", ["id" => $catid, "groups_id" => $groups_id, "document_type" => $typ]);
+			$category = U3A_Row::load_single_object("U3A_Document_Categories",
+				 ["id" => $catid, "groups_id" => $groups_id, "document_type" => $typ]);
 			if ($category)
 			{
 				$oldname = $category->name;
@@ -1822,11 +1949,13 @@ function u3a_send_committee_mail()
 	if (isset($_POST["members"]) && $_POST["members"])
 	{
 		$mbrs = explode(',', $_POST["members"]);
-		$nsent = U3A_Committee::send_mail_to_some($committee_id, $mbrs, $mbr, $subject, $contents, $attachments, $use_private_email, $use_cc, $use_no_reply, $use_reply_to);
+		$nsent = U3A_Committee::send_mail_to_some($committee_id, $mbrs, $mbr, $subject, $contents, $attachments,
+			 $use_private_email, $use_cc, $use_no_reply, $use_reply_to);
 	}
 	else
 	{
-		$nsent = U3A_Committee::send_mail_to_all($committee_id, $mbr, $subject, $contents, $attachments, $use_private_email, $use_cc, $use_no_reply, $use_reply_to);
+		$nsent = U3A_Committee::send_mail_to_all($committee_id, $mbr, $subject, $contents, $attachments, $use_private_email,
+			 $use_cc, $use_no_reply, $use_reply_to);
 	}
 	if ($nsent)
 	{
@@ -1895,6 +2024,7 @@ function u3a_send_individual_mail()
 		update_option("u3a_testing_email", "1");
 	}
 	$p = strpos($mbrid1, "+");
+	$u3a = U3A_Information::u3a_get_u3a_name() . "U3A";
 	if ($p !== FALSE)
 	{
 		$mbrid = substr($mbrid1, 0, $p);
@@ -1909,14 +2039,14 @@ function u3a_send_individual_mail()
 		}
 		if ($cm)
 		{
-			$nr = "ShrewsburyU3A " . $cm->role . " <" . U3A_Mail::get_no_reply_mailbox() . ">";
-			$from = $cm->email;
+			$nr = "$u3a " . $cm->role . " <" . U3A_Mail::get_no_reply_mailbox() . ">";
+			$from = U3A_Utilities::strip_all_slashes($cm->email);
 			$sender_id = $committee_id;
 			$from_committee = true;
 		}
 		else
 		{
-			$nr = "ShrewsburyU3A Message <" . U3A_Mail::get_no_reply_mailbox() . ">";
+			$nr = "$u3a Message <" . U3A_Mail::get_no_reply_mailbox() . ">";
 			$from = U3A_Members::get_email_address($mbrid);
 			$sender_id = $mbrid;
 			$from_committee = false;
@@ -1929,7 +2059,7 @@ function u3a_send_individual_mail()
 		$sender_id = $mbrid;
 		$from_committee = false;
 		$from = U3A_Members::get_email_address($mbrid);
-		$nr = "ShrewsburyU3A Message <" . U3A_Mail::get_no_reply_mailbox() . ">";
+		$nr = "$u3a Message <" . U3A_Mail::get_no_reply_mailbox() . ">";
 	}
 	$rcpt = $_POST["recipient"];
 	$to = U3A_Members::get_email_address($_POST["members"]);
@@ -2141,10 +2271,22 @@ function u3a_list_members()
 	$links = [];
 	foreach ($members["result"] as $mbr)
 	{
-		$text = $mbr->get_formal_name() . " (" . $mbr->membership_number . ")";
-		$id = new U3A_INPUT("hidden", "members_id", "u3a-get-member-details-id-" . $mbr->membership_number, "u3a-get-member-details-id-class", $mbr->id);
-		$a = new U3A_A("#", $text, NULL, "u3a-get-member-details-link-class", "u3a_get_member_details('" . $mbr->membership_number . "')");
-		$div = new U3A_DIV(null, "u3a-member-details-" . $mbr->membership_number, "u3a-member-list-details-class u3a-invisible");
+		if ($mbr->renewal_needed)
+		{
+			$mbrb = new U3A_SPAN($mbr->get_formal_name() . " (" . $mbr->membership_number . ")", null, "u3a-red");
+			$text = $mbrb->to_html();
+		}
+		else
+		{
+			$text = $mbr->get_formal_name() . " (" . $mbr->membership_number . ")";
+		}
+		$ital = $mbr->wpid ? " u3a-italic" : "";
+		$id = new U3A_INPUT("hidden", "members_id", "u3a-get-member-details-id-" . $mbr->membership_number,
+		  "u3a-get-member-details-id-class", $mbr->id);
+		$a = new U3A_A("#", $text, NULL, "u3a-get-member-details-link-class$ital",
+		  "u3a_get_member_details('" . $mbr->membership_number . "')");
+		$div = new U3A_DIV(null, "u3a-member-details-" . $mbr->membership_number,
+		  "u3a-member-list-details-class u3a-invisible");
 		$links[] = new U3A_DIV([$a, $id, $div], null, "u3a-get-member-details-div-class");
 	}
 	echo U3A_HTML::to_html([$h, $links]);
@@ -2250,7 +2392,8 @@ function u3a_sort_documents()
 	$tp = U3A_Documents::get_type_description($type);
 	if ($docs)
 	{
-		$dcrel = U3A_Row::load_hash_of_all_objects("U3A_Document_Category_Relationship", ["document_categories_id" => $category], "documents_id");
+		$dcrel = U3A_Row::load_hash_of_all_objects("U3A_Document_Category_Relationship",
+			 ["document_categories_id" => $category], "documents_id");
 		for ($n = 0; $n < count($docs); $n++)
 		{
 			if (isset($dcrel[$docs[$n]]))
@@ -2321,7 +2464,7 @@ function u3a_edit_document_details()
 			update_post_meta($doc->attachment_id, '_wp_attachment_image_alt', $attachment_title);
 		}
 
-		// Set the image meta (e.g. Title, Excerpt, Content)
+// Set the image meta (e.g. Title, Excerpt, Content)
 		wp_update_post($doc_meta);
 		$result = ["success" => 1, "message" => "document edited"];
 	}
@@ -2406,7 +2549,8 @@ function u3a_create_mailing_list()
 				$gname = $grp->name;
 //				$list = null;
 //				write_log("about to create list", $gname, $list_address, $members);
-				$list = $mailer->create_mailing_list($gname, "The $gname group at " . $config->U3ANAME . " U3A", $list_address, $members);
+				$list = $mailer->create_mailing_list($gname, "The $gname group at " . $config->U3ANAME . " U3A", $list_address,
+				  $members);
 				if ($list)
 				{
 					$grp->set_mailing_list($name);
@@ -2515,7 +2659,8 @@ function u3a_accept_from_waiting_list()
 	$groups_id = U3A_Utilities::get_post("group", 0);
 	if ($members_id && $groups_id)
 	{
-		$gm = U3A_Row::load_single_object("U3A_Group_Members", ["groups_id" => $groups_id, "members_id" => $members_id, "status" => 4]);
+		$gm = U3A_Row::load_single_object("U3A_Group_Members",
+			 ["groups_id" => $groups_id, "members_id" => $members_id, "status" => 4]);
 		if ($gm)
 		{
 			$gm->status = 0;
@@ -2542,7 +2687,8 @@ function u3a_remove_from_waiting_list()
 	$groups_id = U3A_Utilities::get_post("group", 0);
 	if ($members_id && $groups_id)
 	{
-		$gm = U3A_Row::load_single_object("U3A_Group_Members", ["groups_id" => $groups_id, "members_id" => $members_id, "status" => 4]);
+		$gm = U3A_Row::load_single_object("U3A_Group_Members",
+			 ["groups_id" => $groups_id, "members_id" => $members_id, "status" => 4]);
 		if ($gm)
 		{
 			$gm->status = 0;
@@ -2610,7 +2756,7 @@ function u3a_download_gift_aid()
 	$to_date = U3A_Utilities::get_post("to", null);
 	if ($from_date)
 	{
-		$payments = U3A_Subscriptions::get_payments($from_date, $to_date);
+		$payments = U3A_Subscriptions::get_payments($from_date, $to_date, TRUE);
 		$ga = new U3A_GiftAid_List();
 		$path = $ga->write_list($payments);
 		if ($path)
@@ -2662,6 +2808,7 @@ add_action("wp_ajax_u3a_renew_membership", "u3a_renew_membership");
 
 function u3a_renew_membership()
 {
+	write_log($_POST);
 	$members_id = U3A_Utilities::get_post("member", 0);
 	if ($members_id)
 	{
@@ -2688,8 +2835,13 @@ function u3a_renew_membership()
 		{
 			$subyr++;
 		}
-		$sub = new U3A_Subscriptions(["members_id" => $members_id, "amount" => $amount, "subscription_year" => $subyr]);
-		$sub->save();
+		$hash = ["members_id" => $members_id, "amount" => $amount, "subscription_year" => $subyr];
+		$sub = U3A_Row::load_single_object("U3A_Subscriptions", $hash);
+		if (!$sub)
+		{
+			$sub = new U3A_Subscriptions($hash);
+			$sub->save();
+		}
 		$result = ["success" => 1, "message" => "membership has been renewed"];
 	}
 	else
@@ -2972,7 +3124,8 @@ function u3a_group_mailing_list()
 							}
 							foreach ($to_delete as $members_id)
 							{
-								$m = U3A_Row::load_single_object("U3A_Email_List_Members", ["email_lists_id" => $list_id, "members_id" => $members_id]);
+								$m = U3A_Row::load_single_object("U3A_Email_List_Members",
+									 ["email_lists_id" => $list_id, "members_id" => $members_id]);
 								$m->delete();
 							}
 							$result = ["success" => 1, "message" => "list $name has been updated!"];
@@ -3366,6 +3519,170 @@ function u3a_get_card()
 	{
 		$result = ["success" => 0, "message" => "no member provided"];
 	}
+	echo json_encode($result);
+	wp_die();
+}
+
+add_action("wp_ajax_u3a_edit_venue", "u3a_edit_venue");
+
+function u3a_edit_venue()
+{
+	write_log($_POST);
+	$venues_id = U3A_Utilities::get_post("venue", 0);
+	$op = U3A_Utilities::get_post("op", "add");
+	if ($venues_id)
+	{
+		$venue = U3A_Row::load_single_object("U3A_Venues", ["id" => $venues_id]);
+	}
+	else
+	{
+		$venue = new U3A_Venues();
+	}
+	$cols = U3A_Venues::get_the_column_names("u3a_venues");
+	write_log($cols);
+	foreach ($cols as $col)
+	{
+		if ($col !== 'id')
+		{
+			$val = U3A_Utilities::get_post('field_' . $col, null);
+			$venue->$col = stripslashes($val);
+		}
+	}
+	write_log($venue);
+	if ($venue->save())
+	{
+		$result = ["success" => 1, "message" => "venue ${op}ed"];
+	}
+	else
+	{
+		$result = ["success" => 0, "message" => "venue not ${op}ed"];
+	}
+	echo json_encode($result);
+	wp_die();
+}
+
+add_action("wp_ajax_u3a_remove_venue", "u3a_remove_venue");
+
+function u3a_remove_venue()
+{
+	$venues_id = U3A_Utilities::get_post("venue", 0);
+	if ($venues_id)
+	{
+		$venue = U3A_Row::load_single_object("U3A_Venues", ["id" => $venues_id]);
+		if ($venue)
+		{
+			$venue->delete();
+			$result = ["success" => 1, "message" => "venue deleted"];
+		}
+		else
+		{
+			$result = ["success" => 0, "message" => "venue not deleted"];
+		}
+	}
+	else
+	{
+		$result = ["success" => 0, "message" => "no venue specified"];
+	}
+	echo json_encode($result);
+	wp_die();
+}
+
+add_action("wp_ajax_u3a_get_venue", "u3a_get_venue");
+
+function u3a_get_venue()
+{
+	$venues_id = U3A_Utilities::get_post("venue", 0);
+	if ($venues_id)
+	{
+		$venue = U3A_Row::load_single_object("U3A_Venues", ["id" => $venues_id]);
+		if ($venue)
+		{
+			$ret = U3A_Venue_Utilities::get_venue_editor("edit", $venue);
+			$result = ["success" => 1, "message" => U3A_HTML::to_html($ret)];
+		}
+		else
+		{
+			$result = ["success" => 0, "message" => "no such venue"];
+		}
+	}
+	else
+	{
+		$result = ["success" => 0, "message" => "no venue specified"];
+	}
+	echo json_encode($result);
+	wp_die();
+}
+
+add_action("wp_ajax_u3a_renewal_needed", "u3a_renewal_needed");
+
+function u3a_renewal_needed()
+{
+	U3A_Members::set_renewal_needed();
+}
+
+add_action("wp_ajax_u3a_lapse_members", "u3a_lapse_members");
+
+function u3a_lapse_members()
+{
+	$where = ["status" => "Current", "class<>" => "System", "renewal_needed" => 1];
+	$mbrs = U3A_Members::get_all_members($where);
+	$count = 0;
+	foreach ($mbrs as $mbr)
+	{
+		$mbr->status = 'Lapsed';
+		$mbr->save();
+		$count++;
+	}
+	$result = ["success" => 1, "message" => "$count members lapsed"];
+	echo json_encode($result);
+	wp_die();
+}
+
+add_action("wp_ajax_u3a_unlapse_member", "u3a_unlapse_member");
+
+function u3a_unlapse_member()
+{
+	$members_id = U3A_Utilities::get_post("member", 0);
+	if ($members_id)
+	{
+		$mbr = U3A_Members::get_member($members_id);
+		if ($mbr)
+		{
+			if ($mbr->status === 'Current')
+			{
+				$result = ["success" => 0, "message" => "member $members_id  is current"];
+			}
+			else
+			{
+				$mbr->status = 'Current';
+				$mbr->save();
+				$result = ["success" => 1, "message" => "member $members_id unlapsed"];
+			}
+		}
+		else
+		{
+			$result = ["success" => 0, "message" => "member $members_id  not found"];
+		}
+	}
+	echo json_encode($result);
+	wp_die();
+}
+
+add_action("wp_ajax_u3a_check_wpid", "u3a_check_wpid");
+
+function u3a_check_wpid()
+{
+	$all_members = U3A_Members::get_all_members(null, true);
+	$count = 0;
+	foreach ($all_members as $mbr)
+	{
+		$wpid = $mbr->get_the_wpid();
+		If ($wpid)
+		{
+			$count++;
+		}
+	}
+	$result = ["success" => 1, "message" => "$count members registered"];
 	echo json_encode($result);
 	wp_die();
 }

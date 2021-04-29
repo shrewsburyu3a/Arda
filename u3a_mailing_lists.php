@@ -94,7 +94,7 @@ class U3A_Mailing_List
 		$ret = false;
 		if ($member)
 		{
-			$email = $member->email();
+			$email = U3A_Utilities::strip_all_slashes($member->email());
 			if (!$this->has_member($email))
 			{
 				$this->_members[$email] = $member;

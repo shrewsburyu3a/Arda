@@ -1,5 +1,23 @@
 <?php
 
+/* Arda v1.0
+ * Copyright 2021 Mike Curtis (mike@computermike.biz)
+ *
+ * This file is part of Arda.
+ *   Arda is free software: you can redistribute it and/or modify
+ *   it under the terms of the GNU Affero General Public License version 3
+ *   as published by the Free Software Foundation
+ *
+ *   Ardais distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU Affero General Public License for more details.
+ *
+ *   You can get a copy The GNU Affero General Public license from
+ *   http://www.gnu.org/licenses/agpl-3.0.html
+ *
+ */
+
 require_once("u3a_mail.php");
 require_once("u3a_base_classes.php");
 require_once("project.php");
@@ -96,6 +114,7 @@ class U3A_Database_Row extends U3A_Row
 	public static function u3a_logged_in_member()
 	{
 		$current_user = self::u3a_real_member();
+//		write_log("current user", $current_user);
 		if (U3A_Committee::is_webmanager($current_user))
 		{
 			$assume = get_option("assumed_identity", 0);
@@ -131,6 +150,14 @@ class U3A_Database_Row extends U3A_Row
 				if ($cttee)
 				{
 					$current_user = U3A_Row::load_single_object("U3A_Members", ["id" => $cttee->members_id]);
+				}
+				else
+				{
+					$role = U3A_Row::load_single_object("U3A_Roles", ["login" => $lg]);
+					if ($role)
+					{
+						$current_user = U3A_Row::load_single_object("U3A_Members", ["id" => $role->members_id]);
+					}
 				}
 			}
 		}
@@ -182,7 +209,7 @@ class U3A_Database_Row extends U3A_Row
 //		chr(148),
 //		chr(151));
 //
-		//	$replace = array("'",
+//	$replace = array("'",
 //		"'",
 //		'"',
 //		'"',
@@ -507,7 +534,7 @@ class U3A_Members extends U3A_Database_Row
 					$m = self::get_member($mbr);
 					if ($m)
 					{
-						$ret = $m->email;
+						$ret = U3A_Utilities::strip_all_slashes($m->email);
 					}
 				}
 			}
@@ -517,7 +544,7 @@ class U3A_Members extends U3A_Database_Row
 			$m = self::get_member($mbr);
 			if ($m)
 			{
-				$ret = $m->email;
+				$ret = U3A_Utilities::strip_all_slashes($m->email);
 			}
 		}
 		return $ret;
@@ -585,13 +612,16 @@ class U3A_Members extends U3A_Database_Row
 		return U3A_Row::get_max("u3a_members", "membership_number", ["membership_number<" => 10000]);
 	}
 
-	public static function send_mail_to_all($from_member, $subject, $contents, $attachments = [], $use_no_reply = false, $use_reply_to = false)
+	public static function send_mail_to_all($from_member, $subject, $contents, $attachments = [], $use_no_reply = false,
+	  $use_reply_to = false)
 	{
 		$to_members = U3A_Row::load_array_of_objects("U3A_Members");
-		return $this->send_mail_to_some($to_members["result"], $from_member, $subject, $contents, $attachments, $use_no_reply, $use_reply_to);
+		return $this->send_mail_to_some($to_members["result"], $from_member, $subject, $contents, $attachments, $use_no_reply,
+			 $use_reply_to);
 	}
 
-	public static function send_mail_to_some($to_members, $from_member, $subject, $contents, $attachments = [], $use_no_reply = false, $use_reply_to = false)
+	public static function send_mail_to_some($to_members, $from_member, $subject, $contents, $attachments = [],
+	  $use_no_reply = false, $use_reply_to = false)
 	{
 		$to_members1 = self::get_members($to_members);
 		$fromm = self::get_member($from_member);
@@ -608,9 +638,13 @@ class U3A_Members extends U3A_Database_Row
 			$bcc = [];
 			foreach ($to_members1 as $mbr)
 			{
-				$bcc[] = $mbr->get_full_email_address();
+				if ($mbr)
+				{
+					$bcc[] = $mbr->get_full_email_address();
+				}
 			}
-			$sent = U3A_Sent_Mail::send($fromm->id, $nr, $subject, $contents, null, $bcc, $use_no_reply ? $nr : $from, $use_reply_to ? $from : null, $attachments, true, false);
+			$sent = U3A_Sent_Mail::send($fromm->id, $nr, $subject, $contents, null, $bcc, $use_no_reply ? $nr : $from,
+				 $use_reply_to ? $from : null, $attachments, true, false);
 //			write_log("db sent");
 //			write_log($sent);
 			if (!$sent)
@@ -668,12 +702,12 @@ class U3A_Members extends U3A_Database_Row
 		{
 			$renew_to1 = U3A_CONFIG::u3a_get_as_timestamp("MEMBERSHIP_LAPSES", $when_year + 1);
 			$renew_from1 = U3A_CONFIG::u3a_get_as_timestamp("RENEWALS_FROM", $when_year - 1);
-			// different years
+// different years
 			$ret = (($when >= $renew_from1) && ($when <= $renew_to)) || (($when >= $renew_from) && ($when <= $renew_to1));
 		}
 		else
 		{
-			// both in same year
+// both in same year
 			$ret = ($when >= $renew_from) && ($when <= $renew_to);
 		}
 		$ret = ($when >= $renew_from) || ($when <= $renew_to);
@@ -689,6 +723,12 @@ class U3A_Members extends U3A_Database_Row
 			$rnw = U3A_CONFIG::u3a_get_as_timestamp("SUBSCRIPTIONS_DUE", 1);
 		}
 		return date('Y-m-d', $rnw);
+	}
+
+	public static function set_renewal_needed()
+	{
+		$sql = "UPDATE u3a_members SET renewal_needed = 1 WHERE renewal_needed = 0";
+		$ret = Project_Details::get_db()->query($sql);
 	}
 
 	private $_real_member = null;
@@ -729,23 +769,24 @@ class U3A_Members extends U3A_Database_Row
 		{
 			$ret = $this->_data["forename"];
 		}
-		return $ret;
+		return U3A_Utilities::strip_all_slashes($ret);
 	}
 
 	public function get_initials()
 	{
-		$ret = array_key_exists("initials", $this->_data) && $this->_data["initials"] ? $this->_data["initials"] : substr($this->forename, 0, 1);
+		$ret = array_key_exists("initials", $this->_data) && $this->_data["initials"] ? $this->_data["initials"] : substr($this->forename,
+			 0, 1);
 		return $ret;
 	}
 
 	public function get_name()
 	{
-		return $this->get_first_name() . " " . $this->_data["surname"];
+		return $this->get_first_name() . " " . U3A_Utilities::strip_all_slashes($this->_data["surname"]);
 	}
 
 	public function get_initialed_name()
 	{
-		return $this->get_initials() . " " . $this->_data["surname"];
+		return $this->get_initials() . " " . U3A_Utilities::strip_all_slashes($this->_data["surname"]);
 	}
 
 	public function get_titled_initials()
@@ -765,10 +806,10 @@ class U3A_Members extends U3A_Database_Row
 
 	public function get_formal_name()
 	{
-		$name = $this->_data["surname"];
+		$name = U3A_Utilities::strip_all_slashes($this->_data["surname"]);
 		if (isset($this->_data["forename"]) && $this->_data["forename"])
 		{
-			$name .= ", " . $this->_data["forename"];
+			$name .= ", " . U3A_Utilities::strip_all_slashes($this->_data["forename"]);
 		}
 		return $name;
 	}
@@ -792,7 +833,7 @@ class U3A_Members extends U3A_Database_Row
 		$ret = "";
 		if (isset($this->_data["email"]) && $this->_data["email"])
 		{
-			$ret = $this->get_name() . " <" . $this->_data["email"] . ">";
+			$ret = $this->get_name() . " <" . U3A_Utilities::strip_all_slashes($this->_data["email"]) . ">";
 		}
 		return $ret;
 	}
@@ -841,7 +882,8 @@ class U3A_Members extends U3A_Database_Row
 		$ret = null;
 		if (isset($this->_data["email"]) && $this->_data["email"])
 		{
-			$ret = new U3A_Mailing_List_Member($this->get_name(), $this->_data["email"], $this->_data["membership_number"]);
+			$ret = new U3A_Mailing_List_Member($this->get_name(), U3A_Utilities::strip_all_slashes($this->_data["email"]),
+			  $this->_data["membership_number"]);
 		}
 		return $ret;
 	}
@@ -852,7 +894,8 @@ class U3A_Members extends U3A_Database_Row
 		$ret = false;
 		if ($info)
 		{
-			$docs = U3A_Row::count_rows("U3A_Documents", ["members_id"	 => $this->_data["id"], "document_type" => [U3A_Documents::PERSONAL_DOCUMENT_TYPE, U3A_Documents::PERSONAL_IMAGE_TYPE],
+			$docs = U3A_Row::count_rows("U3A_Documents",
+				 ["members_id"	 => $this->_data["id"], "document_type" => [U3A_Documents::PERSONAL_DOCUMENT_TYPE, U3A_Documents::PERSONAL_IMAGE_TYPE],
 				  "visibility>="	 => $visibility]);
 			if ($docs)
 			{
@@ -963,13 +1006,28 @@ class U3A_Members extends U3A_Database_Row
 		return $ret;
 	}
 
+	public function renewal_is_needed()
+	{
+		$needed = $this->_data["renewal_needed"];
+		if (!$needed)
+		{
+			$this->_data["renewal_needed"] = 1;
+			$this->save();
+		}
+	}
+
 	public function renew_membership()
 	{
-		$rnw = $this->_data["renew"];
-		$rnwa = explode('-', $rnw);
-		$rnwa[0] = intval($rnwa[0]) + 1;
-		$this->_data["renew"] = implode('-', $rnwa);
-		$this->save();
+		$needed = $this->_data["renewal_needed"];
+		if ($needed)
+		{
+			$rnw = $this->_data["renew"];
+			$rnwa = explode('-', $rnw);
+			$rnwa[0] = intval($rnwa[0]) + 1;
+			$this->_data["renew"] = implode('-', $rnwa);
+			$this->_data["renewal_needed"] = 0;
+			$this->save();
+		}
 	}
 
 	public function shares_group_with($mbr)
@@ -978,40 +1036,55 @@ class U3A_Members extends U3A_Database_Row
 		return U3A_Group_Members::share_a_group($members_id, $this->_data["id"]);
 	}
 
-	public function get_wpid()
+	public function is_registered()
+	{
+		return U3A_Row::has_rows("WP_Users", ["user_login" => $this->_data["membership_number"]]);
+	}
+
+	public function get_the_wpid($check = false)
 	{
 		$ret = $this->_data["wpid"];
-		if (!$ret)
+		if ($check && !$ret)
 		{
-			$result = U3A_Row::load_array_of_objects("WP_Users", ["user_email" => $this->_data["email"]]);
-			if ($result["total_number_of_rows"])
+			$usr = U3A_Row::load_single_object("WP_Users", ["user_login" => $this->_data["membership_number"]]);
+			if ($usr)
 			{
-				$usrs = $result["result"];
-				if ($result["total_number_of_rows"] === 1)
-				{
-					$ret = intval($usrs[0]->ID);
-				}
-				else
-				{
-					foreach ($usrs as $usr)
-					{
-						$nf = U3A_Row::count_rows("WP_Usermeta", ["user_id" => $usr->ID, "meta_key" => "first_name", "meta_value" => $this->_data["forename"]]);
-						if ($nf)
-						{
-							$nf1 = U3A_Row::count_rows("WP_Usermeta", ["user_id" => $usr->ID, "meta_key" => "last_name", "meta_value" => $this->_data["surname"]]);
-							if ($nf1)
-							{
-								$ret = intval($usr->ID);
-							}
-						}
-					}
-				}
-			}
-			if ($ret)
-			{
+				$ret = intval($usr->ID);
 				$this->_data["wpid"] = $ret;
 				$this->save();
 			}
+//			$result = U3A_Row::load_array_of_objects("WP_Users",
+//				 ["user_email" => U3A_Utilities::strip_all_slashes($this->_data["email"])]);
+//			if ($result["total_number_of_rows"])
+//			{
+//				$usrs = $result["result"];
+//				if ($result["total_number_of_rows"] === 1)
+//				{
+//					$ret = intval($usrs[0]->ID);
+//				}
+//				else
+//				{
+//					foreach ($usrs as $usr)
+//					{
+//						$nf = U3A_Row::count_rows("WP_Usermeta",
+//							 ["user_id" => $usr->ID, "meta_key" => "first_name", "meta_value" => $this->_data["forename"]]);
+//						if ($nf)
+//						{
+//							$nf1 = U3A_Row::count_rows("WP_Usermeta",
+//								 ["user_id" => $usr->ID, "meta_key" => "last_name", "meta_value" => $this->_data["surname"]]);
+//							if ($nf1)
+//							{
+//								$ret = intval($usr->ID);
+//							}
+//						}
+//					}
+//				}
+//			}
+//			if ($ret)
+//			{
+//				$this->_data["wpid"] = $ret;
+//				$this->save();
+//			}
 		}
 		return $ret;
 	}
@@ -1265,6 +1338,10 @@ class U3A_Groups extends U3A_Database_Row
 					{
 						$ret .= U3A_Utilities::days_to_string($meet["onweek"], $nt);
 					}
+					if ($every === "fortnight")
+					{
+						$ret .= U3A_Utilities::days_to_string($meet["onfortnight"], $nt);
+					}
 					elseif ($every === "month")
 					{
 						$ret .= U3A_Utilities::ordinal_days_to_string($meet["onmonth"], $nt);
@@ -1433,7 +1510,8 @@ class U3A_Groups extends U3A_Database_Row
 							]
 						];
 					}
-					elseif (array_search($whenbits[0], U3A_Utilities::$first_few_ordinals) !== FALSE && array_search($whenbits[3], U3A_Utilities::$first_few_ordinals) !== FALSE)
+					elseif (array_search($whenbits[0], U3A_Utilities::$first_few_ordinals) !== FALSE && array_search($whenbits[3],
+						 U3A_Utilities::$first_few_ordinals) !== FALSE)
 					{
 						$val["every"] = "month";
 						$val["onweek"] = [];
@@ -1524,7 +1602,7 @@ class U3A_Groups extends U3A_Database_Row
 //		print ("MEETS WHEN " . $meets_when . "\n");
 		if (U3A_Utilities::starts_with($meets_when, "{") || U3A_Utilities::starts_with($meets_when, "["))
 		{
-			$ret = self::meeting_time_to_string(json_decode(stripslashes($meets_when)));
+			$ret = self::meeting_time_to_string(json_decode(U3A_Utilities::strip_all_slashes($meets_when)));
 		}
 		else
 		{
@@ -1548,13 +1626,16 @@ class U3A_Groups extends U3A_Database_Row
 		return $ret;
 	}
 
-	public function send_mail_to_all($from_member, $subject, $contents, $attachments = [], $use_cc = false, $use_no_reply = true, $use_reply_to = true)
+	public function send_mail_to_all($from_member, $subject, $contents, $attachments = [], $use_cc = false,
+	  $use_no_reply = true, $use_reply_to = true)
 	{
 		$to_members = U3A_Group_Members::get_members_in_group($this->_data["id"]);
-		return $this->send_mail_to_some($to_members, $from_member, $subject, $contents, $attachments, $use_cc, $use_no_reply, $use_reply_to);
+		return $this->send_mail_to_some($to_members, $from_member, $subject, $contents, $attachments, $use_cc, $use_no_reply,
+			 $use_reply_to);
 	}
 
-	public function send_mail_to_some($to_members, $from_member, $subject, $contents, $attachments = [], $use_cc = false, $use_no_reply = true, $use_reply_to = true)
+	public function send_mail_to_some($to_members, $from_member, $subject, $contents, $attachments = [], $use_cc = false,
+	  $use_no_reply = true, $use_reply_to = true)
 	{
 		$to_members1 = U3A_Members::get_members($to_members);
 		$fromm = U3A_Members::get_member($from_member);
@@ -1573,12 +1654,21 @@ class U3A_Groups extends U3A_Database_Row
 				$from = $committee->get_full_email_address();
 			}
 		}
+		if (!$from)
+		{
+			$use_no_reply = true;
+			$use_reply_to = false;
+		}
 		if (strpos($contents, "%%") === FALSE)
 		{
 			$to = [];
 			foreach ($to_members1 as $mbr)
 			{
-				$to[] = $mbr->get_full_email_address();
+				$mbr_email = $mbr->get_full_email_address();
+				if ($mbr_email)
+				{
+					$to[] = $mbr_email;
+				}
 			}
 			if ($use_cc)
 			{
@@ -1590,8 +1680,9 @@ class U3A_Groups extends U3A_Database_Row
 				$bcc = array_unique($to);
 				$cc = null;
 			}
-			//send($sender_id, $to, $subject1, $contents, $cc = null, $bcc = null, $from = null, $reply_to = null, $attachments = null, $html = true, $committee = false)
-			$sent = U3A_Sent_Mail::send($fromm->id, $nr, $subject, $contents, $cc, $bcc, $use_no_reply ? $nr : $from, $use_reply_to ? $from : null, $attachments, true, false);
+//send($sender_id, $to, $subject1, $contents, $cc = null, $bcc = null, $from = null, $reply_to = null, $attachments = null, $html = true, $committee = false)
+			$sent = U3A_Sent_Mail::send($fromm->id, $nr, $subject, $contents, $cc, $bcc, $use_no_reply ? $nr : $from,
+				 $use_reply_to ? $from : null, $attachments, true, false);
 			if (!$sent)
 			{
 				$nsent = " to group";
@@ -1630,6 +1721,14 @@ class U3A_Groups extends U3A_Database_Row
 	public function get_number_of_members()
 	{
 		$sql = "SELECT COUNT(*) FROM u3a_group_members WHERE groups_id = " . $this->_data["id"] . " AND status <> 4";
+		$ret = Project_Details::get_db()->query($sql);
+//		write_log($ret);
+		return $ret ? intval(array_values(get_object_vars($ret[0]))[0]) : 0;
+	}
+
+	public function get_number_of_registered_members()
+	{
+		$sql = "SELECT COUNT(*) FROM u3a_group_members WHERE groups_id = " . $this->_data["id"] . " AND status <> 4 AND wpid > 0";
 		$ret = Project_Details::get_db()->query($sql);
 //		write_log($ret);
 		return $ret ? intval(array_values(get_object_vars($ret[0]))[0]) : 0;
@@ -1719,37 +1818,43 @@ class U3A_Groups extends U3A_Database_Row
 
 	public function has_u3a_docs_or_images()
 	{
-		$ndocs = U3A_Row::count_rows("U3A_Documents", ["groups_id" => $this->_data["id"], "visibility>" => U3A_Documents::VISIBILITY_GROUP]);
+		$ndocs = U3A_Row::count_rows("U3A_Documents",
+			 ["groups_id" => $this->_data["id"], "visibility>" => U3A_Documents::VISIBILITY_GROUP]);
 		return $ndocs > 0;
 	}
 
 	public function has_public_docs_or_images()
 	{
-		$ndocs = U3A_Row::count_rows("U3A_Documents", ["groups_id" => $this->_data["id"], "visibility>" => U3A_Documents::VISIBILITY_U3A]);
+		$ndocs = U3A_Row::count_rows("U3A_Documents",
+			 ["groups_id" => $this->_data["id"], "visibility>" => U3A_Documents::VISIBILITY_U3A]);
 		return $ndocs > 0;
 	}
 
 	public function has_u3a_docs()
 	{
-		$ndocs = U3A_Row::count_rows("U3A_Documents", ["groups_id" => $this->_data["id"], "document_type" => U3A_Documents::GROUP_DOCUMENT_TYPE, "visibility>" => U3A_Documents::VISIBILITY_GROUP]);
+		$ndocs = U3A_Row::count_rows("U3A_Documents",
+			 ["groups_id" => $this->_data["id"], "document_type" => U3A_Documents::GROUP_DOCUMENT_TYPE, "visibility>" => U3A_Documents::VISIBILITY_GROUP]);
 		return $ndocs > 0;
 	}
 
 	public function has_public_docs()
 	{
-		$ndocs = U3A_Row::count_rows("U3A_Documents", ["groups_id" => $this->_data["id"], "document_type" => U3A_Documents::GROUP_DOCUMENT_TYPE, "visibility>" => U3A_Documents::VISIBILITY_U3A]);
+		$ndocs = U3A_Row::count_rows("U3A_Documents",
+			 ["groups_id" => $this->_data["id"], "document_type" => U3A_Documents::GROUP_DOCUMENT_TYPE, "visibility>" => U3A_Documents::VISIBILITY_U3A]);
 		return $ndocs > 0;
 	}
 
 	public function has_u3a_images()
 	{
-		$ndocs = U3A_Row::count_rows("U3A_Documents", ["groups_id" => $this->_data["id"], "document_type" => U3A_Documents::GROUP_IMAGE_TYPE, "visibility>" => U3A_Documents::VISIBILITY_GROUP]);
+		$ndocs = U3A_Row::count_rows("U3A_Documents",
+			 ["groups_id" => $this->_data["id"], "document_type" => U3A_Documents::GROUP_IMAGE_TYPE, "visibility>" => U3A_Documents::VISIBILITY_GROUP]);
 		return $ndocs > 0;
 	}
 
 	public function has_public_images()
 	{
-		$ndocs = U3A_Row::count_rows("U3A_Documents", ["groups_id" => $this->_data["id"], "document_type" => U3A_Documents::GROUP_IMAGE_TYPE, "visibility>" => U3A_Documents::VISIBILITY_U3A]);
+		$ndocs = U3A_Row::count_rows("U3A_Documents",
+			 ["groups_id" => $this->_data["id"], "document_type" => U3A_Documents::GROUP_IMAGE_TYPE, "visibility>" => U3A_Documents::VISIBILITY_U3A]);
 		return $ndocs > 0;
 	}
 
@@ -1809,11 +1914,11 @@ class U3A_Group_Members extends U3A_Database_Row
 		$w = self::WAITING;
 		if ($sorted)
 		{
-			$sql = "SELECT u3a_members.* FROM u3a_members JOIN u3a_group_members ON u3a_group_members.members_id = u3a_members.id WHERE u3a_group_members.groups_id = $groups_id AND u3a_group_members.status <> $w ORDER BY u3a_members.surname, u3a_members.forename";
+			$sql = "SELECT u3a_members.* FROM u3a_members JOIN u3a_group_members ON u3a_group_members.members_id = u3a_members.id WHERE u3a_members.status = 'Current' AND u3a_group_members.groups_id = $groups_id AND u3a_group_members.status <> $w ORDER BY u3a_members.surname, u3a_members.forename";
 		}
 		else
 		{
-			$sql = "SELECT u3a_members.* FROM u3a_members JOIN u3a_group_members ON u3a_group_members.members_id = u3a_members.id WHERE u3a_group_members.groups_id = $groups_id AND u3a_group_members.status <> $w";
+			$sql = "SELECT u3a_members.* FROM u3a_members JOIN u3a_group_members ON u3a_group_members.members_id = u3a_members.id WHERE u3a_members.status = 'Current' AND u3a_group_members.groups_id = $groups_id AND u3a_group_members.status <> $w";
 		}
 		$mbrs_hashlist = Project_Details::get_db()->loadList($sql);
 		$mbrs = [];
@@ -1832,11 +1937,11 @@ class U3A_Group_Members extends U3A_Database_Row
 		$w = self::WAITING;
 		if ($sorted)
 		{
-			$sql = "SELECT u3a_members.* FROM u3a_members JOIN u3a_group_members ON u3a_group_members.members_id = u3a_members.id WHERE u3a_group_members.groups_id = $groups_id AND u3a_group_members.status = $w ORDER BY u3a_members.surname, u3a_members.forename";
+			$sql = "SELECT u3a_members.* FROM u3a_members JOIN u3a_group_members ON u3a_group_members.members_id = u3a_members.id WHERE u3a_members.status = 'Current' AND u3a_group_members.groups_id = $groups_id AND u3a_group_members.status = $w ORDER BY u3a_members.surname, u3a_members.forename";
 		}
 		else
 		{
-			$sql = "SELECT u3a_members.* FROM u3a_members JOIN u3a_group_members ON u3a_group_members.members_id = u3a_members.id WHERE u3a_group_members.groups_id = $groups_id AND u3a_group_members.status = $w";
+			$sql = "SELECT u3a_members.* FROM u3a_members JOIN u3a_group_members ON u3a_group_members.members_id = u3a_members.id WHERE u3a_members.status = 'Current' AND u3a_group_members.groups_id = $groups_id AND u3a_group_members.status = $w";
 		}
 		$mbrs_hashlist = Project_Details::get_db()->loadList($sql);
 		$mbrs = [];
@@ -1937,7 +2042,8 @@ class U3A_Group_Members extends U3A_Database_Row
 		$groups_id = U3A_Groups::get_group_id($grp);
 		$members_id = U3A_Members::get_member_id($member);
 		$ret = false;
-		$grpmbr = U3A_Row::load_single_object("U3A_Group_Members", ["groups_id" => $groups_id, "members_id" => $members_id, "status<>" => self::WAITING]);
+		$grpmbr = U3A_Row::load_single_object("U3A_Group_Members",
+			 ["groups_id" => $groups_id, "members_id" => $members_id, "status<>" => self::WAITING]);
 		if ($grpmbr)
 		{
 			$ret = true;
@@ -1969,6 +2075,48 @@ class U3A_Group_Members extends U3A_Database_Row
 
 class U3A_Venues extends U3A_Database_Row
 {
+
+	/**
+	 * @param type $ent can be id, name or email or object
+	 * @return type U3A_Members object
+	 */
+	public static function get_venue_object($ent)
+	{
+		$ret = $ent;
+		if (is_numeric($ent))
+		{
+			$ret = U3A_Row::load_single_object("U3A_Venues", ["id" => $ent]);
+		}
+		else if (is_string($ent))
+		{
+			$ret = U3A_Row::load_single_object("U3A_Venues", ["venue" => addslashes($ent)]);
+		}
+		return $ret;
+	}
+
+	/**
+	 *
+	 * @param type $ent can be id, name or U3A_Groups object
+	 * @return type numeric
+	 */
+	public static function get_venue_id($ent)
+	{
+		$ret = $ent;
+		if (!is_numeric($ent))
+		{
+			if (is_string($ent))
+			{
+				$where = ["venue" => $ent];
+				$entity = U3A_Row::load_single_object("U3A_Venues", $where);
+				$ret = $entity->id;
+			}
+			else if ($ent != null)
+			{
+				$ret = $ent->id;
+			}
+		}
+		return $ret;
+	}
 
 	public function __construct($param = null)
 	{
@@ -2091,7 +2239,12 @@ class U3A_Committee extends U3A_Database_Row
 
 	public static function get_webmanager()
 	{
-		return U3A_Row::load_single_object("U3A_Committee", ["login" => "webmanager"]);
+		$ret = U3A_Row::load_single_object("U3A_Committee", ["login" => "webmanager"]);
+		if (!$ret)
+		{
+			$ret = U3A_Row::load_single_object("U3A_Roles", ["login" => "webmanager"]);
+		}
+		return $ret;
 	}
 
 	public static function get_membership_secretary()
@@ -2172,20 +2325,32 @@ class U3A_Committee extends U3A_Database_Row
 	{
 		$mbr = U3A_Members::get_member($mbr1);
 		$ret = null;
-//		write_log($mbr);
+//		write_log("is_committee_member mbr", $mbr);
 		if ($mbr)
 		{
 			$ret = U3A_Row::load_single_object("U3A_Committee", ["members_id" => $mbr->id]);
-//			write_log($ret);
-			if (!$ret && ($mbr->membership_number > 990000) && ($mbr->forename === "Committee") && ($mbr->surname === "System"))
+//			write_log("is_committee_member ret1", $ret);
+			if (!$ret)
 			{
-				$ret = new U3A_System_Test_Committee([
-					"role"		 => "System Committee Member",
-					"login"		 => "systemcommitteemember",
-					"members_id" => $mbr->id,
-					"email"		 => "system.committee@" . U3A_Information::u3a_get_domain_name()
-				]);
-//				write_log("ret", $ret);
+				if (self::is_webmanager($mbr1))
+				{
+					$ret = new U3A_System_Test_Committee([
+						"role"		 => "Webmanager",
+						"login"		 => "webmanager",
+						"members_id" => $mbr->id,
+						"email"		 => "webmanager@" . U3A_Information::u3a_get_domain_name()
+					]);
+				}
+				elseif (($mbr->membership_number > 990000) && ($mbr->forename === "Committee") && ($mbr->surname === "System"))
+				{
+					$ret = new U3A_System_Test_Committee([
+						"role"		 => "System Committee Member",
+						"login"		 => "systemcommitteemember",
+						"members_id" => $mbr->id,
+						"email"		 => "system.committee@" . U3A_Information::u3a_get_domain_name()
+					]);
+				}
+//				write_log("is_committee_member ret2", $ret);
 			}
 		}
 //		$ret = 0;
@@ -2194,6 +2359,7 @@ class U3A_Committee extends U3A_Database_Row
 //		{
 //			$ret = $cmt->id;
 //		}
+//		write_log("is_committee_member returning", $ret);
 		return $ret;
 	}
 
@@ -2287,13 +2453,16 @@ class U3A_Committee extends U3A_Database_Row
 		return $ret;
 	}
 
-	public static function send_mail_to_all($committee_id, $from_member, $subject, $contents, $attachments = [], $use_private_email = false, $use_cc = false, $use_no_reply = true, $use_reply_to = true)
+	public static function send_mail_to_all($committee_id, $from_member, $subject, $contents, $attachments = [],
+	  $use_private_email = false, $use_cc = false, $use_no_reply = true, $use_reply_to = true)
 	{
 		$to_members = U3A_Row::load_array_of_objects("U3A_Committee");
-		return self::send_mail_to_some($committee_id, $to_members["result"], $from_member, $subject, $contents, $attachments, $use_private_email, $use_cc, $use_no_reply, $use_reply_to);
+		return self::send_mail_to_some($committee_id, $to_members["result"], $from_member, $subject, $contents, $attachments,
+			 $use_private_email, $use_cc, $use_no_reply, $use_reply_to);
 	}
 
-	public static function send_mail_to_some($committee_id, $to_members, $from_member, $subject, $contents, $attachments = [], $use_private_email = false, $use_cc = false, $use_no_reply = true, $use_reply_to = true)
+	public static function send_mail_to_some($committee_id, $to_members, $from_member, $subject, $contents,
+	  $attachments = [], $use_private_email = false, $use_cc = false, $use_no_reply = true, $use_reply_to = true)
 	{
 //		write_log($from_member);
 		$to_members1 = U3A_Members::get_members($to_members);
@@ -2345,7 +2514,8 @@ class U3A_Committee extends U3A_Database_Row
 				$bcc = array_unique($to);
 				$cc = null;
 			}
-			$sent = U3A_Sent_Mail::send($fromm->id, $nr, $subject, $contents, $cc, $bcc, $use_no_reply ? $nr : $from, $use_reply_to ? $from : null, $attachments, true, true);
+			$sent = U3A_Sent_Mail::send($fromm->id, $nr, $subject, $contents, $cc, $bcc, $use_no_reply ? $nr : $from,
+				 $use_reply_to ? $from : null, $attachments, true, true);
 			if (!$sent)
 			{
 				$nsent = " to committee";
@@ -2399,7 +2569,7 @@ class U3A_Committee extends U3A_Database_Row
 		$ret = "";
 		if (isset($this->_data["email"]) && $this->_data["email"])
 		{
-			$ret = "ShrewsburyU3A " . $this->_data["role"] . " <" . $this->_data["email"] . ">";
+			$ret = "ShrewsburyU3A " . $this->_data["role"] . " <" . U3A_Utilities::strip_all_slashes($this->_data["email"]) . ">";
 		}
 		return $ret;
 	}
@@ -2427,7 +2597,7 @@ class U3A_System_Test_Committee extends U3A_Committee
 
 	public function save($allow_null = false, $checkfirst = false, $checkid = true)
 	{
-		// do nothing
+// do nothing
 	}
 
 }
@@ -2655,13 +2825,16 @@ class U3A_Roles extends U3A_Database_Row
 		return $ret;
 	}
 
-	public static function send_mail_to_all($roles_id, $from_member, $subject, $contents, $attachments = [], $use_private_email = false, $use_cc = false, $use_no_reply = false, $use_reply_to = false)
+	public static function send_mail_to_all($roles_id, $from_member, $subject, $contents, $attachments = [],
+	  $use_private_email = false, $use_cc = false, $use_no_reply = false, $use_reply_to = false)
 	{
 		$to_members = U3A_Row::load_array_of_objects("U3A_Roles");
-		return self::send_mail_to_some($roles_id, $to_members["result"], $from_member, $subject, $contents, $attachments, $use_private_email, $use_cc, $use_no_reply, $use_reply_to);
+		return self::send_mail_to_some($roles_id, $to_members["result"], $from_member, $subject, $contents, $attachments,
+			 $use_private_email, $use_cc, $use_no_reply, $use_reply_to);
 	}
 
-	public static function send_mail_to_some($roles_id, $to_members, $from_member, $subject, $contents, $attachments = [], $use_private_email = false, $use_cc = false, $use_no_reply = false, $use_reply_to = false)
+	public static function send_mail_to_some($roles_id, $to_members, $from_member, $subject, $contents, $attachments = [],
+	  $use_private_email = false, $use_cc = false, $use_no_reply = false, $use_reply_to = false)
 	{
 //		write_log($from_member);
 		$to_members1 = U3A_Members::get_members($to_members);
@@ -2713,7 +2886,8 @@ class U3A_Roles extends U3A_Database_Row
 				$bcc = array_unique($to);
 				$cc = null;
 			}
-			$sent = U3A_Sent_Mail::send($fromm->id, $nr, $subject, $contents, $cc, $bcc, $use_no_reply ? $nr : $from, $use_reply_to ? $from : null, $attachments, true, true);
+			$sent = U3A_Sent_Mail::send($fromm->id, $nr, $subject, $contents, $cc, $bcc, $use_no_reply ? $nr : $from,
+				 $use_reply_to ? $from : null, $attachments, true, true);
 			if (!$sent)
 			{
 				$nsent = " to roles";
@@ -2767,7 +2941,7 @@ class U3A_Roles extends U3A_Database_Row
 		$ret = "";
 		if (isset($this->_data["email"]) && $this->_data["email"])
 		{
-			$ret = "ShrewsburyU3A " . $this->_data["role"] . " <" . $this->_data["email"] . ">";
+			$ret = "ShrewsburyU3A " . $this->_data["role"] . " <" . U3A_Utilities::strip_all_slashes($this->_data["email"]) . ">";
 		}
 		return $ret;
 	}
@@ -2794,6 +2968,43 @@ class U3A_Documents extends U3A_Database_Row
 	const VISIBILITY_GROUP = 0;
 	const VISIBILITY_U3A = 1;
 	const VISIBILITY_PUBLIC = 2;
+	const DOCUMENT_RELOAD_NONE = "none";
+	const DOCUMENT_RELOAD_MEMBER = "member";
+	const DOCUMENT_RELOAD_GROUP = "group";
+	const DOCUMENT_RELOAD_COORDINATOR = "coordinator";
+	const DOCUMENT_RELOAD_COMMITTEE = "committee";
+
+	public static function get_reload($dtype)
+	{
+		$ret = self::DOCUMENT_RELOAD_NONE;
+		switch (intval($dtype)) {
+			case self::GROUP_DOCUMENT_TYPE:
+			case self::GROUP_IMAGE_TYPE:
+				$ret = self::DOCUMENT_RELOAD_GROUP;
+				break;
+			case self::NEWSLETTER_TYPE:
+			case self::PUBLIC_DOCUMENT_TYPE:
+			case self::PRIVATE_DOCUMENT_TYPE:
+			case self::COMMITTEE_IMAGE_TYPE:
+				$ret = self::DOCUMENT_RELOAD_COMMITTEE;
+				break;
+			case self::COORDINATORS_DOCUMENT_TYPE:
+			case self::COORDINATORS_IMAGE_TYPE:
+				$ret = self::DOCUMENT_RELOAD_COORDINATOR;
+				break;
+			case self::PERSONAL_DOCUMENT_TYPE:
+			case self::PERSONAL_IMAGE_TYPE:
+				$ret = self::DOCUMENT_RELOAD_MEMBER;
+				break;
+			case self::USERGUIDE_DOCUMENT_TYPE:
+			case self::USERGUIDE_COORDINATORS_DOCUMENT_TYPE:
+			case self::USERGUIDE_COMMITTEE_DOCUMENT_TYPE:
+			default:
+				$ret = self::DOCUMENT_RELOAD_NONE;
+				break;
+		}
+		return $ret;
+	}
 
 	public static function get_header_images($groups_id, $mbr = null)
 	{
@@ -2977,7 +3188,8 @@ class U3A_Documents extends U3A_Database_Row
 		return U3A_Utilities::add_indefinite_article(self::get_type_title_uc1($type));
 	}
 
-	public static function get_attachment_ids_for_group($grp = null, $type = 0, $category = 0, $visibility = self::VISIBILITY_GROUP)
+	public static function get_attachment_ids_for_group($grp = null, $type = 0, $category = 0,
+	  $visibility = self::VISIBILITY_GROUP)
 	{
 		$groups_id = $grp ? U3A_Groups::get_group_id($grp) : 0;
 		$sql = "SELECT u3a_documents.attachment_id FROM u3a_documents JOIN u3a_document_category_relationship ON u3a_documents.id = u3a_document_category_relationship.documents_id WHERE "
@@ -2987,7 +3199,8 @@ class U3A_Documents extends U3A_Database_Row
 		return $ret;
 	}
 
-	public static function get_attachment_ids_for_member($mbr, $type = 0, $category = 0, $visibility = self::VISIBILITY_GROUP)
+	public static function get_attachment_ids_for_member($mbr, $type = 0, $category = 0,
+	  $visibility = self::VISIBILITY_GROUP)
 	{
 		$members_id = U3A_Members::get_member_id($mbr);
 		$sql = "SELECT u3a_documents.attachment_id FROM u3a_documents JOIN u3a_document_category_relationship ON u3a_documents.id = u3a_document_category_relationship.documents_id WHERE "
@@ -3056,7 +3269,8 @@ class U3A_Documents extends U3A_Database_Row
 		return $ret;
 	}
 
-	public static function get_documents_for_member($mbr, $type = U3A_Documents::PERSONAL_DOCUMENT_TYPE, $category = 0, $visibility = self::VISIBILITY_GROUP)
+	public static function get_documents_for_member($mbr, $type = U3A_Documents::PERSONAL_DOCUMENT_TYPE, $category = 0,
+	  $visibility = self::VISIBILITY_GROUP)
 	{
 		$members_id = U3A_Members::get_member_id($mbr);
 		$desc = "";
@@ -3114,7 +3328,8 @@ class U3A_Documents extends U3A_Database_Row
 		return ["total" => $total, "number_of_categories" => $ncats, "number_of_non_empty_categories" => $ncats1, "first_non_empty" => $first_non_empty, "documents" => $ret];
 	}
 
-	public static function get_all_documents_for_member($mbr, $type = U3A_Documents::PERSONAL_DOCUMENT_TYPE, $visibility = self::VISIBILITY_GROUP)
+	public static function get_all_documents_for_member($mbr, $type = U3A_Documents::PERSONAL_DOCUMENT_TYPE,
+	  $visibility = self::VISIBILITY_GROUP)
 	{
 		$members_id = U3A_Members::get_member_id($mbr);
 		$cats = U3A_Document_Categories::get_categories_for_member($members_id, $type);
@@ -3221,14 +3436,16 @@ class U3A_Permission_Types extends U3A_Database_Row
 
 	public static function list_permission_type_names($type, $management_enabled = 0)
 	{
-		$ret = U3A_Row::load_column("u3a_permission_types", "name", ["permission_type" => $type, "management_enabled<=" => $management_enabled], true, true);
+		$ret = U3A_Row::load_column("u3a_permission_types", "name",
+			 ["permission_type" => $type, "management_enabled<=" => $management_enabled], true, true);
 		return $ret;
 	}
 
 	public static function list_permission_types($type, $management_enabled = 0)
 	{
 //load_array_of_objects($objclass, $where = null, $orderby = null, $from = 0, $to = -1, $groupby = null, $distinct = false)
-		$ret = U3A_Row::load_array_of_objects("U3A_Permission_Types", ["permission_type" => $type, "management_enabled<=" => $management_enabled], null, 0, -1, null, true);
+		$ret = U3A_Row::load_array_of_objects("U3A_Permission_Types",
+			 ["permission_type" => $type, "management_enabled<=" => $management_enabled], null, 0, -1, null, true);
 		return $ret["result"];
 	}
 
@@ -3266,7 +3483,8 @@ class U3A_Permissions extends U3A_Database_Row
 			{
 				if (is_string($mbr) && !is_numeric($mbr))
 				{
-					$ret = U3A_Row::count_rows("U3A_Permissions", ["permission_types_id" => $permissions_types_id, "groups_id" => $groups_id, "committee_id" => U3A_Committee::get_committee_id($mbr)]) > 0;
+					$ret = U3A_Row::count_rows("U3A_Permissions",
+						 ["permission_types_id" => $permissions_types_id, "groups_id" => $groups_id, "committee_id" => U3A_Committee::get_committee_id($mbr)]) > 0;
 				}
 				if (!$ret)
 				{
@@ -3279,7 +3497,8 @@ class U3A_Permissions extends U3A_Database_Row
 						}
 						else
 						{
-							$ret = U3A_Row::count_rows("U3A_Permissions", ["permission_types_id" => $permissions_types_id, "groups_id" => $groups_id, "members_id" => $members_id]) > 0;
+							$ret = U3A_Row::count_rows("U3A_Permissions",
+								 ["permission_types_id" => $permissions_types_id, "groups_id" => $groups_id, "members_id" => $members_id]) > 0;
 						}
 					}
 				}
@@ -3446,7 +3665,8 @@ class U3A_Document_Categories extends U3A_Database_Row
 		$groups_id = U3A_Groups::get_group_id($grp);
 		if ($include_subs)
 		{
-			$cats = U3A_Row::load_column("u3a_document_categories", "id", ["groups_id" => $groups_id, "document_type" => $type], false, "name");
+			$cats = U3A_Row::load_column("u3a_document_categories", "id", ["groups_id" => $groups_id, "document_type" => $type],
+				 false, "name");
 		}
 		else
 		{
@@ -3463,12 +3683,14 @@ class U3A_Document_Categories extends U3A_Database_Row
 		return $ret;
 	}
 
-	public static function get_categories_for_member($mbr, $type = U3A_Documents::PERSONAL_DOCUMENT_TYPE, $include_subs = true)
+	public static function get_categories_for_member($mbr, $type = U3A_Documents::PERSONAL_DOCUMENT_TYPE,
+	  $include_subs = true)
 	{
 		$members_id = U3A_Members::get_member_id($mbr);
 		if ($include_subs)
 		{
-			$cats = U3A_Row::load_column("u3a_document_categories", "id", ["members_id" => $members_id, "groups_id" => -1, "document_type" => $type], false, "name");
+			$cats = U3A_Row::load_column("u3a_document_categories", "id",
+				 ["members_id" => $members_id, "groups_id" => -1, "document_type" => $type], false, "name");
 		}
 		else
 		{
@@ -3487,7 +3709,8 @@ class U3A_Document_Categories extends U3A_Database_Row
 
 	public static function get_categories_for_committee($type = U3A_Documents::PUBLIC_DOCUMENT_TYPE)
 	{
-		$cats = U3A_Row::load_column("u3a_document_categories", "id", ["members_id" => 0, "groups_id" => 0, "document_type" => $type], false, "name");
+		$cats = U3A_Row::load_column("u3a_document_categories", "id",
+			 ["members_id" => 0, "groups_id" => 0, "document_type" => $type], false, "name");
 		$ret = [];
 		foreach ($cats as $cat)
 		{
@@ -3617,25 +3840,29 @@ class U3A_Document_Categories extends U3A_Database_Row
 	public static function get_categories_for_group_by_name($grp, $type = 0)
 	{
 		$groups_id = U3A_Groups::get_group_id($grp);
-		$cats = U3A_Row::load_hash_of_all_objects("U3A_Document_Categories", ["groups_id" => $groups_id, "document_type" => $type], "name", "name");
+		$cats = U3A_Row::load_hash_of_all_objects("U3A_Document_Categories",
+			 ["groups_id" => $groups_id, "document_type" => $type], "name", "name");
 		return $cats;
 	}
 
 	public static function get_categories_for_member_by_name($mbr, $type = U3A_Documents::PERSONAL_DOCUMENT_TYPE)
 	{
 		$members_id = U3A_Members::get_member_id($mbr);
-		$cats = U3A_Row::load_hash_of_all_objects("U3A_Document_Categories", ["members_id" => $members_id, "groups_id" => -1, "document_type" => $type], "name", "name");
+		$cats = U3A_Row::load_hash_of_all_objects("U3A_Document_Categories",
+			 ["members_id" => $members_id, "groups_id" => -1, "document_type" => $type], "name", "name");
 		return $cats;
 	}
 
 	public static function get_categories_for_committee_by_name($type = U3A_Documents::PERSONAL_DOCUMENT_TYPE)
 	{
 		$members_id = U3A_Members::get_member_id($mbr);
-		$cats = U3A_Row::load_hash_of_all_objects("U3A_Document_Categories", ["members_id" => 0, "groups_id" => 0, "document_type" => $type], "name", "name");
+		$cats = U3A_Row::load_hash_of_all_objects("U3A_Document_Categories",
+			 ["members_id" => 0, "groups_id" => 0, "document_type" => $type], "name", "name");
 		return $cats;
 	}
 
-	public static function get_options_array_for_objects($object_array, $selected1 = null, $include_default = null, $include = null, $omit = null)
+	public static function get_options_array_for_objects($object_array, $selected1 = null, $include_default = null,
+	  $include = null, $omit = null)
 	{
 		$opts = null;
 		$selected = null;
@@ -3704,7 +3931,8 @@ class U3A_Document_Categories extends U3A_Database_Row
 		return ["options" => $opts, "selected" => $selected];
 	}
 
-	public static function get_options_array($id, $mbrgrp, $type = 0, $selected1 = null, $include_default = null, $include = null, $omit = null)
+	public static function get_options_array($id, $mbrgrp, $type = 0, $selected1 = null, $include_default = null,
+	  $include = null, $omit = null)
 	{
 		if ($mbrgrp === self::MEMBER_CATEGORY)
 		{
@@ -3717,7 +3945,8 @@ class U3A_Document_Categories extends U3A_Database_Row
 		return self::get_options_array_for_objects($object_array, $selected1, $include_default, $include, $omit);
 	}
 
-	public static function get_empty_select_list($id, $mbrgrp, $type = 0, $htmlid = "", $onchange = null, $selected1 = null, $include_default = true, $include = null)
+	public static function get_empty_select_list($id, $mbrgrp, $type = 0, $htmlid = "", $onchange = null,
+	  $selected1 = null, $include_default = true, $include = null)
 	{
 		if ($mbrgrp === self::MEMBER_CATEGORY)
 		{
@@ -3728,17 +3957,22 @@ class U3A_Document_Categories extends U3A_Database_Row
 			$object_array = self::get_empty_categories_for_group_by_name($id, $type);
 		}
 		$opts = self::get_options_array_for_objects($object_array, $selected1, $include_default, $include);
-		return self::get_select_list_from_options_list($opts, $id, $type, $htmlid, $onchange, $selected1, $include_default, $include);
+		return self::get_select_list_from_options_list($opts, $id, $type, $htmlid, $onchange, $selected1, $include_default,
+			 $include);
 	}
 
-	public static function get_select_list($id, $mbrgrp, $type = 0, $htmlid = "", $onchange = null, $selected1 = null, $include_default = false, $include = null, $omit = null)
+	public static function get_select_list($id, $mbrgrp, $type = 0, $htmlid = "", $onchange = null, $selected1 = null,
+	  $include_default = false, $include = null, $omit = null)
 	{
 //		write_log($selected1);
 		$opts = self::get_options_array($id, $mbrgrp, $type, $selected1, $include_default, $include, $omit);
-		return self::get_select_list_from_options_list($opts, $id, $type, $htmlid, $onchange, $selected1, $include_default, $include);
+//		write_log($id, $mbrgrp, $type, $selected1, $include_default, $include, $omit, $opts);
+		return self::get_select_list_from_options_list($opts, $id, $type, $htmlid, $onchange, $selected1, $include_default,
+			 $include);
 	}
 
-	public static function get_select_list_from_options_list($opts, $mbrgrp, $type = 0, $id = "", $onchange = null, $selected1 = null, $include_default = false, $include = null)
+	public static function get_select_list_from_options_list($opts, $mbrgrp, $type = 0, $id = "", $onchange = null,
+	  $selected1 = null, $include_default = false, $include = null)
 	{
 		$ret = null;
 		$selid = null;
@@ -3776,6 +4010,7 @@ class U3A_Document_Categories extends U3A_Database_Row
 				{
 					$where["document_type"] = $type;
 				}
+//				write_log($where);
 				$entity = U3A_Row::load_single_object("U3A_Document_Categories", $where);
 				if ($entity)
 				{
@@ -3974,7 +4209,8 @@ class U3A_Slideshows extends U3A_Database_Row
 			$category = U3A_Document_Categories::get_category_id($name);
 			if ($category)
 			{
-				$ret = U3A_Documents::get_attachment_ids_for_group($groups_id, $groups_id ? U3A_Documents::GROUP_IMAGE_TYPE : U3A_Documents::COMMITTEE_IMAGE_TYPE, $name);
+				$ret = U3A_Documents::get_attachment_ids_for_group($groups_id,
+					 $groups_id ? U3A_Documents::GROUP_IMAGE_TYPE : U3A_Documents::COMMITTEE_IMAGE_TYPE, $name);
 			}
 		}
 		return $ret;
@@ -4099,37 +4335,54 @@ class U3A_Sent_Mail extends U3A_Database_Row
 		return ["contents" => $ret, "changed" => $changed];
 	}
 
-	public static function send($sender_id, $to, $subject1, $contents, $cc = null, $bcc = null, $from = null, $reply_to = null, $attachments = null, $html = true, $committee = false)
+	public static function send($sender_id, $to, $subject1, $contents, $cc = null, $bcc = null, $from = null,
+	  $reply_to = null, $attachments = null, $html = true, $committee = false)
 	{
 		$mailer = U3A_Mail::get_the_mailer();
 		$config = U3A_CONFIG::get_the_config();
 		$subject = '[' . $config->U3ANAME . ' U3A] ' . $subject1;
 //		write_log("sending mail $subject");
 //		write_log($bcc);
-		$ret = $mailer->sendmail($to, $subject, $contents, $cc, $bcc, $from, $reply_to, $attachments, $html);
+		$usm = new U3A_Sent_Mail([
+			"sender_id"		 => $sender_id,
+			"sent_to"		 => $to,
+			"subject"		 => $subject,
+			"contents"		 => $contents,
+			"cc"				 => json_encode($cc),
+			"bcc"				 => json_encode($bcc),
+			"sent_from"		 => $from,
+			"reply_to"		 => $reply_to,
+			"attachments"	 => json_encode($attachments),
+			"html"			 => $html ? 1 : 0,
+			"committee"		 => $committee ? 1 : 0
+		]);
+		write_log($bcc);
+		write_log($usm);
+//		$ret = $mailer->sendmail($to, $subject, $contents, $cc, $bcc, $from, $reply_to, $attachments, $html);
+		$ret = $usm->sendit();
 		if ($ret)
 		{
-			$usm = new U3A_Sent_Mail([
-				"sender_id"		 => $sender_id,
-				"sent_to"		 => $to,
-				"subject"		 => $subject,
-				"contents"		 => $contents,
-				"cc"				 => json_encode($cc),
-				"bcc"				 => json_encode($bcc),
-				"sent_from"		 => $from,
-				"reply_to"		 => $reply_to,
-				"attachments"	 => json_encode($attachments),
-				"html"			 => $html ? 1 : 0,
-				"committee"		 => $committee ? 1 : 0
-			]);
 			$usm->save();
 		}
 		return $ret;
 	}
 
+	private $_mailer;
+
+//	private $_config;
+
 	public function __construct($param = null)
 	{
 		parent::__construct("u3a_sent_mail", "id", $param, null, null, null);
+		$this->_mailer = U3A_Mail::get_the_mailer();
+//		$this->_config = U3A_CONFIG::get_the_config();
+	}
+
+	public function sendit()
+	{
+		return $this->_mailer->sendmail($this->_data["sent_to"], $this->_data["subject"], $this->_data["contents"],
+			 json_decode($this->_data["cc"]), json_decode($this->_data["bcc"]), $this->_data["sent_from"],
+			 $this->_data["reply_to"], json_decode($this->_data["attachments"]), $this->_data["html"]);
 	}
 
 }
@@ -4496,26 +4749,32 @@ class U3A_Category_Category_Relationship extends U3A_Database_Row
 
 	public static function has_equivalent($categories_id)
 	{
-		return U3A_Row::count_rows("U3A_Category_Category_Relationship", ["from_categories_id" => $categories_id, "relationship_type" => self::EQUIVALENCE_TYPE]) > 0;
+		return U3A_Row::count_rows("U3A_Category_Category_Relationship",
+			 ["from_categories_id" => $categories_id, "relationship_type" => self::EQUIVALENCE_TYPE]) > 0;
 	}
 
 	public static function get_equivalence($categories_id1, $categories_id2)
 	{
-		$ret = U3A_Row::load_single_object("U3A_Category_Category_Relationship", ["from_categories_id" => $categories_id1, "to_categories_id" => $categories_id2, "relationship_type" => self::EQUIVALENCE_TYPE]);
+		$ret = U3A_Row::load_single_object("U3A_Category_Category_Relationship",
+			 ["from_categories_id" => $categories_id1, "to_categories_id" => $categories_id2, "relationship_type" => self::EQUIVALENCE_TYPE]);
 		if (!$ret)
 		{
-			$ret = U3A_Row::load_single_object("U3A_Category_Category_Relationship", ["from_categories_id" => $categories_id2, "to_categories_id" => $categories_id1, "relationship_type" => self::EQUIVALENCE_TYPE]);
+			$ret = U3A_Row::load_single_object("U3A_Category_Category_Relationship",
+				 ["from_categories_id" => $categories_id2, "to_categories_id" => $categories_id1, "relationship_type" => self::EQUIVALENCE_TYPE]);
 		}
 		return $ret;
 	}
 
 	public static function get_strict_equivalence($from_categories_id, $to_categories_id)
 	{
-		$ret = U3A_Row::load_single_object("U3A_Category_Category_Relationship", ["from_categories_id" => $from_categories_id, "to_categories_id" => $to_categories_id, "relationship_type" => self::EQUIVALENCE_TYPE]);
+		$ret = U3A_Row::load_single_object("U3A_Category_Category_Relationship",
+			 ["from_categories_id" => $from_categories_id, "to_categories_id" => $to_categories_id, "relationship_type" => self::EQUIVALENCE_TYPE]);
 		return $ret;
 	}
 
-	public static function construct_relationship($from_categories_id, $to_categories_id, $from_id = 0, $to_id = 0, $from_type = U3A_Document_Categories::GROUP_CATEGORY, $to_type = U3A_Document_Categories::GROUP_CATEGORY, $name = null, $relationship_type = self::CHILD_TYPE)
+	public static function construct_relationship($from_categories_id, $to_categories_id, $from_id = 0, $to_id = 0,
+	  $from_type = U3A_Document_Categories::GROUP_CATEGORY, $to_type = U3A_Document_Categories::GROUP_CATEGORY,
+	  $name = null, $relationship_type = self::CHILD_TYPE)
 	{
 		$ret = null;
 		if (!$name)
@@ -4924,7 +5183,7 @@ class U3A_Enumeration_Values extends U3A_Database_Row
 class U3A_Subscriptions extends U3A_Database_Row
 {
 
-	public static function get_payments($from_date, $to_date = null)
+	public static function get_payments($from_date, $to_date = null, $giftaid = FALSE)
 	{
 		if (is_numeric($from_date))
 		{
@@ -4949,9 +5208,17 @@ class U3A_Subscriptions extends U3A_Database_Row
 		{
 			$upto = time();
 		}
+		if ($giftaid)
+		{
+			$ga = "AND u3a_members.gift_aid IS NOT NULL";
+		}
+		else
+		{
+			$ga = "";
+		}
 		$sql = "SELECT u3a_members.title as title, u3a_members.forename as first_name, u3a_members.surname as surname, u3a_members.house as house_number_or_name, u3a_members.postcode as postcode, " .
 		  "u3a_subscriptions.date_paid as donation_date, u3a_subscriptions.amount as donation_amount FROM `u3a_subscriptions` JOIN u3a_members ON u3a_members.id = u3a_subscriptions.members_id " .
-		  "WHERE UNIX_TIMESTAMP(u3a_subscriptions.date_paid) > $since AND UNIX_TIMESTAMP(u3a_subscriptions.date_paid) < $upto ORDER BY u3a_members.surname";
+		  "WHERE u3a_members.status = 'Current' $ga AND UNIX_TIMESTAMP(u3a_subscriptions.date_paid) > $since AND UNIX_TIMESTAMP(u3a_subscriptions.date_paid) < $upto ORDER BY u3a_members.surname";
 		$ret = Project_Details::get_db()->loadList($sql);
 		return $ret;
 	}

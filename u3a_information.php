@@ -1,9 +1,21 @@
 <?php
 
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+/* Arda v1.0
+ * Copyright 2021 Mike Curtis (mike@computermike.biz)
+ *
+ * This file is part of Arda.
+ *   Arda is free software: you can redistribute it and/or modify
+ *   it under the terms of the GNU Affero General Public License version 3
+ *   as published by the Free Software Foundation
+ *
+ *   Ardais distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU Affero General Public License for more details.
+ *
+ *   You can get a copy The GNU Affero General Public license from
+ *   http://www.gnu.org/licenses/agpl-3.0.html
+ *
  */
 require_once 'U3ADatabase.php';
 require_once 'u3a_config.php';
@@ -471,6 +483,54 @@ class U3A_Information
 		return $page->ID;
 	}
 
+	public static function u3a_manage_venues_page()
+	{
+		$page = get_page_by_title("manage venues");
+		if (!$page)
+		{
+			$pageguid = site_url() . "manage_venues";
+			$vnmng = [
+				"post_type"			 => "page",
+				"post_title"		 => "manage venues",
+				"post_status"		 => 'publish',
+				"post_content"		 => '[u3a_manage_venues]',
+				'post_name'			 => "manage_venues",
+				'comment_status'	 => 'closed',
+				'ping_status'		 => 'closed',
+				'post_author'		 => 1,
+				'menu_order'		 => 0,
+				'guid'				 => $pageguid
+			];
+			$pgid = wp_insert_post($vnmng);
+			$page = get_page_by_title("manage venues");
+		}
+		return $page->ID;
+	}
+
+	public static function u3a_manage_links_page()
+	{
+		$page = get_page_by_title("manage links");
+		if (!$page)
+		{
+			$pageguid = site_url() . "manage_links";
+			$lnmng = [
+				"post_type"			 => "page",
+				"post_title"		 => "manage links",
+				"post_status"		 => 'publish',
+				"post_content"		 => '[u3a_manage_links member="0" group="0"]',
+				'post_name'			 => "manage_links",
+				'comment_status'	 => 'closed',
+				'ping_status'		 => 'closed',
+				'post_author'		 => 1,
+				'menu_order'		 => 0,
+				'guid'				 => $pageguid
+			];
+			$pgid = wp_insert_post($lnmng);
+			$page = get_page_by_title("manage links");
+		}
+		return $page->ID;
+	}
+
 	public static function u3a_manage_committee_documents_page()
 	{
 		$page = get_page_by_title("manage committee documents");
@@ -882,16 +942,19 @@ class U3A_Information
 				else
 				{
 					// check there is such a permission
-					$permissions_types_id = U3A_Permission_Types::get_permission_types_id($permit, U3A_Permission_Types::GROUP_TYPE, self::u3a_management_enabled());
+					$permissions_types_id = U3A_Permission_Types::get_permission_types_id($permit, U3A_Permission_Types::GROUP_TYPE,
+						 self::u3a_management_enabled());
 					if ($permissions_types_id)
 					{
 //						write_log("check as member");
 						// check permission as member
-						$ret = U3A_Row::has_rows("U3A_Permissions", ["groups_id" => $groups_id, "members_id" => $members_id, "permission_types_id" => $permissions_types_id]);
+						$ret = U3A_Row::has_rows("U3A_Permissions",
+							 ["groups_id" => $groups_id, "members_id" => $members_id, "permission_types_id" => $permissions_types_id]);
 						if (!$ret)
 						{
 							// check for everyone permission
-							$ret = U3A_Row::has_rows("U3A_Permissions", ["groups_id" => $groups_id, "members_id" => 0, "permission_types_id" => $permissions_types_id]);
+							$ret = U3A_Row::has_rows("U3A_Permissions",
+								 ["groups_id" => $groups_id, "members_id" => 0, "permission_types_id" => $permissions_types_id]);
 						}
 						if (!$ret)
 						{
@@ -902,7 +965,8 @@ class U3A_Information
 //							write_log($committee_id);
 							if ($committee_id)
 							{
-								$ret = U3A_Row::has_rows("U3A_Permissions", ["groups_id" => $groups_id, "committee_id" => $committee_id, "permission_types_id" => $permissions_types_id]);
+								$ret = U3A_Row::has_rows("U3A_Permissions",
+									 ["groups_id" => $groups_id, "committee_id" => $committee_id, "permission_types_id" => $permissions_types_id]);
 							}
 						}
 					}
@@ -911,7 +975,8 @@ class U3A_Information
 			else
 			{
 				// check there is such a permission
-				$permissions_types_id = U3A_Permission_Types::get_permission_types_id($permit, U3A_Permission_Types::COMMITTEE_TYPE, self::u3a_management_enabled());
+				$permissions_types_id = U3A_Permission_Types::get_permission_types_id($permit, U3A_Permission_Types::COMMITTEE_TYPE,
+					 self::u3a_management_enabled());
 				if ($permissions_types_id)
 				{
 					$members_id = U3A_Members::get_member_id($member);
@@ -921,13 +986,15 @@ class U3A_Information
 //					$committee_id = U3A_Committee::get_committee_id($member);
 					if ($committee_id)
 					{
-						$ret = U3A_Row::has_rows("U3A_Permissions", ["groups_id" => $groups_id, "committee_id" => $committee_id, "permission_types_id" => $permissions_types_id]);
+						$ret = U3A_Row::has_rows("U3A_Permissions",
+							 ["groups_id" => $groups_id, "committee_id" => $committee_id, "permission_types_id" => $permissions_types_id]);
 					}
 					{
 						$roles_id = U3A_Roles::get_roles_ids_for_member($members_id);
 						if ($roles_id)
 						{
-							$ret = U3A_Row::has_rows("U3A_Permissions", ["groups_id" => $groups_id, "roles_id" => $roles_id, "permission_types_id" => $permissions_types_id]);
+							$ret = U3A_Row::has_rows("U3A_Permissions",
+								 ["groups_id" => $groups_id, "roles_id" => $roles_id, "permission_types_id" => $permissions_types_id]);
 						}
 					}
 				}
@@ -990,7 +1057,7 @@ class U3A_Information
 		$ml = U3A_CONFIG::u3a_get_as_timestamp("MEMBERSHIP_LAPSES", $yr);
 		if ($ml < $renew)
 		{
-			$ml = U3A_CONFIG::u3a_get_as_timestamp($config_value, $yr + 1);
+			$ml = U3A_CONFIG::u3a_get_as_timestamp("MEMBERSHIP_LAPSES", $yr + 1);
 		}
 		return $ml;
 	}
